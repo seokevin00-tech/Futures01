@@ -2019,19 +2019,44 @@ def _clip(text: Any, limit: int = 90) -> str:
     return s if len(s) <= limit else s[: limit - 3] + "..."
 
 
+#: Direction words recognised in a cross-market reading, with their sign.
+_DIRECTION_TOKENS = (
+    ("+", 1), ("up", 1), ("higher", 1), ("firmer", 1), ("stronger", 1),
+    ("rally", 1), ("bid", 1),
+    ("-", -1), ("down", -1), ("lower", -1), ("softer", -1), ("weaker", -1),
+    ("sell", -1), ("offered", -1),
+)
+
+
 def _direction_of_text(value: str) -> int:
-    """Sign of a cross-market reading like ``"+0.4%"`` or ``"yields lower"``."""
+    """Sign of a cross-market reading like ``"+0.4%"`` or ``"yields lower"``.
+
+    Returns 0 when the text carries no direction *or* carries both, because a
+    reading that says two opposite things does not have a direction.
+
+    The earlier implementation scanned the token table in its own order rather
+    than by position in the string, so the first *positive* token anywhere beat
+    any negative token anywhere: ``"equities lower, yields up"`` and
+    ``"MNQ +0.8%, MES -0.6%"`` both read as risk-on. That sign feeds a macro
+    bias for a live account, so a confidently wrong answer is materially worse
+    than no answer - hence ambiguity resolves to 0 rather than to a guess.
+    """
     s = value.strip().lower()
     if not s:
         return 0
-    for token, sign in (("+", 1), ("up", 1), ("higher", 1), ("firmer", 1),
-                        ("stronger", 1), ("rally", 1), ("bid", 1),
-                        ("-", -1), ("down", -1), ("lower", -1), ("softer", -1),
-                        ("weaker", -1), ("sell", -1), ("offered", -1)):
-        if s.startswith(token) or f" {token}" in f" {s}":
-            return sign
+
+    padded = f" {s}"
+    signs = set()
+    for token, sign in _DIRECTION_TOKENS:
+        if s.startswith(token) or f" {token}" in padded:
+            signs.add(sign)
+            if len(signs) > 1:
+                return 0        # contradictory reading - no single direction
+    if signs:
+        return signs.pop()
+
     try:
-        value = float(s.rstrip("%bp "))
+        number = float(s.rstrip("%bp "))
     except ValueError:
         return 0
-    return 1 if value > 0 else -1 if value < 0 else 0
+    return 1 if number > 0 else -1 if number < 0 else 0

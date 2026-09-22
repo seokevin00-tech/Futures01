@@ -154,3 +154,38 @@ def test_analysts_remain_mutually_unreachable():
         others = {r for r in (Role.ANALYST_A, Role.ANALYST_B, Role.ANALYST_C)
                   if r is not role}
         assert not (ROLES[role].may_message & others)
+
+
+# ---------------------------------------------------------------------------
+# Regression: cross-market direction parsing
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("text,expected", [
+    # Unambiguous readings keep their sign.
+    ("+0.4%", 1),
+    ("-0.6%", -1),
+    ("yields lower", -1),
+    ("dollar stronger", 1),
+    ("down 0.5%", -1),
+    ("0.8", 1),
+    ("-1.2", -1),
+    ("0", 0),
+    ("", 0),
+    ("unchanged", 0),
+    # Contradictory readings must resolve to "no direction". The original
+    # implementation scanned the token table in its own order rather than by
+    # position in the string, so the first positive token anywhere outranked
+    # any negative token anywhere and both of these read as risk-on.
+    ("MNQ +0.8%, MES -0.6%", 0),
+    ("equities lower, yields up", 0),
+    ("stocks higher, dollar weaker", 0),
+])
+def test_cross_market_direction_never_guesses_on_a_contradictory_reading(text, expected):
+    """A reading that says two opposite things has no direction.
+
+    This sign feeds a macro bias for a live account, so a confidently wrong
+    answer is materially worse than no answer.
+    """
+    analysts = pytest.importorskip("futures_agents.agents.analysts")
+    assert analysts._direction_of_text(text) == expected, (
+        f"{text!r} should parse as {expected}")
