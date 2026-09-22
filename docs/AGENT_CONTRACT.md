@@ -267,3 +267,30 @@ the pooler will discard all six. A specialist that concedes a well-measured
 challenge against its own finding has done its job correctly — **conceding is
 not losing.** The scorecard records challenges filed, upheld, received and
 survived, so both padding and stonewalling are visible.
+
+## Ruling: do not file SAMPLE_TOO_SMALL from a rival's published trade count
+
+The reversion specialist asked whether it should file `SAMPLE_TOO_SMALL`
+against rivals, since every finding publishes its trade count and the objection
+would be fully measured and trivially cheap to produce.
+
+**No.** Three reasons:
+
+1. **It is fatal, mechanical and free.** Any specialist could file it against
+   every rival finding below the floor, in bulk, without doing any research.
+   That is padding — one of the two ways an adversarial process gets gamed, and
+   the reason the scorecard tracks challenges filed against challenges upheld.
+2. **A uniform floor belongs in the pooler**, applied to everyone equally and
+   visibly, not wielded selectively by whichever specialist thinks to use it.
+3. **It is nobody's lens.** Each specialist earns its place by finding what the
+   others cannot see — the trend desk's drift attribution, the reversion desk's
+   cost bar, the liquidity desk's time-of-day slicing. A challenge anyone could
+   file teaches the team nothing.
+
+File challenges your own analysis uniquely qualifies you to make. If a rival's
+sample is genuinely too thin, the sample-size penalty in `robust_score` and the
+deflation in `assess_robustness` already handle it, on every finding, without
+anyone having to notice.
+
+The specialist that raised this declined to file on exactly these grounds
+before asking. That judgement was correct.
