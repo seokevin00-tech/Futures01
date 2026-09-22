@@ -182,7 +182,13 @@ def _build_config(args: argparse.Namespace, *,
                   symbols: Optional[Sequence[str]] = None,
                   max_strategies: Optional[int] = None) -> SystemConfig:
     """One config per invocation: file, then environment, then flags."""
-    cfg = load_config(args.config) if args.config else SystemConfig.from_env()
+    try:
+        cfg = load_config(args.config) if args.config else SystemConfig.from_env()
+    except (KeyError, ValueError) as exc:
+        where = args.config or "the environment (FA_* variables)"
+        raise SystemExit(f"{PROG}: {where}: {str(exc).strip(chr(34))}") from None
+    except OSError as exc:
+        raise SystemExit(f"{PROG}: could not read {args.config}: {exc}") from None
     if symbols:
         cfg.symbols = tuple(s.upper() for s in symbols)
     if args.db:
@@ -196,7 +202,12 @@ def _build_config(args: argparse.Namespace, *,
         cfg.account = replace(cfg.account, starting_equity=float(args.equity))
     if max_strategies is not None:
         cfg.max_combinations = int(max_strategies)
-    cfg.validate()
+    try:
+        cfg.validate()
+    except (KeyError, ValueError) as exc:
+        # A mistyped symbol or timeframe is a usage error. The operator needs
+        # the list of valid values, not a stack trace through the config module.
+        raise SystemExit(f"{PROG}: {str(exc).strip(chr(34))}") from None
     return cfg
 
 
@@ -577,6 +588,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             pass
         return 0
     except SystemExit as exc:
+        if isinstance(exc.code, str):
+            print(exc.code, file=sys.stderr)
+            return 2
         return int(exc.code or 0)
     except Exception as exc:                            # noqa: BLE001
         # A traceback is the right thing for an engineer and the wrong thing for

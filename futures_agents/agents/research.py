@@ -423,8 +423,12 @@ class StrategyResearchAgent(DomainAgent):
             return AgentResult(ok=True, summary=f"{symbol}: nothing to optimise",
                                payload={"symbol": symbol, "strategies": 0})
 
+        # Fetched generously and trimmed afterwards: the database query returns
+        # regime and session slices alongside strategy rows, so a tight limit
+        # can come back holding no strategy rows at all.
         wanted = self._requested_ids(task) or [
-            row["strategy_id"] for row in self._stored_rows(symbol, limit * 4)][:limit]
+            row["strategy_id"]
+            for row in self._stored_rows(symbol, max(limit * 20, 100))][:limit]
         by_id = {s.strategy_id: s for s in strategies}
         targets = [by_id[sid] for sid in wanted if sid in by_id][:limit]
         if not targets:

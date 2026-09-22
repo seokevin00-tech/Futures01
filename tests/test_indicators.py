@@ -72,11 +72,12 @@ INDICATORS: Tuple[Tuple[str, Callable[[int], Cols]], ...] = (
     ("roc", lambda k: _cols(roc(CLOSES[:k], 5))),
 )
 
-_ADX_DEFECT = (
-    "adx() suppresses +DI/-DI (and ADX at its first valid bar) until the series "
-    "holds 2*period+1 bars, although they are computable from period+1 bars. "
-    "Appending a bar therefore turns historical Nones into numbers. "
-    "See the comment on test_adx_published_values_never_change."
+_ADX_REGRESSION = (
+    "adx() once carried a blanket `n < period*2+1` guard that returned all-None "
+    "for short series, although +DI/-DI are computable from period+1 bars. "
+    "Appending a bar therefore turned historical Nones into numbers - a "
+    "published value changing because of future data. Fixed by leaving warm-up "
+    "to rma(), which is prefix-stable. These two tests guard the fix."
 )
 
 
@@ -103,11 +104,7 @@ def _lookahead_violations(fn: Callable[[int], Cols], n: int,
 # --------------------------------------------------------------------------
 
 @pytest.mark.parametrize("name,fn", [
-    pytest.param(
-        n, f,
-        marks=pytest.mark.xfail(strict=False, reason=_ADX_DEFECT) if n == "adx"
-        else (),
-        id=n)
+    pytest.param(n, f, id=n)
     for n, f in INDICATORS
 ])
 def test_appending_a_future_bar_never_changes_history(name, fn):
@@ -123,11 +120,7 @@ def test_appending_a_future_bar_never_changes_history(name, fn):
 
 
 @pytest.mark.parametrize("name,fn", [
-    pytest.param(
-        n, f,
-        marks=pytest.mark.xfail(strict=False, reason=_ADX_DEFECT) if n == "adx"
-        else (),
-        id=n)
+    pytest.param(n, f, id=n)
     for n, f in INDICATORS
 ])
 def test_every_prefix_agrees_with_the_full_series(name, fn):

@@ -155,8 +155,9 @@ def test_snapshots_do_not_change_when_more_data_arrives():
             assert ([lv.to_dict() for lv in x.sr_levels]
                     == [lv.to_dict() for lv in y.sr_levels]), (
                 f"bar {i}, {tf}m: S/R levels changed when later bars arrived")
-            # Identity and geometry only: the ``filled`` flag on these objects
-            # IS back-filled from the future - see the xfail test below.
+            # Identity and geometry only. The ``filled`` flag used to be
+            # back-filled from the future; active_fvgs now masks it to the
+            # observing bar, and the test below guards that.
             assert ([(g.index, g.top, g.bottom, g.direction) for g in x.active_fvgs]
                     == [(g.index, g.top, g.bottom, g.direction) for g in y.active_fvgs]), (
                 f"bar {i}, {tf}m: active FVGs changed when later bars arrived")
@@ -190,18 +191,15 @@ def test_an_fvg_is_dropped_from_active_once_it_has_actually_been_filled():
         "a filled gap must not remain active")
 
 
-@pytest.mark.xfail(strict=False, reason=(
-    "TimeframeFrame.active_fvgs (features.py:341) filters on filled_index but "
-    "does not mask it, so an FVG handed out at bar 2 carries filled_index=4 "
-    "and FVG.to_dict() reports filled=True - fill state from a bar that has "
-    "not happened yet."))
 def test_active_fvg_fill_state_is_not_back_filled_from_the_future():
     """A gap that is still open at bar *i* must not say it was filled.
 
     ``fair_value_gaps`` is called once over the whole series with
-    ``track_fills=True`` (``features.py:210``), so every FVG's ``filled_index``
-    is resolved against data the snapshot bar has not seen. The membership
-    filter compensates, but the object itself still carries the future index.
+    ``track_fills=True``, so every FVG's ``filled_index`` is resolved against
+    data the snapshot bar has not seen. Membership filtering alone is not
+    enough: the object itself must not carry a future index, or ``FVG.filled``
+    and ``to_dict()`` report a fill that has not happened. ``active_fvgs``
+    masks it; this test guards that masking.
     """
     frame = SymbolFrame(_fvg_then_fill_series(), (1,)).frames[1]
     for i in (2, 3):
