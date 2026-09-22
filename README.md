@@ -18,15 +18,18 @@ vendor, no network, no third-party packages.
 
 ## What it actually does
 
-Ten agents, each owning its own files and talking over a permissioned message
-bus:
+Thirteen agents, each owning its own files and talking over a permissioned
+message bus:
 
 | Agent | Job |
 |---|---|
 | **Manager** | Owns the task board. Decomposes, routes, gates on dependencies. Performs no market analysis. |
 | **Developer** | Backend engineering, and verifies the deterministic core's invariants before anything downstream is trusted. |
 | **News & Macro** | Economic calendar as recurrence rules, blackout windows, and a measured news→reaction database. |
-| **Strategy Research** | Per-symbol strategy universes, walk-forward, Monte Carlo, robustness. |
+| **Research Desk Lead** | Holds no strategy family. Pools the specialists' findings and scores their debate. |
+| **Research: Trend** | Trend, pullback, momentum, multi-timeframe. |
+| **Research: Reversion** | Mean reversion, reversal, VWAP. |
+| **Research: Liquidity** | Liquidity, opening range, breakout. |
 | **Analyst A** | Technical and market structure. |
 | **Analyst B** | Quantitative and statistical. |
 | **Analyst C** | Macro, news and cross-market context. |
@@ -34,9 +37,45 @@ bus:
 | **Risk** | Independent of every prediction agent. Holds an unconditional veto. |
 | **Journal** | Records every decision — including the ones not taken — and measures who was actually right. |
 
-The three analysts are **structurally prevented** from reading or messaging each
-other. That is enforced in code, not by convention, because three agents that can
-see each other's conclusions produce one opinion and two echoes.
+Two groups of three, with **opposite** communication rules, and the difference
+is the point:
+
+- The three **analysts** are structurally prevented from reading or messaging
+  each other. Enforced in code, not by convention, because three agents that can
+  see each other's conclusions produce one opinion and two echoes — and the
+  decision layer consumes their *independence* as a signal.
+- The three **researchers** are required to talk. An edge nobody tried to break
+  is an edge nobody has tested.
+
+## The research debate
+
+Each specialist researches its own families, then cross-examines the other two
+before anything reaches the live system. Three rules keep it from becoming
+theatre:
+
+1. **A challenge without a measurement is discarded.** "I doubt this" costs
+   nothing and proves nothing.
+2. **A rebuttal without a measurement is downgraded to unanswered.** So
+   asserting is strictly worse than conceding, and conceding a well-measured
+   challenge is doing the job correctly.
+3. **Pooling is deterministic and symmetric.** Relabel the owners and the
+   ranking is identical, so the desk lead cannot favour anyone. It holds no
+   family, which is precisely why it adjudicates.
+
+The sharpest tool is `adversarial_retest`: a challenger re-runs a rival's
+strategy on a split its owner *did not choose*. An edge that only survives the
+split its author picked was fitted to that split.
+
+Challenge kinds are graded. `OUT_OF_SAMPLE_FAILURE`, `DATA_MINING` and
+`SAMPLE_TOO_SMALL` disqualify a finding outright; `REGIME_ARTEFACT`,
+`COST_FRAGILE` and `REDUNDANT` apply penalties, because "worse than claimed" and
+"not real" are different findings. Redundant edges are collapsed by connected
+component, so one edge found by two specialists counts once rather than reading
+as corroboration.
+
+The scorecard records challenges filed, upheld, received and survived — so both
+padding (filing unsubstantiated objections) and stonewalling (asserting
+rebuttals with no numbers) are visible in the numbers.
 
 ---
 
@@ -101,15 +140,33 @@ build environment), and every LLM path — those were exercised against stub
 clients, never a live API call.
 
 **The important caveat.** Everything so far has run on **synthetic data**, and on
-it the system concludes NO TRADE essentially every time. That is the machinery
-working as specified — no strategy has earned out-of-sample eligibility, so the
-`strategy_edge` gate fires — but it means:
+it the system concludes NO TRADE essentially every time. Measured, on a
+150-strategy MNQ sweep with a 6-fold anchored walk-forward:
 
-> The machinery is sound. It has not yet found an edge, because it has not yet
-> been pointed at real market data.
+```
+Combined in-sample:      2,493 trades   +0.137R   PF 1.35
+Combined out-of-sample:    457 trades   -0.050R   PF 0.89
+Walk-forward efficiency: -0.37                    credible: NO
+Live-eligible strategies: 0 of 150
+```
+
+That is a textbook picture of in-sample optimism, and nothing was tuned to
+produce a survivor. One strategy genuinely *did* survive out of sample (+0.145R
+over 68 trades, efficiency +0.639) and was still rejected: its t-statistic was
+1.58 over 99 trades, while searching 150 combinations buys `sqrt(2·ln 150)` =
+3.17 t-units for free, leaving a deflated expectancy of 0.000R. Perturbing its
+exit geometry 25% left 14% of the edge — a spike, not a plateau. Two other
+finalists failed on probability of account failure: 13.2% and 12.4% at $240 per
+trade.
+
+So:
+
+> The machinery is sound, and demonstrably strict. It has not found an edge,
+> because it has not been pointed at real market data.
 
 Until it runs against real bars, NO TRADE will stay the near-universal answer.
-Point it at real data before drawing any conclusion about whether an edge exists.
+Point it at real data before drawing any conclusion about whether an edge exists —
+and expect the same machinery to reject most of what it finds there too.
 
 ---
 
