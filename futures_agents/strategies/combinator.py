@@ -126,11 +126,11 @@ TEMPLATES: Tuple[StrategyTemplate, ...] = (
         description="Trend continuation: structure and momentum aligned with the regime",
         required_groups=("trend", "structure"),
         optional_groups=("momentum", "orderflow", "volume", "multitimeframe", "vwap",
-                         "profile", "imbalance"),
+                         "profile", "imbalance", "regime"),
         max_optional=3,
         base_filters=("volatility_normal", "volume_not_thin", "regime_trending"),
         exits=tuple(expand_exit_models()[:3]),
-        optional_filters=("outside_news_blackout", "no_imminent_release"),
+        optional_filters=("outside_news_blackout", "no_imminent_release", "adx_trending", "efficiency_high", "away_from_zone"),
     ),
     StrategyTemplate(
         group="PULLBACK",
@@ -141,7 +141,7 @@ TEMPLATES: Tuple[StrategyTemplate, ...] = (
         max_optional=3,
         base_filters=("volatility_normal", "volume_not_thin", "mtf_not_conflicted"),
         exits=tuple(expand_exit_models()[:4]),
-        optional_filters=("outside_news_blackout", "no_imminent_release"),
+        optional_filters=("outside_news_blackout", "no_imminent_release", "no_recent_imbalance"),
     ),
     StrategyTemplate(
         group="VWAP",
@@ -152,7 +152,7 @@ TEMPLATES: Tuple[StrategyTemplate, ...] = (
         max_optional=3,
         base_filters=("volatility_normal", "volume_not_thin"),
         exits=tuple(expand_exit_models()),
-        optional_filters=("outside_news_blackout", "no_imminent_release"),
+        optional_filters=("outside_news_blackout", "no_imminent_release", "vwap_proximity"),
         exclusive=(("above_vwap", "vwap_proximity"),),
     ),
     StrategyTemplate(
@@ -164,18 +164,18 @@ TEMPLATES: Tuple[StrategyTemplate, ...] = (
         max_optional=3,
         base_filters=("volatility_normal", "volume_not_thin", "avoid_lunch"),
         exits=tuple(expand_exit_models()[:4]),
-        optional_filters=("outside_news_blackout", "no_imminent_release"),
+        optional_filters=("outside_news_blackout", "no_imminent_release", "no_recent_imbalance"),
     ),
     StrategyTemplate(
         group="MOMENTUM",
         description="Momentum ignition confirmed by participation",
         required_groups=("momentum", "volume"),
         optional_groups=("trend", "orderflow", "structure", "multitimeframe",
-                         "imbalance", "openinterest"),
+                         "imbalance", "openinterest", "regime"),
         max_optional=3,
         base_filters=("volatility_normal",),
         exits=tuple(expand_exit_models()[:3]),
-        optional_filters=("outside_news_blackout", "post_news_window"),
+        optional_filters=("outside_news_blackout", "post_news_window", "relative_volume_high", "volume_surge", "oi_expanding"),
     ),
     StrategyTemplate(
         group="OPENING_RANGE",
@@ -187,7 +187,7 @@ TEMPLATES: Tuple[StrategyTemplate, ...] = (
         base_filters=("volatility_normal", "volume_not_thin", "opening_drive_window"),
         filters=StrategyFilters(rth_only=True, max_minutes_since_open=150),
         exits=tuple(expand_exit_models()),
-        optional_filters=("outside_news_blackout", "no_imminent_release"),
+        optional_filters=("outside_news_blackout", "no_imminent_release", "relative_volume_high"),
     ),
     StrategyTemplate(
         group="LIQUIDITY",
@@ -198,7 +198,7 @@ TEMPLATES: Tuple[StrategyTemplate, ...] = (
         max_optional=3,
         base_filters=("volatility_normal", "volume_not_thin", "after_opening_range"),
         exits=tuple(expand_exit_models()),
-        optional_filters=("outside_news_blackout", "no_imminent_release"),
+        optional_filters=("outside_news_blackout", "no_imminent_release", "power_hour"),
     ),
     StrategyTemplate(
         group="MEAN_REVERSION",
@@ -209,7 +209,7 @@ TEMPLATES: Tuple[StrategyTemplate, ...] = (
         max_optional=3,
         base_filters=("volatility_normal", "volume_not_thin", "regime_ranging"),
         exits=tuple(expand_exit_models()[:4]),
-        optional_filters=("outside_news_blackout", "no_imminent_release"),
+        optional_filters=("outside_news_blackout", "no_imminent_release", "away_from_hvn"),
     ),
     StrategyTemplate(
         group="BREAKOUT",
@@ -220,7 +220,7 @@ TEMPLATES: Tuple[StrategyTemplate, ...] = (
         max_optional=3,
         base_filters=("volatility_compressed", "volume_not_thin"),
         exits=tuple(expand_exit_models()[:3]),
-        optional_filters=("outside_news_blackout", "no_imminent_release"),
+        optional_filters=("outside_news_blackout", "no_imminent_release", "volatility_expanding", "volume_surge", "oi_expanding"),
     ),
     StrategyTemplate(
         group="MULTI_TIMEFRAME",
@@ -231,7 +231,7 @@ TEMPLATES: Tuple[StrategyTemplate, ...] = (
         max_optional=2,
         base_filters=("volatility_normal", "volume_not_thin"),
         exits=tuple(expand_exit_models()[:3]),
-        optional_filters=("outside_news_blackout", "no_imminent_release"),
+        optional_filters=("outside_news_blackout", "no_imminent_release", "adx_trending"),
     ),
     StrategyTemplate(
         group="VOLUME_PROFILE",
@@ -242,7 +242,7 @@ TEMPLATES: Tuple[StrategyTemplate, ...] = (
         max_optional=3,
         base_filters=("volatility_normal", "volume_not_thin"),
         exits=tuple(expand_exit_models()),
-        optional_filters=("outside_news_blackout", "no_imminent_release"),
+        optional_filters=("outside_news_blackout", "no_imminent_release", "away_from_hvn", "open_outside_value"),
         # POC reversion and value-area breakout are opposite readings of the
         # same profile; a confluence containing both is incoherent, not strong.
         exclusive=(("poc_reversion", "value_area_breakout"),
@@ -257,7 +257,7 @@ TEMPLATES: Tuple[StrategyTemplate, ...] = (
         max_optional=3,
         base_filters=("volatility_normal", "volume_not_thin"),
         exits=tuple(expand_exit_models()),
-        optional_filters=("outside_news_blackout", "no_imminent_release"),
+        optional_filters=("outside_news_blackout", "no_imminent_release", "no_recent_imbalance"),
         exclusive=(("zone_touch", "away_from_zone"),
                    ("fresh_zone_approach", "away_from_zone")),
     ),
@@ -270,7 +270,7 @@ TEMPLATES: Tuple[StrategyTemplate, ...] = (
         max_optional=2,
         base_filters=("volatility_normal", "volume_not_thin"),
         exits=tuple(expand_exit_models()[:4]),
-        optional_filters=("outside_news_blackout", "no_imminent_release"),
+        optional_filters=("outside_news_blackout", "no_imminent_release", "fib_sr_confluence", "efficiency_high"),
         # A shallow retracement and a deep one are mutually exclusive prices,
         # and an extension is the opposite trade to either.
         exclusive=(("fib_golden_pocket", "fib_shallow_retrace"),
@@ -319,11 +319,13 @@ def _filter_sets(template: StrategyTemplate) -> List[Tuple[str, ...]]:
     optional ones. Index 0 is always the bare base set, so "with the news
     filter" always has a like-for-like control to be compared against."""
     known = tuple(f for f in template.optional_filters if f in CONDITIONS)
-    out: List[Tuple[str, ...]] = [tuple(template.base_filters)]
-    for k in range(1, min(len(known), template.max_optional_filters) + 1):
-        for combo in itertools.combinations(known, k):
-            out.append(tuple(template.base_filters) + combo)
-    return out
+    base = tuple(template.base_filters)
+    # One optional filter at a time, each against the same bare control.
+    # Enumerating every subset was combinatorial in the filter count and
+    # bought nothing the paired test needs: what the desk wants to know is
+    # whether THIS filter helps, which needs exactly two arms. Subsets cost
+    # budget that comes straight out of the number of rule sets tested.
+    return [base] + [base + (f,) for f in known]
 
 
 def _violates_exclusive(names: Sequence[str],
@@ -374,8 +376,18 @@ def generate_combinations(
             continue
         filter_sets = _filter_sets(template)
 
-        candidates: List[CombinationSpec] = []
-        # Deterministic enumeration order: sorted pools, ascending timeframes.
+        # Enumerate RULE SETS - everything except the filter variant - and
+        # sample those, then emit every filter variant of each one sampled.
+        #
+        # Sampling finished specs instead looks equivalent and is not. Each
+        # rule set appears in the pool once per filter variant, the pool runs
+        # to millions and the budget is thousands, so drawing both members of
+        # a pair is a coincidence: measured at 0.1% of filtered specs. The
+        # optional-filter dimension exists precisely so "with the news filter"
+        # has a like-for-like control, and a control that is never drawn is
+        # not a control. Sampling the rule set keeps the pair intact by
+        # construction.
+        rule_sets: List[Tuple[Tuple[str, ...], int, int]] = []
         for base_combo in itertools.product(*required):
             n_opt_max = min(template.max_optional, max_signals - len(base_combo))
             for n_opt in range(0, max(0, n_opt_max) + 1):
@@ -388,25 +400,43 @@ def generate_combinations(
                             continue
                         if _violates_exclusive(names, template.exclusive):
                             continue
-                        for filt in filter_sets:
-                            for tf in tfs:
-                                for ei in range(len(template.exits) or 1):
-                                    candidates.append(CombinationSpec(
-                                        symbol=symbol.upper(), group=group,
-                                        primary_tf=tf,
-                                        confirm_tfs=confirm_map.get(tf, ()),
-                                        signal_conditions=tuple(sorted(names)),
-                                        filter_conditions=filt,
-                                        exit_index=ei, filters=template.filters,
-                                    ))
-        if len(candidates) > per_template:
-            candidates = rng.sample(candidates, per_template)
-            candidates.sort(key=lambda c: (c.primary_tf, c.signal_conditions, c.exit_index))
-        out.extend(candidates)
+                        for tf in tfs:
+                            for ei in range(len(template.exits) or 1):
+                                rule_sets.append((tuple(sorted(names)), tf, ei))
+
+        # The budget is spent in whole pairs, so a template with four filter
+        # variants tests a quarter as many rule sets rather than breaking the
+        # pairing to fit.
+        budget = max(1, per_template // max(1, len(filter_sets)))
+        if len(rule_sets) > budget:
+            rule_sets = rng.sample(rule_sets, budget)
+        rule_sets.sort()
+
+        for names, tf, ei in rule_sets:
+            for filt in filter_sets:
+                out.append(CombinationSpec(
+                    symbol=symbol.upper(), group=group, primary_tf=tf,
+                    confirm_tfs=confirm_map.get(tf, ()),
+                    signal_conditions=names, filter_conditions=filt,
+                    exit_index=ei, filters=template.filters))
 
     if len(out) > max_total:
-        out = rng.sample(out, max_total)
-        out.sort(key=lambda c: (c.group, c.primary_tf, c.signal_conditions, c.exit_index))
+        # Trim by rule set too: dropping individual specs would orphan the
+        # controls the sampling above was careful to keep.
+        keyed: Dict[Tuple[str, int, Tuple[str, ...], int], List[CombinationSpec]] = {}
+        for c in out:
+            keyed.setdefault((c.group, c.primary_tf, c.signal_conditions,
+                              c.exit_index), []).append(c)
+        keys = sorted(keyed)
+        rng.shuffle(keys)
+        kept: List[CombinationSpec] = []
+        for k in keys:
+            if len(kept) + len(keyed[k]) > max_total:
+                continue
+            kept.extend(keyed[k])
+        out = kept
+    out.sort(key=lambda c: (c.group, c.primary_tf, c.signal_conditions,
+                            c.exit_index, c.filter_conditions))
     return out
 
 

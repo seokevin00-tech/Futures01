@@ -12,15 +12,28 @@ attached, so the generator had been drawing from 31 of 38.
 This module makes the list an object the test suite can assert against, so
 that gap cannot silently reopen. Each entry names the registered conditions
 that make its variable *tradeable* - not merely computed somewhere.
+
+**Registration is not reachability.** The first version of this module checked
+only that each named condition was a registered key, and three reviewers
+independently found the same hole: fourteen of seventy-three conditions could
+not appear in any generated strategy, because the combinator draws SIGNAL
+conditions from a template's condition groups and FILTER conditions only from
+its filter lists - so a filter nobody listed was unreachable by construction,
+and a SIGNAL whose group no template names was too. Half of the specification
+variables this module printed as covered were leaning on at least one of them.
+A variable no generated strategy can express is not covered, whatever the
+registry says, so :func:`uncovered` now answers the reachability question.
 """
 
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Set, Tuple
 
-from .library import CONDITIONS
+from .base import ConditionKind
+from .library import CONDITIONS, CONDITION_GROUPS
 
-__all__ = ["SPEC_CONFLUENCES", "coverage_report", "uncovered"]
+__all__ = ["SPEC_CONFLUENCES", "coverage_report", "uncovered",
+           "reachable_conditions", "unreachable_conditions"]
 
 
 #: Specification variable -> the conditions that let a strategy trade it.
@@ -81,25 +94,79 @@ SPEC_CONFLUENCES: Dict[str, Tuple[str, ...]] = {
 }
 
 
-def uncovered() -> Dict[str, List[str]]:
-    """Specification variables whose named conditions are not all registered.
+def reachable_conditions() -> Set[str]:
+    """Conditions a generated strategy can actually contain.
 
-    A variable mapped to a condition that does not exist is worse than an
-    unmapped one: the map claims coverage the library cannot deliver.
+    Mirrors what the combinator does rather than restating it: a SIGNAL is
+    drawable when some template names its group in ``required_groups`` or
+    ``optional_groups``; a FILTER is drawable only when some template names it
+    directly in ``base_filters`` or ``optional_filters``. Imported lazily
+    because the combinator imports this module's sibling.
     """
+    from .combinator import TEMPLATES
+
+    out: Set[str] = set()
+    for template in TEMPLATES:
+        for group in tuple(template.required_groups) + tuple(template.optional_groups):
+            for name in CONDITION_GROUPS.get(group, ()):
+                if CONDITIONS[name].kind is ConditionKind.SIGNAL:
+                    out.add(name)
+        for name in tuple(template.base_filters) + tuple(template.optional_filters):
+            if name in CONDITIONS:
+                out.add(name)
+    return out
+
+
+def unreachable_conditions() -> List[str]:
+    """Registered conditions no template can draw. Should always be empty."""
+    return sorted(set(CONDITIONS) - reachable_conditions())
+
+
+def uncovered() -> Dict[str, List[str]]:
+    """Specification variables with no reachable condition behind them.
+
+    Two ways to fail, and the second is the one that actually happened:
+    a named condition that is not registered at all (the map claims coverage
+    the library cannot deliver), or one that is registered and unreachable
+    (the library claims coverage the *generator* cannot deliver). The value is
+    the list of named conditions that failed, so the report can say which.
+    """
+    reachable = reachable_conditions()
     out: Dict[str, List[str]] = {}
     for variable, names in SPEC_CONFLUENCES.items():
-        missing = [n for n in names if n not in CONDITIONS]
-        if missing or not names:
-            out[variable] = missing
+        bad = [n for n in names if n not in CONDITIONS or n not in reachable]
+        if not names or len(bad) == len(names):
+            out[variable] = bad
+    return out
+
+
+def weakly_covered() -> Dict[str, List[str]]:
+    """Variables that are covered, but with at least one dead condition behind
+    them. Not a failure - the variable is still tradeable - but it means the
+    map is quoting something the generator will never build."""
+    reachable = reachable_conditions()
+    out: Dict[str, List[str]] = {}
+    for variable, names in SPEC_CONFLUENCES.items():
+        bad = [n for n in names if n not in CONDITIONS or n not in reachable]
+        if bad and len(bad) < len(names):
+            out[variable] = bad
     return out
 
 
 def coverage_report() -> str:
     gaps = uncovered()
-    lines = [f"CONFLUENCE COVERAGE  ({len(CONDITIONS)} conditions registered)",
+    weak = weakly_covered()
+    dead = unreachable_conditions()
+    lines = [f"CONFLUENCE COVERAGE  ({len(CONDITIONS)} conditions registered, "
+             f"{len(reachable_conditions())} reachable)",
              f"  specification variables : {len(SPEC_CONFLUENCES)}",
              f"  covered                 : {len(SPEC_CONFLUENCES) - len(gaps)}"]
+    if dead:
+        lines.append(f"  UNREACHABLE conditions  : {len(dead)} -> {', '.join(dead)}")
+    if weak:
+        lines.append(f"  covered but quoting a dead condition : {len(weak)}")
+        for variable, bad in sorted(weak.items()):
+            lines.append(f"      - {variable}: {', '.join(bad)}")
     if gaps:
         lines.append(f"  MISSING                 : {len(gaps)}")
         for variable, missing in sorted(gaps.items()):
