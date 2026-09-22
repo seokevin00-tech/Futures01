@@ -27,7 +27,7 @@ from typing import Dict, FrozenSet, Iterable, Iterator, List, Optional, Sequence
 from ..config import TIMEFRAME_GROUPS, get_contract
 from ..schema import Direction
 from .base import (Condition, ConditionKind, ExitModel, StopKind, Strategy,
-                   StrategyFilters)
+                   StrategyFilters, TargetKind)
 from .library import CONDITIONS, CONDITION_GROUPS, get_condition
 
 __all__ = [
@@ -41,7 +41,8 @@ __all__ = [
 # --------------------------------------------------------------------------
 
 def expand_exit_models(*, include_structure: bool = True,
-                       include_aggressive: bool = False) -> List[ExitModel]:
+                       include_aggressive: bool = False,
+                       include_anchored: bool = True) -> List[ExitModel]:
     """A spread of stop/target geometries to test against each rule set.
 
     Deliberately modest in size. Exit parameters are the easiest place to
@@ -79,10 +80,52 @@ def expand_exit_models(*, include_structure: bool = True,
             ExitModel(StopKind.RANGE, 1.0, targets_r=(1.0, 2.0, 3.5),
                       scale_out=(0.4, 0.3, 0.3), breakeven_at_r=1.0, time_stop_bars=100),
         ]
+    if include_anchored:
+        # Targets anchored to the ANCHOR timeframe in price, so they do not
+        # move when the stop does. With R-multiple targets the planned
+        # reward:risk is whatever the last multiple says and is invariant to
+        # the stop - measured, 8.00 at a 240m entry and 8.00 at a 5m entry
+        # while the stop fell from 179 points to 35. Decoupling them is what
+        # lets a tighter stop actually buy reward for risk, which is the
+        # whole objective here.
+        models += [
+            ExitModel(StopKind.ATR, 1.0, targets_r=(2.0, 4.0), scale_out=(0.5, 0.5),
+                      breakeven_at_r=1.5, time_stop_bars=40,
+                      target_kind=TargetKind.ANCHOR_ATR, anchor_mult=(1.0, 2.5),
+                      min_reward_risk=1.5, exit_at_session_close=False),
+            ExitModel(StopKind.ATR, 0.75, targets_r=(2.0, 4.0, 8.0),
+                      scale_out=(0.4, 0.3, 0.3), breakeven_at_r=2.0,
+                      time_stop_bars=60, target_kind=TargetKind.ANCHOR_ATR,
+                      anchor_mult=(0.75, 1.5, 3.0), min_reward_risk=2.0,
+                      exit_at_session_close=False),
+            # Trade to the anchor's own swing objective - the level the thesis
+            # is actually about - rather than to an ATR multiple of it.
+            ExitModel(StopKind.STRUCTURE, 1.0, stop_pad_ticks=4,
+                      targets_r=(1.0, 2.0, 3.0), scale_out=(0.4, 0.3, 0.3),
+                      breakeven_at_r=1.5, time_stop_bars=50,
+                      target_kind=TargetKind.ANCHOR_STRUCTURE,
+                      anchor_mult=(0.5, 0.75, 1.0), min_reward_risk=1.5,
+                      exit_at_session_close=False),
+        ]
     return models
 
 
 DEFAULT_EXITS = expand_exit_models()
+
+#: The anchored geometries, kept separate because every template slices
+#: ``expand_exit_models()`` by index and anything appended to that list is
+#: sliced straight back off. They are added to EVERY template's catalogue at
+#: generation time instead, so a template cannot silently omit the only exits
+#: that let a tight stop buy reward for risk.
+ANCHORED_EXITS: Tuple[ExitModel, ...] = tuple(
+    e for e in expand_exit_models(include_anchored=True)
+    if e.target_kind is not TargetKind.R_MULTIPLE)
+
+
+def exits_for(template: "StrategyTemplate") -> Tuple[ExitModel, ...]:
+    """Every exit geometry a template's strategies may use."""
+    base = template.exits or tuple(DEFAULT_EXITS)
+    return tuple(base) + ANCHORED_EXITS
 
 
 # --------------------------------------------------------------------------
@@ -306,6 +349,10 @@ class CombinationSpec:
     filter_conditions: Tuple[str, ...]
     exit_index: int
     filters: StrategyFilters
+    #: Finer timeframe the entry is located on, or None to enter on the
+    #: anchor. Always generated alongside the None variant so the pair is a
+    #: controlled comparison rather than two unrelated strategies.
+    execution_tf: Optional[int] = None
 
     def describe(self) -> str:
         return (f"{self.symbol} {self.group} {self.primary_tf}m: "
@@ -384,6 +431,17 @@ def measure_condition_overlap(snapshots, timeframe: int, *,
     return out
 
 
+#: Anchor timeframe -> the finer timeframe its entry may be honed on.
+#:
+#: A 4-hour thesis stopped on 4-hour structure risks a 4-hour ATR to make a
+#: 4-hour move. Entered on a 15-minute trigger it risks a 15-minute ATR for
+#: the same objective - measured on this desk's data the 240m ATR is a median
+#: 4.5x the 15m ATR. That only converts into reward for risk when the target
+#: is anchored in price rather than expressed as a multiple of the stop, which
+#: is what the ANCHOR_* exit geometries are for.
+DEFAULT_EXECUTION_MAP: Dict[int, int] = {1440: 60, 240: 15, 120: 15, 60: 5, 15: 5}
+
+
 def _filter_sets(template: StrategyTemplate) -> List[Tuple[str, ...]]:
     """Every filter set to test: the base filters, plus each subset of the
     optional ones. Index 0 is always the bare base set, so "with the news
@@ -416,6 +474,7 @@ def generate_combinations(
     seed: int = 20260922,
     min_signals: int = 2,
     max_signals: int = 4,
+    execution_map: Optional[Dict[int, int]] = None,
 ) -> List[CombinationSpec]:
     """Enumerate confluence specifications for one symbol.
 
@@ -455,6 +514,10 @@ def generate_combinations(
         if not required:
             continue
         filter_sets = _filter_sets(template)
+        # Entry timeframes to test for each anchor: the anchor itself (the
+        # control) plus a finer one where the map offers it. Paired by
+        # construction, so "did honing the entry help" is answerable.
+        exec_map = execution_map if execution_map is not None else DEFAULT_EXECUTION_MAP
 
         # Enumerate RULE SETS - everything except the filter variant - and
         # sample those, then emit every filter variant of each one sampled.
@@ -484,19 +547,24 @@ def generate_combinations(
                         # because a declared pair can name a FILTER and the
                         # signal-only check above cannot see one.
                         for tf in tfs:
-                            for ei in range(len(template.exits) or 1):
+                            for ei in range(len(exits_for(template))):
                                 rule_sets.append((tuple(sorted(names)), tf, ei))
 
         # The budget is spent in whole pairs, so a template with four filter
         # variants tests a quarter as many rule sets rather than breaking the
         # pairing to fit.
-        budget = max(1, per_template // max(1, len(filter_sets)))
+        budget = max(1, per_template // max(2, len(filter_sets) * 2))
         if len(rule_sets) > budget:
             rule_sets = rng.sample(rule_sets, budget)
         rule_sets.sort()
 
         for names, tf, ei in rule_sets:
-            for filt in filter_sets:
+            finer = exec_map.get(tf)
+            exec_tfs: Tuple[Optional[int], ...] = (None,)
+            if finer and finer < tf and finer in tfs:
+                exec_tfs = (None, finer)
+            for xtf in exec_tfs:
+              for filt in filter_sets:
                 # The signal-only check ran before filters were attached, so a
                 # pair naming a filter was silently inert: VWAP declared
                 # above_vwap and vwap_proximity mutually exclusive and 25 of
@@ -509,7 +577,8 @@ def generate_combinations(
                     symbol=symbol.upper(), group=group, primary_tf=tf,
                     confirm_tfs=confirm_map.get(tf, ()),
                     signal_conditions=names, filter_conditions=filt,
-                    exit_index=ei, filters=template.filters))
+                    exit_index=ei, filters=template.filters,
+                    execution_tf=xtf))
 
     if len(out) > max_total:
         # Trim by rule set too: dropping individual specs would orphan the
@@ -533,7 +602,7 @@ def generate_combinations(
 
 def _build_strategy(spec: CombinationSpec) -> Optional[Strategy]:
     template = TEMPLATES_BY_GROUP[spec.group]
-    exits = template.exits or tuple(DEFAULT_EXITS)
+    exits = exits_for(template)
     exit_model = exits[min(spec.exit_index, len(exits) - 1)]
 
     conds: List[Condition] = []
@@ -560,6 +629,8 @@ def _build_strategy(spec: CombinationSpec) -> Optional[Strategy]:
     extra = tuple(n for n in spec.filter_conditions
                   if n not in template.base_filters)
     name = f"{spec.group.lower()}_{'_'.join(spec.signal_conditions)}"
+    if spec.execution_tf:
+        name += f"__x{spec.execution_tf}m"
     if extra:
         # Two strategies that differ only by a filter must not share a name;
         # the ids differ, and a report keyed on name would merge them.
@@ -571,6 +642,7 @@ def _build_strategy(spec: CombinationSpec) -> Optional[Strategy]:
             exit=exit_model, filters=spec.filters,
             allowed_directions=template.directions,
             confirm_tfs=spec.confirm_tfs,
+            execution_tf=spec.execution_tf,
             description=template.description,
         )
     except ValueError:
