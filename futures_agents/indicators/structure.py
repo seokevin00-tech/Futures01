@@ -520,9 +520,14 @@ def liquidity_sweeps(bars: Sequence[Bar], levels: Dict[str, float], *,
 # Supply and demand zones
 # --------------------------------------------------------------------------
 
-@dataclass
+@dataclass(frozen=True)
 class SDZone:
     """A base of balance that a decisive move departed from.
+
+    Frozen on purpose. ``TimeframeFrame.active_zones`` hands the stored object
+    straight to a snapshot whenever nothing about it postdates the asking bar,
+    which is the common case; if a consumer could mutate it, one strategy could
+    silently rewrite what every later bar sees.
 
     The idea a supply/demand trader is expressing is that unfilled orders were
     left behind where price last turned violently, so a return to that area

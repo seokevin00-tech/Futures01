@@ -291,3 +291,192 @@ def test_every_bar_sees_a_future_release(sym_frame):
                  if sym_frame.snapshot(i).minutes_to_high_impact != float("inf"))
     total = len(range(0, n, 97))
     assert finite == total, f"{total - finite} bars saw no upcoming release"
+
+
+def test_blackout_is_the_window_the_risk_config_asks_for(sym_frame):
+    """Before means before. The sign convention is the trap.
+
+    ``ts - event`` is *negative* ahead of a release, so the window is
+    ``[-before, +after]``. Written ``[-after, +before]`` it stands the system
+    aside for the wrong half of the event: it left the ten minutes into an
+    08:30 print open for business - the minutes the filter exists to close -
+    and then blocked for twice as long afterwards as the risk config says.
+    """
+    from datetime import timedelta
+
+    from futures_agents.econ_calendar import Impact, project_events
+    from futures_agents.features import (NEWS_BLACKOUT_AFTER_MIN,
+                                         NEWS_BLACKOUT_BEFORE_MIN)
+
+    bars = sym_frame.base.bars
+    events = [e for e in project_events(bars[0].ts - timedelta(days=2),
+                                        bars[-1].ts + timedelta(days=45))
+              if e.impact.rank >= Impact.HIGH.rank
+              and bars[0].ts <= e.when <= bars[-1].ts]
+    assert events, "no high-impact release inside the series to test against"
+
+    # Compare the whole flagged set against the union of the configured
+    # windows. Asserting per event would break on the FOMC statement and its
+    # press conference, which are thirty minutes apart and legitimately merge.
+    flagged = {b.ts for i, b in enumerate(bars) if sym_frame._news[i][2]}
+    expected = {b.ts for b in bars
+                if any(-NEWS_BLACKOUT_BEFORE_MIN
+                       <= (b.ts - ev.when).total_seconds() / 60.0
+                       <= NEWS_BLACKOUT_AFTER_MIN for ev in events)}
+    assert expected, "no bar fell inside a configured blackout window"
+    early = sorted(t for t in expected - flagged)
+    late = sorted(t for t in flagged - expected)
+    assert not early, (
+        f"{len(early)} bars inside the configured window were not blacked out, "
+        f"first {early[0]} - the minutes ahead of a release are exactly what "
+        f"this filter exists to close")
+    assert not late, (
+        f"{len(late)} bars outside the configured window were blacked out, "
+        f"first {late[0]}")
+
+
+def test_blackout_window_matches_the_account_config():
+    """One source of truth. A backtest that stands aside for a different window
+    than the live risk manager has measured a different strategy."""
+    from futures_agents.config import AccountConfig
+    from futures_agents.features import (NEWS_BLACKOUT_AFTER_MIN,
+                                         NEWS_BLACKOUT_BEFORE_MIN)
+    cfg = AccountConfig()
+    assert NEWS_BLACKOUT_BEFORE_MIN == cfg.news_blackout_before_min
+    assert NEWS_BLACKOUT_AFTER_MIN == cfg.news_blackout_after_min
+
+
+def test_event_proximity_blacks_out_before_the_release():
+    """The same inversion, in the function the live path would call."""
+    from datetime import timedelta
+
+    from futures_agents.econ_calendar import (Impact, event_proximity,
+                                              project_events)
+    from futures_agents.timeutil import ET
+    from datetime import datetime
+
+    anchor = datetime(2026, 3, 1, 0, 0, tzinfo=ET)
+    events = [e for e in project_events(anchor, anchor + timedelta(days=20))
+              if e.impact.rank >= Impact.HIGH.rank]
+    assert events
+    ev = events[0].when
+    for minutes, expected in ((-11, False), (-10, True), (-1, True),
+                              (0, True), (5, True), (6, False), (20, False)):
+        _, blackout = event_proximity(ev + timedelta(minutes=minutes))
+        assert blackout is expected, (
+            f"{minutes:+d}m from the release: blackout={blackout}, expected {expected}")
+
+
+def test_event_proximity_sees_the_next_release_between_monthly_prints():
+    """A 72-hour horizon answers "nothing ahead" for most of every month, and
+    a caller reads that as a quiet calendar rather than as a horizon artefact.
+    """
+    from datetime import datetime, timedelta
+
+    from futures_agents.econ_calendar import (Impact, event_proximity,
+                                              project_events)
+    from futures_agents.timeutil import ET
+
+    anchor = datetime(2026, 3, 1, 0, 0, tzinfo=ET)
+    events = [e for e in project_events(anchor, anchor + timedelta(days=20))
+              if e.impact.rank >= Impact.HIGH.rank]
+    minutes, _ = event_proximity(events[0].when + timedelta(minutes=30))
+    assert minutes != float("inf"), "no release ahead 30 minutes after one landed"
+
+
+# --------------------------------------------------------------------------
+# Fibonacci levels are measured the way they are drawn
+# --------------------------------------------------------------------------
+
+def test_fib_sr_confluence_measures_retracements_from_the_end_of_the_leg(sym_frame):
+    """A retracement runs from the end of the leg back towards its start.
+
+    Measuring every ratio from the leg's low regardless of direction mirrors
+    the whole set on an up leg: it tested the 0.618 level and reported it as
+    0.382, and it tested the 0.214 level - which nobody draws - in place of
+    the 0.786.
+    """
+    from futures_agents.strategies.library import CONDITIONS
+
+    cond = CONDITIONS["fib_sr_confluence"]
+    checked = 0
+    for i in range(0, len(sym_frame.base), 23):
+        snap = sym_frame.snapshot(i)
+        s = snap.tf(PRIMARY_TF)
+        if s is None:
+            continue
+        leg = s.swing_leg()
+        atr_v = s.get("atr")
+        if leg is None or not atr_v or not s.sr_levels:
+            continue
+        lo, hi, direction = leg
+        span = hi - lo
+        if span <= 0:
+            continue
+        res = cond.evaluate(snap, PRIMARY_TF)
+        if not res.triggered:
+            continue
+        checked += 1
+        ratio = float(res.detail.split()[0])
+        expected = hi - ratio * span if direction == "UP" else lo + ratio * span
+        assert res.value == pytest.approx(round(expected, 4)), (
+            f"bar {i}: reported the {ratio} retracement of a {direction} leg "
+            f"at {res.value}, but that level is {round(expected, 4)}")
+    assert checked > 20, f"only {checked} firings examined - proves little"
+
+
+# --------------------------------------------------------------------------
+# The exception guard counts what it swallows
+# --------------------------------------------------------------------------
+
+def test_the_guard_counts_what_it_swallows():
+    """Silence is the bug. A condition that raises on every bar and is recorded
+    as "0% trigger rate" is indistinguishable, in a sweep report, from one that
+    simply never found its setup."""
+    from futures_agents.strategies.base import (Condition, ConditionResult,
+                                                condition_errors,
+                                                reset_condition_errors)
+
+    def broken(snap, tf):
+        raise TypeError("unsupported format string passed to ContractSpec.__format__")
+
+    cond = Condition(name="deliberately_broken", group="test", fn=broken)
+
+    class _Snap:
+        def tf(self, _timeframe):
+            return object()
+
+    reset_condition_errors()
+    try:
+        res = cond.evaluate(_Snap(), 5)
+        assert res.triggered is False, "the guard must still absorb the raise"
+        assert condition_errors() == {("deliberately_broken", "TypeError"): 1}
+        cond.evaluate(_Snap(), 5)
+        assert condition_errors()[("deliberately_broken", "TypeError")] == 2
+    finally:
+        reset_condition_errors()
+
+
+def test_no_condition_in_the_library_raises_through_the_guard(snapshots):
+    """The counting version of ``test_every_condition_evaluates_without_raising``.
+
+    That test calls ``cond.fn`` directly and so only covers the timeframe it
+    picks. This one goes through ``evaluate`` on every timeframe in the frame
+    and reads the tally afterwards, which is what a real sweep does.
+    """
+    from futures_agents.strategies.base import (condition_errors,
+                                                reset_condition_errors)
+
+    reset_condition_errors()
+    try:
+        for snap in snapshots:
+            for tf in TIMEFRAMES:
+                if snap.tf(tf) is None:
+                    continue
+                for cond in CONDITIONS.values():
+                    cond.evaluate(snap, tf)
+        assert condition_errors() == {}, (
+            "conditions raised inside the guard and reported 'no signal': "
+            f"{condition_errors()}")
+    finally:
+        reset_condition_errors()

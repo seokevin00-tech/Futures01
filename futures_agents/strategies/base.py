@@ -34,7 +34,25 @@ from ..timeutil import to_et
 __all__ = [
     "ConditionKind", "ConditionResult", "Condition", "StopKind", "ExitModel",
     "StrategyFilters", "StrategySignal", "Strategy",
+    "CONDITION_ERRORS", "condition_errors", "reset_condition_errors",
 ]
+
+#: ``(condition name, exception type) -> count`` for every exception
+#: :meth:`Condition.evaluate` has swallowed in this process. Purely
+#: observational - nothing reads it to make a decision, so it cannot change a
+#: result - but it is the difference between a broken condition reporting "0%
+#: trigger rate" and reporting "raised on all 40,000 evaluations".
+CONDITION_ERRORS: Dict[Tuple[str, str], int] = {}
+
+
+def condition_errors() -> Dict[Tuple[str, str], int]:
+    """A copy of the swallowed-exception tally."""
+    return dict(CONDITION_ERRORS)
+
+
+def reset_condition_errors() -> None:
+    """Clear the tally - call before a sweep whose errors you want to attribute."""
+    CONDITION_ERRORS.clear()
 
 
 class ConditionKind(str, Enum):
@@ -109,10 +127,23 @@ class Condition:
         else:
             try:
                 res = self.fn(snap, tf)
-            except (TypeError, ValueError, ZeroDivisionError, KeyError, IndexError):
+            except (TypeError, ValueError, ZeroDivisionError, KeyError,
+                    IndexError) as exc:
                 # A condition that cannot be computed is not a condition that
                 # fired. Swallowing this keeps one bad bar from aborting a
                 # 4,000-strategy sweep; the backtest simply records no signal.
+                #
+                # But swallowing silently cannot tell "this bar is degenerate"
+                # from "this code is wrong", and the difference is the whole
+                # result: fifteen conditions once called fmt_price with the
+                # wrong second argument, raised on every single bar, and were
+                # recorded as confluences with a 0% trigger rate instead of as
+                # broken. So the guard stays and the count is kept. One raise
+                # in a hundred thousand is a degenerate bar; a raise on every
+                # evaluation is a defect, and now it is visible without
+                # re-running the sweep under a debugger.
+                CONDITION_ERRORS[(self.name, type(exc).__name__)] = (
+                    CONDITION_ERRORS.get((self.name, type(exc).__name__), 0) + 1)
                 res = ConditionResult.no()
         if cache is not None:
             cache[key] = res

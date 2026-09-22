@@ -985,13 +985,18 @@ def _fib_sr(snap, tf):
     atr_v = s.get("atr")
     if leg is None or not atr_v:
         return ConditionResult.no()
-    lo, hi, _ = leg
+    lo, hi, direction = leg
     span = hi - lo
     if span <= 0:
         return ConditionResult.no()
     tol = atr_v * 0.4
     for ratio in (0.382, 0.5, 0.618, 0.786):
-        level = lo + ratio * span
+        # A retracement is measured from the END of the leg back towards its
+        # start - the same convention as TFSnapshot.fib_zone. Measuring every
+        # ratio from ``lo`` regardless of direction mirrors the whole set on an
+        # up leg: it tested the 0.618 level and called it 0.382, and it tested
+        # the 0.214 level (which nobody draws) in place of the 0.786.
+        level = hi - ratio * span if direction == "UP" else lo + ratio * span
         for lv in s.sr_levels:
             if abs(lv.price - level) <= tol:
                 return ConditionResult.yes(

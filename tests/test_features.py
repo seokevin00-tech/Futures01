@@ -167,6 +167,54 @@ def test_snapshots_do_not_change_when_more_data_arrives():
         assert a.alignment() == pytest.approx(b.alignment())
 
 
+def test_sr_levels_do_not_depend_on_the_order_bars_are_asked_in():
+    """The 5-bar S/R cache must be a function of the bucket, not of the caller.
+
+    Keying the cache on ``index // 5`` while computing it from ``index`` made
+    the frame's output depend on access order. A backtest walking forward
+    warmed bucket 400 at bar 2000 and got bar 2000's swings; anything that
+    asked bar 2004 first - a walk-forward re-evaluation, a live single-bar
+    query, any random access - warmed the same bucket with bar 2004's swings
+    and then handed them to bar 2000. Four bars of look-ahead, and a frame
+    whose answers are not reproducible.
+    """
+    series = make_series(390, seed=11)
+    ascending = SymbolFrame(series, TIMEFRAMES)
+    descending = SymbolFrame(series, TIMEFRAMES)
+
+    probes = list(range(60, 390))
+    forwards = {i: [lv.to_dict() for lv in ascending.frames[1].sr_levels(i)]
+                for i in probes}
+    backwards = {i: [lv.to_dict() for lv in descending.frames[1].sr_levels(i)]
+                 for i in reversed(probes)}
+    assert forwards == backwards, "S/R levels changed with the query order"
+
+
+def test_sr_levels_never_include_a_swing_the_bar_has_not_seen():
+    """Swept in reverse, which is the order that exposed the cache bug."""
+    frame = SymbolFrame(make_series(390, seed=11), TIMEFRAMES).frames[1]
+    leaked = []
+    for i in reversed(range(60, 390)):
+        for lv in frame.sr_levels(i):
+            if lv.last_index > i:
+                leaked.append((i, lv.last_index))
+    assert not leaked, (
+        f"{len(leaked)} S/R levels were built from swings after the asking "
+        f"bar, e.g. {leaked[:3]}")
+
+
+def test_active_zones_and_fvgs_treat_a_negative_index_as_the_start():
+    """A stray negative index must not mean "the end of the series".
+
+    ``ptr[min(index, n - 1)]`` with ``index = -1`` is Python's negative
+    indexing: it returns the last row of the pointer table, i.e. every zone and
+    every gap in the series, handed to a bar that has not reached them.
+    """
+    frame = SymbolFrame(make_series(390, seed=11), TIMEFRAMES).frames[1]
+    assert frame.active_zones(-1) == frame.active_zones(0)
+    assert frame.active_fvgs(-1) == frame.active_fvgs(0)
+
+
 def _fvg_then_fill_series() -> BarSeries:
     """Five bars: a bullish FVG on bars 0-2 (100.00 to 105.00, mid 102.50)
     which price does not trade back into until bar 4."""

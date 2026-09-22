@@ -23,7 +23,7 @@ from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
-from .config import ContractSpec, get_contract, tf_label
+from .config import AccountConfig, ContractSpec, get_contract, tf_label
 from .data.bars import Bar, BarSeries, resample
 from .indicators.core import (adx, atr, bollinger, ema, keltner, linreg_slope,
                               macd, percent_rank, roc, rolling_max, rolling_min,
@@ -62,6 +62,14 @@ FEATURE_NAMES: Tuple[str, ...] = (
     "hh20", "ll20", "range_pos", "keltner_upper", "keltner_lower",
     "open_interest", "oi_change",
 )
+
+#: Blackout window around a scheduled high-impact release, in minutes. Read off
+#: :class:`AccountConfig` rather than restated here, so the window the
+#: backtester stands aside for is by construction the window the live risk
+#: manager stands aside for. A backtest that measured a different window has
+#: measured a different strategy.
+NEWS_BLACKOUT_BEFORE_MIN: int = AccountConfig.news_blackout_before_min
+NEWS_BLACKOUT_AFTER_MIN: int = AccountConfig.news_blackout_after_min
 
 
 # --------------------------------------------------------------------------
@@ -365,13 +373,24 @@ class TimeframeFrame:
         bar after the displacement before its geometry exists.
         """
         ptr = [0] * n
+        lo_ptr = [0] * n
         k = 0
+        lo = 0
         ordered = sorted(self.zones, key=lambda z: z.index)
         self._zones_by_index = ordered
         for i in range(n):
             while k < len(ordered) and ordered[k].index <= i:
                 k += 1
+            # Zones older than the scan window are dead to every later bar, so
+            # the lower edge can advance monotonically too. Without it
+            # active_zones re-walked the whole zone list on every bar and threw
+            # almost all of it away on an age check - 8.5us a bar on 1-minute
+            # data, for a window that holds about six zones.
+            while lo < k and i - ordered[lo].index > self.ZONE_SCAN_WINDOW:
+                lo += 1
             ptr[i] = k
+            lo_ptr[i] = lo
+        self._zone_lo_ptr = lo_ptr
         return ptr
 
     def _build_fvg_pointers(self, n: int) -> List[int]:
@@ -395,22 +414,36 @@ class TimeframeFrame:
         k = self._swing_ptr[min(index, len(self._swing_ptr) - 1)]
         return self._swings_by_confirm[:k]
 
+    #: Width of the S/R cache bucket, in bars.
+    SR_BUCKET = 5
+
     def sr_levels(self, index: int) -> List[SRLevel]:
         """S/R clustered from the most recent confirmed swings.
 
         Cached per 5-bar bucket: levels do not meaningfully change bar to bar,
         and recomputing them for every bar of an 80,000-bar backtest is the
         difference between a 20-second run and a 20-minute one.
+
+        The bucket is evaluated **at its own first bar**, not at whichever bar
+        happened to ask first. Keying the cache on the bucket while computing
+        it from the caller's index made the answer depend on access order: a
+        backtest walking forward warmed bucket 400 at bar 2000 and got bar
+        2000's swings, but anything that asked bar 2004 first - a walk-forward
+        re-evaluation, a live single-bar query, any random access - warmed the
+        same bucket with bar 2004's swings and then handed them to bar 2000.
+        That is four bars of look-ahead, and it made the frame's output a
+        function of the query order rather than of the data.
         """
-        bucket = index // 5
+        bucket = index // self.SR_BUCKET
         hit = self._sr_cache.get(bucket)
         if hit is not None:
             return hit
-        vis = self.visible_swings(index)[-self.sr_window_swings:]
+        at = bucket * self.SR_BUCKET
+        vis = self.visible_swings(at)[-self.sr_window_swings:]
         levels: List[SRLevel] = []
         if vis:
             bars = self.series.bars
-            ref = bars[min(index, len(bars) - 1)].close or 1.0
+            ref = bars[min(at, len(bars) - 1)].close or 1.0
             band = abs(ref) * 0.0015
             clusters: List[List[Swing]] = []
             for s in sorted(vis, key=lambda x: x.price):
@@ -442,7 +475,11 @@ class TimeframeFrame:
         """Unfilled FVGs visible at ``index``, most recent first."""
         if not self.fvgs:
             return []
-        k = self._fvg_ptr[min(index, len(self._fvg_ptr) - 1)]
+        # Clamp below zero as well as above. Python's negative indexing turns
+        # a stray -1 into "the last row of the pointer table", i.e. every gap
+        # in the series - the end of the data handed to a bar that has not
+        # reached it. Clamping to 0 means an out-of-range bar sees nothing.
+        k = self._fvg_ptr[min(max(0, index), len(self._fvg_ptr) - 1)]
         start = max(0, k - self.FVG_SCAN_WINDOW)
         out: List[FVG] = []
         for g in self._fvgs_by_visible[start:k]:
@@ -475,15 +512,24 @@ class TimeframeFrame:
         """
         if not getattr(self, "zones", None):
             return []
-        k = self._zone_ptr[min(index, len(self._zone_ptr) - 1)]
-        start = max(0, k - self.ZONE_SCAN_WINDOW)
+        j = min(max(0, index), len(self._zone_ptr) - 1)
+        k = self._zone_ptr[j]
+        start = self._zone_lo_ptr[j]
         out: List[SDZone] = []
         for z in self._zones_by_index[start:k]:
             if index - z.index > self.ZONE_SCAN_WINDOW:
                 continue
-            masked = z.as_of(index)
-            if masked.invalidated_index is None:
-                out.append(masked)
+            inv = z.invalidated_index
+            if inv is not None and inv <= index:
+                continue                    # broken at or before this bar
+            touches = z.touch_indices
+            if inv is None and (not touches or touches[-1] <= index):
+                # Nothing in this zone postdates the asking bar, so the stored
+                # object already answers for it. as_of() would return an equal
+                # copy; SDZone is frozen precisely so sharing it is safe.
+                out.append(z)
+            else:
+                out.append(z.as_of(index))
         return out[-limit:][::-1]
 
     def _build_session_index(self) -> None:
@@ -865,9 +911,15 @@ class SymbolFrame:
         if not events:
             return [(float("inf"), float("inf"), False)] * len(bars)
 
-        before = float(getattr(getattr(self, "_account", None),
-                               "news_blackout_before_min", 10) or 10)
-        after = 5.0
+        # The blackout runs from ``before`` minutes AHEAD of a release to
+        # ``after`` minutes past it, matching AccountConfig's two knobs. The
+        # sign convention is the trap: ``ts - e.when`` is negative before the
+        # event, so the window is [-before, +after] and not [-after, +before].
+        # Written the wrong way round it lets a strategy initiate into the
+        # 08:30 print - exactly what the filter exists to stop - and stands it
+        # aside for twice as long afterwards as the risk config says.
+        before = float(NEWS_BLACKOUT_BEFORE_MIN)
+        after = float(NEWS_BLACKOUT_AFTER_MIN)
         k = 0
         for bar in bars:
             ts = bar.ts
@@ -881,7 +933,7 @@ class SymbolFrame:
             since = ((ts - behind[-1].when).total_seconds() / 60.0
                      if behind else float("inf"))
             blackout = any(
-                -after <= (ts - e.when).total_seconds() / 60.0 <= before
+                -before <= (ts - e.when).total_seconds() / 60.0 <= after
                 for e in local)
             out.append((minutes, since, blackout))
         return out
