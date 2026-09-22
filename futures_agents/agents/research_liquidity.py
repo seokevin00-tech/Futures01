@@ -925,16 +925,23 @@ class ResearchLiquidityAgent(StrategyResearchAgent):
                                 "scope": "full frame history, re-run by the "
                                          "challenger rather than taken on trust"}
 
-        # ---- 1. sample floor ---------------------------------------------
+        # ---- 1. NOT a sample-size objection ------------------------------
+        # The remeasured trade count is recorded above and deliberately not
+        # turned into a SAMPLE_TOO_SMALL challenge. The desk lead ruled that
+        # angle out and the contract records it: the objection is fatal,
+        # mechanical and free, so any specialist could file it in bulk against
+        # every rival without doing research - which is padding, and padding is
+        # one of the two ways an adversarial process gets gamed. A uniform floor
+        # belongs in the pooler, applied to everyone equally; robust_score's
+        # sample penalty and assess_robustness's deflation already handle thin
+        # samples on every finding without anyone having to notice. What follows
+        # are the objections this seat is uniquely placed to raise.
         if 0 < metrics.trades < MIN_TRADES_FOR_RANK:
-            file(ChallengeKind.SAMPLE_TOO_SMALL,
-                 f"{sid} produced {metrics.trades} trades over the full frame - "
-                 f"below the {MIN_TRADES_FOR_RANK}-trade floor. At that sample no "
-                 f"slice of it distinguishes from noise, and the session breakdown "
-                 f"its owner may be quoting is smaller still.",
-                 {"remeasured_trades": metrics.trades,
-                  "floor": MIN_TRADES_FOR_RANK,
-                  "expectancy_r": round(metrics.expectancy_r, 4)})
+            record["sample_note"] = (
+                f"{sid} remeasures at {metrics.trades} trades, below the "
+                f"{MIN_TRADES_FOR_RANK}-trade floor. Recorded, not filed: a "
+                f"sample-size objection is one anybody could raise, so it is the "
+                f"pooler's to apply uniformly rather than this seat's to wield.")
 
         # ---- 2. time-of-day artefact - the distinctive angle --------------
         for axis in TEMPORAL_AXES:
