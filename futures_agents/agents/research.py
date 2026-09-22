@@ -27,6 +27,13 @@ pool handed to ``walk_forward`` was chosen without seeing a single
 out-of-sample bar. ``walk_forward`` then re-selects per fold from training data
 alone.
 
+**The desk scores the debate, it does not join it.** Three specialists
+research different strategy families and cross-examine each other; this agent
+pools the result. It holds no family of its own, which is exactly why it
+adjudicates - there is no finding here whose survival it benefits from. Pooling
+is ``debate.pool_findings`` and nothing else: deterministic, symmetric, and
+with no LLM anywhere near it.
+
 **Nothing is live-eligible on this agent's opinion.** The ``live_eligible``
 flag written to storage is copied verbatim from ``RobustnessReport``, which
 gates on sample size, deflated expectancy, walk-forward efficiency, parameter
@@ -40,8 +47,8 @@ from __future__ import annotations
 import json
 import statistics
 import time
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from dataclasses import MISSING, dataclass, field, fields
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from ..backtest.costs import CostModel
 from ..backtest.engine import BacktestResult, Trade, run_portfolio
@@ -51,14 +58,16 @@ from ..backtest.robustness import (BIAS_CHECKS, RobustnessReport,
 from ..backtest.walkforward import WalkForwardResult, robust_score, walk_forward
 from ..config import tf_label
 from ..features import SymbolFrame
-from ..schema import Evidence, HistoricalPerformance
+from ..schema import Evidence, HistoricalPerformance, MarketRegime
 from ..strategies.base import Strategy
 from ..strategies.combinator import generate_strategies
 from ..team.agent import AgentResult
 from ..team.board import Task
-from ..team.roles import Role
-from ..timeutil import et_stamp, trading_day
+from ..team.roles import RESEARCH_SPECIALISTS, Role
+from ..timeutil import SESSIONS, et_stamp, trading_day
 from .base import DomainAgent
+from .debate import (Challenge, ChallengeKind, Finding, PooledRanking,
+                     Rebuttal, Verdict, pool_findings, render_debate_log)
 
 __all__ = ["StrategyResearchAgent"]
 
@@ -113,6 +122,400 @@ class _Sweep:
                              -self.metrics[sid].trades, sid))
 
 
+# --------------------------------------------------------------------------
+# Rehydrating the debate
+# --------------------------------------------------------------------------
+# The specialists publish JSON, so what arrives at the pool is dicts rather
+# than the dataclasses that produced them. These constructors are deliberately
+# tolerant about *shape* - an unknown key is ignored, a missing optional field
+# falls back to the dataclass default - and deliberately strict about
+# *evidence*: a missing measurement is preserved as an empty dict so
+# ``is_substantiated`` still returns False and the pooler still discards the
+# objection. Repairing a measurement into existence would turn "I doubt this"
+# into a scored challenge, which is the one thing the protocol exists to
+# prevent.
+
+#: The three artefacts each specialist publishes, read in this fixed order.
+_DEBATE_ARTEFACTS: Tuple[str, ...] = ("findings", "challenges", "rebuttals")
+
+#: Keys a list of records may be nested under. The specialists are written in
+#: parallel with this file, so the reader accepts the handful of layouts a
+#: reasonable implementation produces rather than one blessed shape.
+_RECORD_CONTAINERS: Tuple[str, ...] = ("items", "rows", "records", "entries",
+                                       "data", "list")
+
+
+def _excerpt(raw: Any, *, limit: int = 200) -> str:
+    """A short, safe rendering of a record that could not be scored."""
+    try:
+        text = json.dumps(raw, default=str, sort_keys=True)
+    except (TypeError, ValueError):                         # noqa: BLE001
+        text = str(raw)
+    return text[:limit] + ("..." if len(text) > limit else "")
+
+
+def _symbol_section(node: Any, symbol: str) -> Any:
+    """``node[symbol]``, matched case-insensitively, or None."""
+    if not isinstance(node, dict):
+        return None
+    for key, value in node.items():
+        if isinstance(key, str) and key.upper() == symbol.upper():
+            return value
+    return None
+
+
+def _looks_like_record(doc: Dict[str, Any], kind: str) -> bool:
+    """Whether a bare dict is itself one record of ``kind``."""
+    if kind == "findings":
+        return "strategy_id" in doc and not ("challenger" in doc
+                                             or "responder" in doc)
+    if kind == "challenges":
+        return "challenger" in doc or ("kind" in doc
+                                       and "target_strategy_id" in doc)
+    return "responder" in doc or ("argument" in doc and "verdict" in doc)
+
+
+def _records(doc: Any, kind: str, symbol: str) -> List[Dict[str, Any]]:
+    """Pull one artefact's records out of whatever shape it was published in.
+
+    Symbol-scoped layouts are tried first, so a specialist that publishes the
+    multi-symbol ``{"symbols": {...}}`` map used elsewhere in this module is
+    read correctly rather than having every symbol's records flattened
+    together.
+    """
+    if isinstance(doc, list):
+        return [r for r in doc if isinstance(r, dict)]
+    if not isinstance(doc, dict):
+        return []
+    for scoped in (_symbol_section(doc.get("symbols"), symbol),
+                   _symbol_section(doc, symbol)):
+        found = _records(scoped, kind, symbol) if scoped is not None else []
+        if found:
+            return found
+    for container in (kind,) + _RECORD_CONTAINERS:
+        value = doc.get(container)
+        if isinstance(value, list):
+            return [r for r in value if isinstance(r, dict)]
+        if isinstance(value, dict):
+            nested = _records(value, kind, symbol)
+            if nested:
+                return nested
+    return [doc] if _looks_like_record(doc, kind) else []
+
+
+def _as_int(raw: Any, default: Optional[int] = None) -> Optional[int]:
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return default
+
+
+def _as_float(raw: Any, default: float = 0.0) -> float:
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return default
+    return default if value != value else value          # NaN -> default
+
+
+def _as_enum(enum_cls, raw: Any):
+    """Parse an enum member by value or name, case-insensitively, or None.
+
+    Returning None rather than guessing matters: an objection whose kind cannot
+    be read cannot be scored, and quietly filing it under some default kind
+    would apply a penalty nobody measured.
+    """
+    if isinstance(raw, enum_cls):
+        return raw
+    if raw is None:
+        return None
+    text = str(raw).strip().upper()
+    for member in enum_cls:
+        if member.name.upper() == text or str(member.value).upper() == text:
+            return member
+    return None
+
+
+def _as_metrics(raw: Any) -> Optional[Metrics]:
+    """A published ``Metrics.to_dict()`` back into a ``Metrics``.
+
+    Only declared fields are read, and each is coerced to the type of its own
+    default, so an extra key added by a specialist cannot break the pool and a
+    float where an int belongs cannot reach the database.
+    """
+    if not isinstance(raw, dict):
+        return None
+    kwargs: Dict[str, Any] = {}
+    for spec in fields(Metrics):
+        if spec.name not in raw:
+            continue
+        value = raw[spec.name]
+        default = spec.default if spec.default is not MISSING else None
+        if spec.name == "exit_reasons":
+            kwargs[spec.name] = ({str(k): _as_int(v, 0) or 0
+                                  for k, v in value.items()}
+                                 if isinstance(value, dict) else {})
+        elif isinstance(default, bool) or value is None:
+            continue
+        elif isinstance(default, int):
+            kwargs[spec.name] = _as_int(value, 0) or 0
+        elif isinstance(default, float):
+            kwargs[spec.name] = _as_float(value)
+    return Metrics(**kwargs)
+
+
+def _as_fingerprint(raw: Any) -> List[Tuple[int, int]]:
+    """``[(entry_bar_index, direction_sign), ...]`` from published JSON.
+
+    JSON has no tuples, so the pairs arrive as two-element lists. Anything that
+    is not a readable pair is dropped rather than guessed at - a fabricated
+    fingerprint would invent redundancy between two findings that share
+    nothing.
+    """
+    out: List[Tuple[int, int]] = []
+    if not isinstance(raw, (list, tuple)):
+        return out
+    for item in raw:
+        if not isinstance(item, (list, tuple)) or len(item) < 2:
+            continue
+        bar, direction = _as_int(item[0]), _as_int(item[1])
+        if bar is not None and direction is not None:
+            out.append((bar, direction))
+    return out
+
+
+def _as_r_series(raw: Any) -> List[float]:
+    if not isinstance(raw, (list, tuple)):
+        return []
+    return [_as_float(v) for v in raw
+            if isinstance(v, (int, float)) and not isinstance(v, bool)]
+
+
+def _as_measurement(raw: Any, warnings: List[str], *, what: str
+                    ) -> Dict[str, Any]:
+    """The numbers behind a challenge or rebuttal, or an empty dict.
+
+    Strictly a mapping. A measurement published as a bare string or a number is
+    *not* promoted into one: ``is_substantiated`` tests the truthiness of this
+    field, so accepting ``"trust me"`` as a measurement would substantiate an
+    objection that measured nothing. The coercion is recorded instead.
+    """
+    if isinstance(raw, dict):
+        return dict(raw)
+    if raw not in (None, "", [], {}):
+        warnings.append(f"{what} carried a non-mapping measurement "
+                        f"({type(raw).__name__}); it is read as no measurement, "
+                        f"so the record counts as unsubstantiated")
+    return {}
+
+
+def _finding_from(raw: Dict[str, Any], *, owner: str, symbol: str,
+                  warnings: List[str]) -> Finding:
+    strategy_id = str(raw.get("strategy_id") or "").strip()
+    if not strategy_id:
+        raise ValueError("a finding with no strategy_id names nothing and "
+                         "cannot be pooled")
+    metrics = _as_metrics(raw.get("metrics"))
+    if metrics is None:
+        warnings.append(f"{strategy_id} was filed without metrics, so its "
+                        f"base score is 0 and it cannot rank")
+    fingerprint = _as_fingerprint(raw.get("trade_fingerprint")
+                                  or raw.get("fingerprint"))
+    if not fingerprint:
+        warnings.append(f"{strategy_id} was filed without a trade_fingerprint, "
+                        f"so redundancy against it cannot be measured and it "
+                        f"can never be collapsed into another specialist's "
+                        f"identical edge")
+    finding = Finding(
+        owner=str(raw.get("owner") or owner),
+        symbol=str(raw.get("symbol") or symbol).upper(),
+        strategy_id=strategy_id,
+        strategy_name=str(raw.get("strategy_name") or raw.get("name") or ""),
+        family=str(raw.get("family") or raw.get("group") or ""),
+        timeframe=_as_int(raw.get("timeframe")),
+        metrics=metrics,
+        robustness_score=_as_float(raw.get("robustness_score")),
+        walk_forward_efficiency=_as_float(raw.get("walk_forward_efficiency")),
+        trials_searched=max(1, _as_int(raw.get("trials_searched"), 1) or 1),
+        live_eligible=bool(raw.get("live_eligible")),
+        trade_fingerprint=fingerprint,
+        r_series=_as_r_series(raw.get("r_series")),
+        claim=str(raw.get("claim") or ""))
+    stamp = raw.get("timestamp_et")
+    if isinstance(stamp, str) and stamp:
+        finding.timestamp_et = stamp
+    return finding
+
+
+def _challenge_from(raw: Dict[str, Any], *, challenger: str, symbol: str,
+                    warnings: List[str]) -> Challenge:
+    target = str(raw.get("target_strategy_id") or "").strip()
+    if not target:
+        raise ValueError("a challenge with no target_strategy_id objects to "
+                         "nothing and cannot be attached to a finding")
+    kind = _as_enum(ChallengeKind, raw.get("kind"))
+    if kind is None:
+        raise ValueError(
+            f"unknown challenge kind {raw.get('kind')!r} against {target}: it "
+            f"carries no penalty the protocol defines, and assigning it one "
+            f"would be this desk inventing a verdict")
+    challenge = Challenge(
+        challenger=str(raw.get("challenger") or challenger),
+        target_owner=str(raw.get("target_owner") or ""),
+        target_strategy_id=target,
+        symbol=str(raw.get("symbol") or symbol).upper(),
+        kind=kind,
+        claim=str(raw.get("claim") or ""),
+        measurement=_as_measurement(raw.get("measurement"), warnings,
+                                    what=f"challenge against {target}"),
+        verdict=_as_enum(Verdict, raw.get("verdict")) or Verdict.UNANSWERED)
+    stamp = raw.get("timestamp_et")
+    if isinstance(stamp, str) and stamp:
+        challenge.timestamp_et = stamp
+    return challenge
+
+
+def _rebuttal_from(raw: Dict[str, Any], *, responder: str,
+                   warnings: List[str]) -> Rebuttal:
+    target = str(raw.get("target_strategy_id") or "").strip()
+    if not target:
+        raise ValueError("a rebuttal with no target_strategy_id answers "
+                         "nothing and cannot be attached to a challenge")
+    verdict = _as_enum(Verdict, raw.get("verdict"))
+    if verdict is None:
+        # An answer that states no outcome has not answered. UNANSWERED is the
+        # same reading the protocol gives an unmeasured denial, and it is the
+        # conservative one: the challenge stands until it is actually met.
+        warnings.append(f"rebuttal on {target} carried no readable verdict "
+                        f"({raw.get('verdict')!r}); recorded as UNANSWERED, so "
+                        f"the challenge it answers still stands")
+        verdict = Verdict.UNANSWERED
+    challenger = str(raw.get("challenger") or "")
+    if not challenger:
+        # Deliberately not inferred. Guessing which objection this answers
+        # could overturn a measured challenge on this desk's say-so.
+        warnings.append(f"rebuttal on {target} names no challenger, so it "
+                        f"cannot be attached to any challenge; every objection "
+                        f"it may have meant to answer stays unanswered")
+    rebuttal = Rebuttal(
+        responder=str(raw.get("responder") or responder),
+        challenger=challenger,
+        target_strategy_id=target,
+        verdict=verdict,
+        argument=str(raw.get("argument") or ""),
+        measurement=_as_measurement(raw.get("measurement"), warnings,
+                                    what=f"rebuttal on {target}"))
+    stamp = raw.get("timestamp_et")
+    if isinstance(stamp, str) and stamp:
+        rebuttal.timestamp_et = stamp
+    return rebuttal
+
+
+#: Every (regime, session) key a slice row can be stored under - the regime
+#: slices and the session slices ``_persist_slices`` writes. There is no "all
+#: rows for this strategy" query, and ``Storage.top_strategies`` deliberately
+#: returns one row per strategy, so a pooled verdict is carried down to the
+#: slices by probing these keys directly. It has to reach them: a regime query
+#: still returns a slice whose parent was disqualified, and a slice has never
+#: earned an eligibility of its own.
+_SLICE_KEYS: Tuple[Tuple[str, str], ...] = tuple(
+    [(regime.value, "ALL") for regime in MarketRegime]
+    + [("ALL", session.name) for session in SESSIONS] + [("ALL", "UNKNOWN")])
+
+
+def _stored_rows_for(store: Any, strategy_id: str) -> List[Dict[str, Any]]:
+    """Every row this strategy holds: the parent, then each stored slice."""
+    rows: List[Dict[str, Any]] = []
+    parent = store.strategy_performance(strategy_id)
+    if parent:
+        rows.append(parent)
+    for regime, session in _SLICE_KEYS:
+        row = store.strategy_performance(strategy_id, regime=regime,
+                                         session=session)
+        if row:
+            rows.append(row)
+    return rows
+
+
+def _metrics_from_row(row: Optional[Dict[str, Any]]) -> Metrics:
+    """The seven metric columns a stored row carries, as a ``Metrics``.
+
+    Used so that writing a pooled verdict over an existing row cannot blank the
+    numbers that row already held: the debate changes a finding's standing, not
+    its measured history.
+    """
+    if not row:
+        return Metrics()
+    return Metrics(
+        trades=_as_int(row.get("trades"), 0) or 0,
+        win_rate=_as_float(row.get("win_rate")),
+        profit_factor=_as_float(row.get("profit_factor")),
+        expectancy_r=_as_float(row.get("expectancy_r")),
+        max_drawdown_r=_as_float(row.get("max_drawdown_r")),
+        sharpe=_as_float(row.get("sharpe")),
+        sortino=_as_float(row.get("sortino")))
+
+
+@dataclass
+class _DebateEvidence:
+    """Everything the three specialists published, rehydrated - and everything
+    they did not.
+
+    The second half is the point. A specialist that filed no challenge has not
+    endorsed its rivals' findings, and one that filed no rebuttal has not
+    conceded; in both cases it may simply never have run. Those gaps are
+    recorded here and reported in the artefact, because an adversarial process
+    that reads silence as agreement is not adversarial.
+    """
+
+    symbol: str
+    findings: List[Finding] = field(default_factory=list)
+    challenges: List[Challenge] = field(default_factory=list)
+    rebuttals: List[Rebuttal] = field(default_factory=list)
+    #: role id -> artefact name -> whether a readable artefact was found
+    published: Dict[str, Dict[str, bool]] = field(default_factory=dict)
+    #: Records that could not be scored, or were scored with a caveat. Never
+    #: silent: a dropped objection is reported, not simply absent.
+    defects: List[Dict[str, Any]] = field(default_factory=list)
+    notes: List[str] = field(default_factory=list)
+    foreign_records: int = 0
+
+    @property
+    def is_empty(self) -> bool:
+        return not (self.findings or self.challenges or self.rebuttals)
+
+    @property
+    def specialists_heard(self) -> List[str]:
+        return [rid for rid, seen in self.published.items() if any(seen.values())]
+
+    @property
+    def specialists_silent(self) -> List[str]:
+        return [rid for rid, seen in self.published.items() if not any(seen.values())]
+
+    def filed_by(self, rid: str) -> List[Challenge]:
+        return [c for c in self.challenges if c.challenger == rid]
+
+    def answers_by(self, rid: str) -> List[Rebuttal]:
+        return [r for r in self.rebuttals if r.responder == rid]
+
+    def against(self, rid: str) -> List[Challenge]:
+        return [c for c in self.challenges if c.target_owner == rid]
+
+    def to_dict(self) -> dict:
+        return {
+            "symbol": self.symbol,
+            "specialists_heard": self.specialists_heard,
+            "specialists_silent": self.specialists_silent,
+            "artefacts_found": self.published,
+            "findings_read": len(self.findings),
+            "challenges_read": len(self.challenges),
+            "rebuttals_read": len(self.rebuttals),
+            "records_for_other_symbols": self.foreign_records,
+            "unscoreable_records": self.defects,
+            "notes": self.notes,
+        }
+
+
 class StrategyResearchAgent(DomainAgent):
     """Generates, backtests, walk-forwards and ranks one symbol's strategies."""
 
@@ -153,6 +556,8 @@ class StrategyResearchAgent(DomainAgent):
             return self._optimise_task(task)
         if task.kind == "rank_strategies":
             return self._rank_task(task)
+        if task.kind == "pool":
+            return self._pool_task(task)
         # Raised, not swallowed. RoleSpec.accepts is owned elsewhere, so a kind
         # can be added to it after this file was written; failing loudly names
         # the gap instead of returning a success that produced no research.
@@ -538,6 +943,558 @@ class StrategyResearchAgent(DomainAgent):
                                     "top": section["top"][:5],
                                     "live_eligible": section["live_eligible"]},
                            artefacts=[path])
+
+    # ==================================================================
+    # pool - adjudicating the three specialists
+    # ==================================================================
+    def _pool_task(self, task: Task) -> AgentResult:
+        """Score the specialists' debate and publish one reconciled ranking.
+
+        This desk holds no strategy family, which is precisely why it
+        adjudicates: there is no finding here whose survival it benefits from.
+        The scoring is ``pool_findings`` and nothing else - deterministic,
+        symmetric, non-mutating - applied to the evidence exactly as filed.
+        Three things this handler therefore deliberately does *not* do:
+        re-weight a specialist by how many objections it filed, break a tie
+        toward the better-argued case, or hand the transcript to a language
+        model for a view. An adjudication a model could nudge is not an
+        adjudication, so this is the one task on this agent with no LLM pass.
+
+        What it adds around the protocol is bookkeeping the protocol leaves to
+        its caller: which specialists actually published, which records could
+        not be scored and why, and a per-specialist scorecard in which **both**
+        ways of gaming an adversarial process show up as numbers - padding
+        (objections filed with no measurement, which the pooler discards) and
+        stonewalling (REBUTTED asserted with no counter-measurement, which the
+        pooler downgrades to UNANSWERED). Neither is punished by a penalty
+        invented here; both are simply made impossible to hide.
+        """
+        self.require_context()
+        symbol = self._symbol(task)
+        evidence = self._read_debate(symbol)
+
+        ranking = pool_findings(symbol, evidence.findings, evidence.challenges,
+                                evidence.rebuttals)
+        scorecard = self._scorecard(evidence, ranking)
+        # The transcript is rendered by the protocol; the scorecard and the
+        # record of who was silent are appended, never spliced into it.
+        log_text = "\n".join([
+            render_debate_log(ranking, evidence.challenges, evidence.rebuttals),
+            "", self._render_scorecard(evidence, scorecard)])
+        for line in log_text.splitlines():
+            self.log(f"| {line}" if line else "|")
+
+        storage = self._persist_pooled(symbol, ranking, evidence)
+        section = {
+            **ranking.to_dict(),
+            "generated_et": et_stamp(),
+            "source": "deterministic",
+            "protocol": {
+                "algorithm": "futures_agents.agents.debate.pool_findings",
+                "properties": ("deterministic, symmetric and non-mutating: the "
+                               "same evidence always produces the same ranking, "
+                               "and nothing in it can favour one specialist"),
+                "adjudicator_holds_no_family": True,
+                "llm_used": False,
+                "note": ("This desk scored the debate; it did not take part in "
+                         "it. No verdict computed by the protocol was "
+                         "overridden here."),
+            },
+            "scorecard": scorecard,
+            "scorecard_note": (
+                "challenges_filed counts every objection as filed; "
+                "challenges_substantiated counts those carrying a measurement "
+                "(the only ones the pooler scores). The difference is padding. "
+                "rebuttals_asserted_without_measurement is stonewalling - a "
+                "REBUTTED verdict with no counter-measurement, which the "
+                "protocol downgrades to UNANSWERED. Conceding a measured "
+                "challenge is correct conduct and is counted separately."),
+            "evidence_audit": evidence.to_dict(),
+            "storage": storage,
+            "debate_log": log_text,
+        }
+        pooled_path = self._merge(
+            "pooled_rankings", symbol, section,
+            f"{symbol}: {len(ranking.ranked)} pooled, "
+            f"{len(ranking.disqualified)} disqualified, "
+            f"{len(ranking.live_eligible)} live-eligible")
+        log_path = self._merge(
+            "debate_log", symbol,
+            {"generated_et": et_stamp(), "symbol": symbol, "text": log_text,
+             "scorecard": scorecard, "notes": evidence.notes},
+            f"{symbol}: debate transcript and specialist scorecard")
+
+        summary = self._pool_summary(symbol, ranking, evidence, scorecard,
+                                     storage)
+        self.log(summary)
+        return AgentResult(
+            ok=True, summary=summary,
+            payload={
+                "symbol": symbol,
+                "pooled": ranking.to_dict(),
+                "scorecard": scorecard,
+                "evidence_audit": evidence.to_dict(),
+                "storage": storage,
+            },
+            artefacts=[pooled_path, log_path])
+
+    # ---- reading the specialists --------------------------------------
+    def _read_debate(self, symbol: str) -> _DebateEvidence:
+        """Read and rehydrate what the three specialists published.
+
+        Every one of the nine artefacts may be absent - a specialist may not
+        have run - and none of them may bring the pool down. What is missing is
+        recorded and reported; it is never read as agreement.
+        """
+        evidence = _DebateEvidence(symbol=symbol)
+        for role in RESEARCH_SPECIALISTS:
+            rid = role.value
+            seen: Dict[str, bool] = {}
+            for name in _DEBATE_ARTEFACTS:
+                doc = self._specialist_artefact(role, name)
+                seen[name] = doc is not None
+                for raw in _records(doc, name, symbol):
+                    self._absorb(evidence, raw, kind=name, owner=rid)
+            evidence.published[rid] = seen
+        self._repair_target_owners(evidence)
+        self._note_gaps(evidence)
+        return evidence
+
+    def _specialist_artefact(self, role: Role, name: str) -> Any:
+        """One specialist's artefact, or None if it is absent or unreadable."""
+        try:
+            doc = self.read_from(role, name)
+        except (PermissionError, OSError, ValueError) as exc:   # noqa: BLE001
+            self.log(f"could not read {role.value}/{name}: "
+                     f"{type(exc).__name__}: {exc}")
+            return None
+        return doc
+
+    def _absorb(self, evidence: _DebateEvidence, raw: Dict[str, Any], *,
+                kind: str, owner: str) -> None:
+        """Rehydrate one published record, or record why it cannot be scored."""
+        symbol = evidence.symbol
+        declared = str(raw.get("symbol") or "").upper()
+        if declared and declared != symbol:
+            evidence.foreign_records += 1
+            return
+        warnings: List[str] = []
+        try:
+            if kind == "findings":
+                item: Any = _finding_from(raw, owner=owner, symbol=symbol,
+                                          warnings=warnings)
+            elif kind == "challenges":
+                item = _challenge_from(raw, challenger=owner, symbol=symbol,
+                                       warnings=warnings)
+            else:
+                item = _rebuttal_from(raw, responder=owner, warnings=warnings)
+        except ValueError as exc:
+            evidence.defects.append({
+                "specialist": owner, "artefact": kind, "scored": False,
+                "problem": str(exc), "record": _excerpt(raw)})
+            return
+        for warning in warnings:
+            evidence.defects.append({
+                "specialist": owner, "artefact": kind, "scored": True,
+                "problem": warning, "record": _excerpt(raw)})
+        getattr(evidence, kind).append(item)
+
+    @staticmethod
+    def _repair_target_owners(evidence: _DebateEvidence) -> None:
+        """Fill a challenge's missing ``target_owner`` from the finding it names.
+
+        Only ever fills a field that arrived empty, and only from the named
+        finding's own owner, so it cannot move an objection between
+        specialists. It matters because ``is_substantiated`` refuses a
+        self-challenge: left empty, a specialist's objection against its own
+        finding would be scored rather than discarded.
+        """
+        owners = {f.strategy_id: f.owner for f in evidence.findings}
+        for challenge in evidence.challenges:
+            if challenge.target_owner:
+                continue
+            owner = owners.get(challenge.target_strategy_id)
+            if not owner:
+                continue
+            challenge.target_owner = owner
+            evidence.notes.append(
+                f"{challenge.challenger}'s challenge against "
+                f"{challenge.target_strategy_id} named no target_owner; it was "
+                f"filled in as {owner} from the finding itself, so the "
+                f"self-challenge check applies to it")
+
+    def _note_gaps(self, evidence: _DebateEvidence) -> None:
+        """State what each specialist did not file, in as many words."""
+        symbol = evidence.symbol
+        for role in RESEARCH_SPECIALISTS:
+            rid = role.value
+            seen = evidence.published.get(rid, {})
+            missing = [name for name, found in seen.items() if not found]
+            if len(missing) == len(_DEBATE_ARTEFACTS):
+                evidence.notes.append(
+                    f"{rid} published nothing for {symbol} - no findings, no "
+                    f"challenges, no rebuttals. It may not have run. Its "
+                    f"silence is not agreement: the other specialists' "
+                    f"findings were simply never cross-examined by it.")
+                continue
+            if missing:
+                evidence.notes.append(
+                    f"{rid} published no {' or '.join(missing)} artefact for "
+                    f"{symbol}.")
+            if not [f for f in evidence.findings if f.owner == rid]:
+                evidence.notes.append(
+                    f"{rid} submitted no finding for {symbol}. That is not "
+                    f"evidence that its families hold no edge - only that none "
+                    f"was filed.")
+            if not evidence.filed_by(rid):
+                evidence.notes.append(
+                    f"{rid} filed no challenge for {symbol}. Nothing it read "
+                    f"is endorsed by that; those findings were simply not "
+                    f"tested by it.")
+            unanswered = [c for c in evidence.against(rid) if c.is_substantiated]
+            if unanswered and not evidence.answers_by(rid):
+                evidence.notes.append(
+                    f"{len(unanswered)} measured challenge(s) against {rid} "
+                    f"are recorded UNANSWERED because it filed no rebuttal. "
+                    f"That is the protocol's default for silence, not a "
+                    f"concession on the merits.")
+
+    # ---- the scorecard -------------------------------------------------
+    def _scorecard(self, evidence: _DebateEvidence,
+                   ranking: PooledRanking) -> List[Dict[str, Any]]:
+        """Per-specialist conduct, merged with the protocol's own tally.
+
+        ``PooledRanking.by_specialist`` counts only *substantiated* challenges
+        and only covers specialists that submitted a finding, so on its own it
+        cannot show padding: a specialist that filed six objections with no
+        numbers behind them appears there with zero filed. The counts of the
+        evidence as filed are added here, from the same records the pooler was
+        given, so the six discarded objections sit next to the two that stood.
+        Nothing in this block feeds back into the ranking - it is a record of
+        conduct, not a penalty.
+        """
+        declared = [role.value for role in RESEARCH_SPECIALISTS]
+        # Any other owner the protocol tallied gets a row too, so a finding
+        # filed under an owner id nobody recognises is visible rather than
+        # quietly dropped out of the scorecard.
+        undeclared = [owner for owner in sorted(ranking.by_specialist)
+                      if owner not in declared]
+        rows: List[Dict[str, Any]] = []
+        for rid in declared + undeclared:
+            tally = ranking.by_specialist.get(rid, {})
+            filed = evidence.filed_by(rid)
+            substantiated = [c for c in filed if c.is_substantiated]
+            answers = evidence.answers_by(rid)
+            rows.append({
+                "specialist": rid,
+                "declared_specialist": rid in declared,
+                "published": evidence.published.get(rid, {}),
+                "heard_from": rid in evidence.specialists_heard,
+                # Findings: safe to default to zero. by_specialist covers every
+                # owner of a finding for this symbol, so absence from it means
+                # this specialist submitted none.
+                "findings_submitted": tally.get("findings_submitted", 0),
+                "findings_surviving": tally.get("findings_surviving", 0),
+                "findings_live_eligible": tally.get("live_eligible", 0),
+                "best_pooled_score": tally.get("best_pooled_score", 0.0),
+                "challenges_filed": len(filed),
+                "challenges_substantiated": len(substantiated),
+                # Padding: filed with no measurement, so the pooler discards it.
+                "challenges_unsubstantiated": len(filed) - len(substantiated),
+                # The protocol's resolved counts. None - not zero - when this
+                # specialist owns no finding for the symbol and so is absent
+                # from its tally; claiming zero there would be a number this
+                # desk made up.
+                "challenges_upheld": tally.get("challenges_upheld_for"),
+                "challenges_received": tally.get("challenges_received"),
+                "challenges_survived": tally.get("challenges_survived"),
+                "rebuttals_filed": len(answers),
+                "rebuttals_measured": sum(1 for r in answers
+                                          if r.is_substantiated),
+                "rebuttals_conceded": sum(1 for r in answers
+                                          if r.verdict is Verdict.CONCEDED),
+                # Stonewalling: "my finding is fine" with nothing behind it.
+                "rebuttals_asserted_without_measurement": sum(
+                    1 for r in answers if r.verdict is Verdict.REBUTTED
+                    and not r.is_substantiated),
+                "covered_by_protocol_tally": rid in ranking.by_specialist,
+            })
+        return rows
+
+    @staticmethod
+    def _cell(value: Any) -> str:
+        return "-" if value is None else str(value)
+
+    def _render_scorecard(self, evidence: _DebateEvidence,
+                          rows: Sequence[Dict[str, Any]]) -> str:
+        """The scorecard as it appears in the debate log."""
+        out = [
+            "  SPECIALIST SCORECARD - conduct in the debate",
+            "    Padding      = an objection filed with no measurement. The "
+            "pooler discards it,",
+            "                   so filing more of them buys nothing.",
+            "    Stonewalling = REBUTTED asserted with no counter-measurement. "
+            "The pooler",
+            "                   downgrades it to UNANSWERED, so the challenge "
+            "still stands.",
+            "    Conceding a measured challenge is correct conduct, not a loss, "
+            "and is counted",
+            "    separately. A dash means this specialist owns no finding here, "
+            "so the protocol",
+            "    tally does not cover it.",
+            "",
+            f"    {'specialist':<20}{'find':>5}{'surv':>5}{'elig':>5} | "
+            f"{'filed':>6}{'meas':>5}{'pad':>4}{'upheld':>7} | "
+            f"{'rcvd':>5}{'survd':>6} | {'rebut':>6}{'conc':>5}{'wall':>5}",
+        ]
+        for row in rows:
+            out.append(
+                f"    {row['specialist']:<20}"
+                f"{row['findings_submitted']:>5}"
+                f"{row['findings_surviving']:>5}"
+                f"{row['findings_live_eligible']:>5} | "
+                f"{row['challenges_filed']:>6}"
+                f"{row['challenges_substantiated']:>5}"
+                f"{row['challenges_unsubstantiated']:>4}"
+                f"{self._cell(row['challenges_upheld']):>7} | "
+                f"{self._cell(row['challenges_received']):>5}"
+                f"{self._cell(row['challenges_survived']):>6} | "
+                f"{row['rebuttals_filed']:>6}"
+                f"{row['rebuttals_conceded']:>5}"
+                f"{row['rebuttals_asserted_without_measurement']:>5}")
+        for row in rows:
+            rid = row["specialist"]
+            if row["challenges_unsubstantiated"]:
+                out.append(f"    PADDING: {rid} filed "
+                           f"{row['challenges_unsubstantiated']} objection(s) "
+                           f"with no measurement; all were discarded and "
+                           f"changed no ranking.")
+            if row["rebuttals_asserted_without_measurement"]:
+                out.append(f"    STONEWALLING: {rid} answered "
+                           f"{row['rebuttals_asserted_without_measurement']} "
+                           f"measured challenge(s) with an unmeasured denial; "
+                           f"each was downgraded to UNANSWERED and still "
+                           f"stands against its finding.")
+            if row["rebuttals_conceded"]:
+                out.append(f"    {rid} conceded {row['rebuttals_conceded']} "
+                           f"challenge(s) - correct conduct, recorded as such.")
+        if evidence.notes:
+            out.append("")
+            out.append("  WHAT WAS NOT FILED")
+            for note in evidence.notes:
+                out.append(f"    - {note}")
+        unscored = [d for d in evidence.defects if not d["scored"]]
+        if evidence.defects:
+            out.append("")
+            out.append(f"  RECORDS NOT SCORED ({len(unscored)} dropped, "
+                       f"{len(evidence.defects) - len(unscored)} kept with a "
+                       f"caveat)")
+            for defect in evidence.defects:
+                mark = "DROPPED" if not defect["scored"] else "CAVEAT "
+                out.append(f"    [{mark}] {defect['specialist']}/"
+                           f"{defect['artefact']}: {defect['problem']}")
+        return "\n".join(out)
+
+    def _pool_summary(self, symbol: str, ranking: PooledRanking,
+                      evidence: _DebateEvidence, rows: Sequence[Dict[str, Any]],
+                      storage: Dict[str, Any]) -> str:
+        if evidence.is_empty:
+            silent = ", ".join(evidence.specialists_silent) or "none"
+            return (f"{symbol}: nothing to pool - no specialist published a "
+                    f"finding, challenge or rebuttal (silent: {silent}). The "
+                    f"pooled ranking is empty and NOTHING was written to the "
+                    f"performance database. This is an absence of evidence, "
+                    f"not evidence that no edge exists, and it must not be "
+                    f"read as the specialists agreeing.")
+        absorbed = sum(len(c["absorbed"]) for c in ranking.redundant_clusters)
+        dropped = sum(1 for d in evidence.defects if not d["scored"])
+        conduct = "; ".join(
+            f"{r['specialist']} filed {r['challenges_filed']} "
+            f"({r['challenges_unsubstantiated']} unmeasured), "
+            f"{self._cell(r['challenges_upheld'])} upheld, received "
+            f"{self._cell(r['challenges_received'])}, survived "
+            f"{self._cell(r['challenges_survived'])}, "
+            f"{r['rebuttals_asserted_without_measurement']} unmeasured denial(s)"
+            for r in rows if r["declared_specialist"])
+        silent = evidence.specialists_silent
+        return (
+            f"{symbol}: pooled {len(evidence.findings)} finding(s) from "
+            f"{len(evidence.specialists_heard)} of {len(RESEARCH_SPECIALISTS)} "
+            f"specialists - {len(ranking.ranked)} survived cross-examination, "
+            f"{len(ranking.disqualified)} disqualified, {absorbed} absorbed as "
+            f"redundant, {len(ranking.live_eligible)} live-eligible. "
+            f"{ranking.challenges_filed} challenge(s): "
+            f"{ranking.challenges_upheld} upheld, "
+            f"{ranking.challenges_rebutted} rebutted, "
+            f"{ranking.challenges_discarded} discarded as unsubstantiated. "
+            f"Scorecard - {conduct}. "
+            f"Storage: {storage['rows_written']} pooled row(s) written "
+            f"({storage['live_eligible_written']} live-eligible, "
+            f"{storage['eligibility_revoked']} revoked, "
+            f"{storage['slice_rows_updated']} slice row(s) realigned)."
+            + (f" SILENT: {', '.join(silent)} published nothing - not agreement."
+               if silent else "")
+            + (f" {dropped} record(s) could not be scored and "
+               f"{len(evidence.defects) - dropped} were scored with a caveat."
+               if evidence.defects else ""))
+
+    # ---- storage --------------------------------------------------------
+    def _persist_pooled(self, symbol: str, ranking: PooledRanking,
+                        evidence: _DebateEvidence) -> Dict[str, Any]:
+        """Write the pooled verdict into the performance database.
+
+        The live decision layer reads ``strategy_performance``, so this is the
+        step that makes the ranking that survived cross-examination the one it
+        sees. Three consequences follow, and all three are the protocol's
+        verdict being applied rather than a new judgement:
+
+        * a survivor is written with its *pooled* score, so a finding that took
+          a standing penalty sorts below one that did not;
+        * a finding disqualified by a fatal challenge, or absorbed into another
+          specialist's identical edge, has its eligibility revoked - leaving it
+          flagged live-eligible from an earlier unchallenged write is exactly
+          the failure this task exists to prevent;
+        * regime and session slices follow their parent, because a slice has
+          never earned an eligibility of its own.
+
+        One flag is withheld rather than written: eligibility claimed by a
+        finding that carries no measured trades, and for which storage holds
+        none either. ``live_eligible`` in this database means a measurement
+        cleared the robustness gates; writing it from an unmeasured claim would
+        be this desk asserting a number nobody produced. The claim is kept in
+        the published ranking and the withholding is reported.
+        """
+        store = self.require_context().storage
+        findings = {f.strategy_id: f for f in evidence.findings}
+        outcomes: List[Tuple[str, str, bool, float, str]] = []
+        for row in ranking.ranked:
+            standing = row.get("standing_challenges") or []
+            verdict = (f"survived cross-examination with "
+                       f"{len(standing)} standing challenge(s), penalty "
+                       f"x{row.get('penalty_applied')}, pooled score "
+                       f"{row.get('pooled_score')}")
+            outcomes.append((str(row["strategy_id"]), "ranked",
+                             bool(row.get("live_eligible")),
+                             _as_float(row.get("pooled_score")), verdict))
+        for entry in ranking.disqualified:
+            kinds = ", ".join(sorted({c["kind"] for c
+                                      in entry.get("disqualified_by", [])}))
+            outcomes.append((str(entry["strategy_id"]), "disqualified", False,
+                             0.0, f"disqualified by a standing fatal challenge "
+                                  f"({kinds or 'unspecified'})"))
+        for cluster in ranking.redundant_clusters:
+            for sid in cluster.get("absorbed", []):
+                outcomes.append((str(sid), "absorbed_redundant", False, 0.0,
+                                 f"the same trades as {cluster['kept']} "
+                                 f"({cluster['kept_owner']}); counted once, in "
+                                 f"that finding, so one edge is not banked "
+                                 f"twice"))
+
+        report = {"rows_written": 0, "live_eligible_written": 0,
+                  "eligibility_revoked": 0, "slice_rows_updated": 0,
+                  "eligibility_withheld": [], "duplicate_strategy_ids": [],
+                  "written": []}
+        seen: Set[str] = set()
+        for sid, outcome, eligible, score, verdict in outcomes:
+            if sid in seen:
+                report["duplicate_strategy_ids"].append(sid)
+                continue
+            seen.add(sid)
+            self._upsert_pooled(store, symbol, sid, findings.get(sid),
+                                _stored_rows_for(store, sid), outcome=outcome,
+                                eligible=eligible, score=score,
+                                verdict=verdict, report=report)
+        return report
+
+    def _upsert_pooled(self, store: Any, symbol: str, sid: str,
+                       finding: Optional[Finding],
+                       existing: Sequence[Dict[str, Any]], *, outcome: str,
+                       eligible: bool, score: float, verdict: str,
+                       report: Dict[str, Any]) -> None:
+        """Write one strategy's pooled verdict, and realign its slices."""
+        parent = next((r for r in existing if r.get("regime") == "ALL"
+                       and r.get("session") == "ALL"), None)
+        # The debate changes a finding's standing, not its measured history, so
+        # the numbers already in the row are kept when the finding carries none.
+        metrics = (finding.metrics if finding is not None and finding.metrics
+                   else _metrics_from_row(parent))
+        write_eligible = bool(eligible)
+        if write_eligible and metrics.trades <= 0:
+            write_eligible = False
+            report["eligibility_withheld"].append({
+                "strategy_id": sid, "owner": finding.owner if finding else "",
+                "reason": ("pooled as live-eligible but no measured trades were "
+                           "filed with the finding and none are stored, so the "
+                           "flag would assert a measurement nobody produced"),
+            })
+
+        payload = self._row_json(parent or {})
+        reasons = [r for r in (payload.get("reasons") or [])
+                   if not str(r).startswith("debate:")]
+        reasons.append(f"debate: {verdict}")
+        payload["reasons"] = reasons
+        payload["pooled"] = {
+            "generated_et": et_stamp(),
+            "symbol": symbol,
+            "owner": finding.owner if finding else "",
+            "family": finding.family if finding else "",
+            "outcome": outcome,
+            "pooled_score": round(score, 6),
+            "live_eligible": write_eligible,
+            "claimed_live_eligible": bool(eligible),
+            "pre_debate_robustness_score": (parent or {}).get("robustness_score"),
+            "verdict": verdict,
+            "note": ("set by the pooled ranking, which is the ranking that "
+                     "survived cross-examination; it supersedes any single "
+                     "specialist's unchallenged claim for this strategy"),
+        }
+        was_eligible = bool((parent or {}).get("live_eligible"))
+        store.upsert_strategy_performance(
+            strategy_id=sid, symbol=symbol,
+            timeframe=(finding.timeframe if finding is not None
+                       and finding.timeframe is not None
+                       else (parent or {}).get("timeframe")),
+            metrics=metrics, scope="backtest", regime="ALL", session="ALL",
+            oos_trades=_as_int((parent or {}).get("oos_trades"), 0) or 0,
+            oos_expectancy_r=_as_float((parent or {}).get("oos_expectancy_r")),
+            walk_forward_efficiency=_as_float(
+                (parent or {}).get("walk_forward_efficiency"),
+                finding.walk_forward_efficiency if finding else 0.0),
+            robustness_score=max(0.0, score),
+            live_eligible=write_eligible, payload=payload)
+        report["rows_written"] += 1
+        report["written"].append({"strategy_id": sid, "outcome": outcome,
+                                  "live_eligible": write_eligible,
+                                  "pooled_score": round(score, 6)})
+        if write_eligible:
+            report["live_eligible_written"] += 1
+        if was_eligible and not write_eligible:
+            report["eligibility_revoked"] += 1
+
+        for row in existing:
+            if row is parent or not row.get("strategy_id"):
+                continue
+            if bool(row.get("live_eligible")) == write_eligible:
+                continue
+            slice_payload = self._row_json(row)
+            slice_payload["pooled_parent_verdict"] = {
+                "generated_et": et_stamp(), "outcome": outcome,
+                "live_eligible": write_eligible,
+                "note": ("a slice carries its parent strategy's verdict and "
+                         "never earns an eligibility of its own"),
+            }
+            store.upsert_strategy_performance(
+                strategy_id=sid, symbol=symbol, timeframe=row.get("timeframe"),
+                metrics=_metrics_from_row(row), scope="backtest",
+                regime=str(row.get("regime") or "ALL"),
+                session=str(row.get("session") or "ALL"),
+                oos_trades=_as_int(row.get("oos_trades"), 0) or 0,
+                oos_expectancy_r=_as_float(row.get("oos_expectancy_r")),
+                walk_forward_efficiency=_as_float(
+                    row.get("walk_forward_efficiency")),
+                robustness_score=_as_float(row.get("robustness_score")),
+                live_eligible=write_eligible, payload=slice_payload)
+            report["slice_rows_updated"] += 1
 
     # ==================================================================
     # The sweep
