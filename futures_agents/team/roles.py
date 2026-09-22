@@ -199,7 +199,12 @@ ROLES: Dict[Role, RoleSpec] = {
         ),
         accepts=_A({"size_position", "assess_risk", "check_limits", "veto"}),
         may_message=_A({Role.MANAGER, Role.DECISION, Role.JOURNAL}),
-        publishes=("risk_assessment", "account_state"),
+        # The risk layer republishes the callout carrying the FINAL numbers -
+        # approved contracts, dollar risk, buffer impact - and, after a veto,
+        # converted to NO TRADE. Downstream readers must take the callout from
+        # here, not from the decision layer, whose copy still holds pre-risk
+        # sizing and still says LONG/SHORT even when the trade was refused.
+        publishes=("risk_assessment", "account_state", "callout"),
         consumes=("decision", "account_state", "news_context"),
         llm_backed=False,          # risk decisions stay deterministic and auditable
     ),
