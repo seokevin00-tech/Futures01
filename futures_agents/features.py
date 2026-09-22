@@ -60,7 +60,7 @@ FEATURE_NAMES: Tuple[str, ...] = (
     "adx", "plus_di", "minus_di", "stoch_k", "stoch_d",
     "rel_volume", "efficiency_ratio", "slope_atr",
     "hh20", "ll20", "range_pos", "keltner_upper", "keltner_lower",
-    "open_interest", "oi_change",
+    "open_interest", "oi_change", "roc20",
 )
 
 #: Blackout window around a scheduled high-impact release, in minutes. Read off
@@ -203,7 +203,7 @@ class TimeframeFrame:
         bars = self.series.bars
         n = len(bars)
         if n == 0:
-            self.swings, self.fvgs = [], []
+            self._swings, self._fvgs, self._zones = [], [], []
             self._swing_ptr = []
             return
 
@@ -275,21 +275,27 @@ class TimeframeFrame:
         oi = [b.open_interest for b in bars]
         C["open_interest"] = list(oi)
         C["oi_change"] = self._oi_change(oi, 20)
+        # The price move over the SAME window the OI change is measured over.
+        # "Open interest expanded while price rose" is a statement about one
+        # interval, and pairing a 20-bar OI change with a position-in-range
+        # reading answered a different question on about 7.5% of bars - often
+        # with the opposite sign to its own thesis.
+        C["roc20"] = roc(c, 20)
 
         self.divergence = delta_divergence(bars, 20, "session")
         self.volume_regime_col = self._volume_regime(v)
 
         # Structure: computed once for the whole series, then exposed through a
         # per-bar pointer that only reveals CONFIRMED swings.
-        self.swings: List[Swing] = find_swings(bars, self.swing_left, self.swing_right)
+        self._swings: List[Swing] = find_swings(bars, self.swing_left, self.swing_right)
         self._swing_ptr = self._build_swing_pointers(n)
-        self.fvgs: List[FVG] = fair_value_gaps(bars, as_of=n - 1, track_fills=True)
+        self._fvgs: List[FVG] = fair_value_gaps(bars, as_of=n - 1, track_fills=True)
         self._fvg_ptr = self._build_fvg_pointers(n)
         self._sr_cache: Dict[int, List[SRLevel]] = {}
         self._profile_cache: Dict[Any, Optional[VolumeProfile]] = {}
         self._build_session_index()
         self._build_imbalances()
-        self.zones: List[SDZone] = supply_demand_zones(bars, as_of=n - 1)
+        self._zones: List[SDZone] = supply_demand_zones(bars, as_of=n - 1)
         self._zone_ptr = self._build_zone_pointers(n)
 
     @staticmethod
@@ -345,7 +351,7 @@ class TimeframeFrame:
         self._last_high_i: List[Optional[int]] = [None] * n
         self._last_low_i: List[Optional[int]] = [None] * n
         k = 0
-        ordered = sorted(self.swings, key=lambda s: s.confirmed_index)
+        ordered = sorted(self._swings, key=lambda s: s.confirmed_index)
         self._swings_by_confirm = ordered
         lh = ph = ll = pl = None
         lh_i = ll_i = None
@@ -376,7 +382,7 @@ class TimeframeFrame:
         lo_ptr = [0] * n
         k = 0
         lo = 0
-        ordered = sorted(self.zones, key=lambda z: z.index)
+        ordered = sorted(self._zones, key=lambda z: z.index)
         self._zones_by_index = ordered
         for i in range(n):
             while k < len(ordered) and ordered[k].index <= i:
@@ -396,7 +402,7 @@ class TimeframeFrame:
     def _build_fvg_pointers(self, n: int) -> List[int]:
         ptr = [0] * n
         k = 0
-        ordered = sorted(self.fvgs, key=lambda g: g.index + 1)
+        ordered = sorted(self._fvgs, key=lambda g: g.index + 1)
         self._fvgs_by_visible = ordered
         for i in range(n):
             while k < len(ordered) and ordered[k].index + 1 <= i:
@@ -409,7 +415,7 @@ class TimeframeFrame:
         return len(self.series)
 
     def visible_swings(self, index: int) -> List[Swing]:
-        if not self.swings or index < 0:
+        if not self._swings or index < 0:
             return []
         k = self._swing_ptr[min(index, len(self._swing_ptr) - 1)]
         return self._swings_by_confirm[:k]
@@ -473,7 +479,7 @@ class TimeframeFrame:
 
     def active_fvgs(self, index: int, limit: int = 6) -> List[FVG]:
         """Unfilled FVGs visible at ``index``, most recent first."""
-        if not self.fvgs:
+        if not self._fvgs:
             return []
         # Clamp below zero as well as above. Python's negative indexing turns
         # a stray -1 into "the last row of the pointer table", i.e. every gap
@@ -510,7 +516,7 @@ class TimeframeFrame:
         it; handing that out would let a strategy prefer the zones that are
         about to hold.
         """
-        if not getattr(self, "zones", None):
+        if not self._zones:
             return []
         j = min(max(0, index), len(self._zone_ptr) - 1)
         k = self._zone_ptr[j]

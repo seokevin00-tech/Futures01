@@ -1137,17 +1137,19 @@ def _oi_confirm(snap, tf):
     pct = doi / base * 100.0
     if pct <= 0.1:
         return ConditionResult.no()          # flat or falling OI: not initiative
-    # Price direction over the same window is read from the bar's position in
-    # its 20-bar range, the same lookback the OI change uses.
-    hi, lo = s.get("hh20"), s.get("ll20")
-    if hi is None or lo is None or hi == lo:
+    # The price move over the same 20 bars the OI change spans. Position in the
+    # 20-bar range is a different statement - a bar can sit high in its range
+    # while the net move over the window is down - and it disagreed with the
+    # actual move on about 7.5% of bars, emitting the opposite direction to
+    # this condition's own thesis.
+    move = s.get("roc20")
+    if move is None or move == 0.0:
         return ConditionResult.no()
-    pos = (s.close - lo) / (hi - lo)
-    if pos >= 0.65:
-        return ConditionResult.yes(LONG, f"OI +{pct:.2f}% into new highs", round(pct, 3))
-    if pos <= 0.35:
-        return ConditionResult.yes(SHORT, f"OI +{pct:.2f}% into new lows", round(pct, 3))
-    return ConditionResult.no()
+    if move > 0:
+        return ConditionResult.yes(LONG, f"OI +{pct:.2f}% while price rose "
+                                         f"{move:+.2f}%", round(pct, 3))
+    return ConditionResult.yes(SHORT, f"OI +{pct:.2f}% while price fell "
+                                      f"{move:+.2f}%", round(pct, 3))
 
 
 @condition("oi_expanding", "openinterest", kind=ConditionKind.FILTER,

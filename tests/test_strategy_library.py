@@ -18,6 +18,7 @@ tested, whatever the backtest says about it.
 from __future__ import annotations
 
 from dataclasses import replace
+from datetime import date
 
 import pytest
 
@@ -35,6 +36,10 @@ from futures_agents.strategies.library import CONDITIONS, CONDITION_GROUPS
 PRIMARY_TF = 5
 TIMEFRAMES = (1, 5, 15, 60)
 
+#: A Tuesday well clear of a DST transition, matching conftest's convention.
+#: Fixed so the suite's news-dependent assertions do not drift with the clock.
+FIXTURE_END = date(2026, 3, 17)
+
 
 @pytest.fixture(scope="module")
 def oi_series() -> BarSeries:
@@ -45,7 +50,11 @@ def oi_series() -> BarSeries:
     interest). Without both, those conditions would be "tested" against data
     on which they cannot fire, which tests nothing.
     """
-    src = synthetic_series("MNQ", days=10, seed=5)
+    # end_date pinned: synthetic_series defaults to date.today(), and while
+    # the bar VALUES are seeded the timestamps are not - so which scheduled
+    # releases fall inside the fixture changes from one day to the next, and
+    # any assertion about the news columns would pass or fail by calendar.
+    src = synthetic_series("MNQ", days=10, seed=5, end_date=FIXTURE_END)
     oi = 100_000.0
     bars = []
     for b in src.bars:
@@ -433,8 +442,7 @@ def test_the_guard_counts_what_it_swallows():
     """Silence is the bug. A condition that raises on every bar and is recorded
     as "0% trigger rate" is indistinguishable, in a sweep report, from one that
     simply never found its setup."""
-    from futures_agents.strategies.base import (Condition, ConditionResult,
-                                                condition_errors,
+    from futures_agents.strategies.base import (Condition, condition_errors,
                                                 reset_condition_errors)
 
     def broken(snap, tf):
@@ -603,3 +611,66 @@ def test_blackout_is_before_the_event_not_after_it():
     # 30 minutes before and 30 after: outside both halves.
     assert not event_proximity(ev - timedelta(minutes=30), before_min=10, after_min=15)[1]
     assert not event_proximity(ev + timedelta(minutes=30), before_min=10, after_min=15)[1]
+
+
+def test_a_textbook_base_is_detected(oi_series):
+    """Balance, then a decisive departure. The simplest case the detector
+    exists for, and the one it used to reject.
+
+    The base test was ``range <= 0.8 x`` an average computed over a window that
+    contained the base bars. In a uniform consolidation every bar equals that
+    average, so no bar could be 0.8 of it: the flatter the base, the more
+    certainly it was thrown away. Zones only formed where the preceding twenty
+    bars happened to be uneven - close to the opposite of the pattern.
+    """
+    from datetime import timedelta
+    from futures_agents.data.bars import Bar
+    from futures_agents.indicators.structure import supply_demand_zones
+
+    t0 = oi_series.bars[0].ts
+    seq = [Bar(ts=t0 + timedelta(minutes=k), open=100.0, high=100.5, low=99.5,
+               close=100.0, volume=100.0) for k in range(25)]
+    seq.append(Bar(ts=t0 + timedelta(minutes=25), open=100.0, high=110.0,
+                   low=99.9, close=109.5, volume=400.0))
+    zones = supply_demand_zones(seq)
+    assert len(zones) == 1, f"expected one demand zone, got {zones}"
+    z = zones[0]
+    assert z.kind == "DEMAND"
+    assert (z.bottom, z.top) == (99.5, 100.5)
+    assert z.fresh
+
+
+def test_a_wide_bar_alone_is_not_a_zone(oi_series):
+    """Guard the other side: without preceding balance, a large bar is just a
+    large bar, and taking every one of them would paint the whole chart."""
+    from datetime import timedelta
+    from futures_agents.data.bars import Bar
+    from futures_agents.indicators.structure import supply_demand_zones
+
+    t0 = oi_series.bars[0].ts
+    # Every bar wide and trending - no balance anywhere to depart from.
+    seq = [Bar(ts=t0 + timedelta(minutes=k), open=100.0 + k * 5, high=106.0 + k * 5,
+               low=99.0 + k * 5, close=105.0 + k * 5, volume=300.0)
+           for k in range(30)]
+    assert supply_demand_zones(seq) == []
+
+
+def test_oi_confirmation_pairs_the_same_window(snapshots):
+    """The OI change spans 20 bars, so the price move it is confirmed against
+    must span the same 20 bars. Position-in-range is a different statement - a
+    bar can sit high in its range while the net move over the window is down -
+    and it disagreed with the actual move on hundreds of bars, emitting the
+    opposite direction to this condition's own thesis."""
+    cond = CONDITIONS["oi_price_confirmation"]
+    fired = 0
+    for snap in snapshots:
+        res = cond.evaluate(snap, PRIMARY_TF)
+        if not res.triggered:
+            continue
+        fired += 1
+        move = snap.tf(PRIMARY_TF).get("roc20")
+        assert move is not None
+        expected = "LONG" if move > 0 else "SHORT"
+        assert res.direction.value == expected, (
+            f"OI condition said {res.direction.value} on a {move:+.3f}% move")
+    assert fired > 0, "condition never fired - the assertion proved nothing"

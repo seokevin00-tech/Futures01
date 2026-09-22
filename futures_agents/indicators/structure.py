@@ -620,7 +620,8 @@ class SDZone:
 
 
 def supply_demand_zones(bars: Sequence[Bar], *, window: int = 20,
-                        departure_mult: float = 2.0, base_max_mult: float = 0.8,
+                        departure_mult: float = 2.0, base_max_mult: float = 1.0,
+                        base_vs_departure: float = 0.5,
                         max_base_bars: int = 3, body_frac: float = 0.55,
                         max_age: int = 400,
                         as_of: Optional[int] = None) -> List[SDZone]:
@@ -631,6 +632,19 @@ def supply_demand_zones(bars: Sequence[Bar], *, window: int = 20,
     one. ``max_age`` bounds the forward scan: a zone nobody has traded for four
     hundred bars is not a level, and scanning to the end of the series for each
     one is quadratic.
+
+    A base is qualified two ways, and it needs both. It must not be *wider than
+    the recent norm* (``base_max_mult``), and it must be *small against the
+    move that left it* (``base_vs_departure``). The second test is what carries
+    the idea: balance is defined by contrast with the impulse, not by being
+    quieter than its own neighbourhood.
+
+    The first test alone used to be ``<= 0.8 x`` an average computed over a
+    window that contained the base bars, which is self-referential - in a
+    uniform consolidation every bar equals the average, so no bar can be 0.8 of
+    it and a textbook-perfect base rejected itself. Zones only formed where the
+    preceding twenty bars happened to be uneven, which is close to the opposite
+    of the pattern being looked for.
     """
     end = len(bars) - 1 if as_of is None else min(as_of, len(bars) - 1)
     if end < window + 1:
@@ -655,9 +669,10 @@ def supply_demand_zones(bars: Sequence[Bar], *, window: int = 20,
 
         # Walk back over the balance that the departure left.
         base: List[Bar] = []
+        base_ceiling = min(base_max_mult * avg_range, base_vs_departure * rng)
         j = i - 1
         while j >= 0 and len(base) < max_base_bars:
-            if bars[j].range > base_max_mult * avg_range:
+            if bars[j].range > base_ceiling:
                 break
             base.append(bars[j])
             j -= 1
