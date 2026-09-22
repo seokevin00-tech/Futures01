@@ -203,14 +203,30 @@ def _slice_profile(trades: Sequence[Trade], key: str) -> Dict[str, Any]:
     return out
 
 
+def _share_phrase(share: Optional[float]) -> str:
+    """Describe one bucket's contribution share readably.
+
+    A share above 1.0 is arithmetically correct and not a bug: when the other
+    buckets lose money, the winning bucket contributes more R than the strategy
+    netted overall. Printing it as "124% of total R" invites a reader to assume
+    a defect, so the case is named instead.
+    """
+    if share is None:
+        return "an unmeasured share of"
+    if share > 1.0:
+        return (f"more than all of ({share:.2f}x) the net R of - the other "
+                f"buckets lose money, so this one carries")
+    return f"{share:.0%} of"
+
+
 def _temporal_verdict(session: Dict[str, Any],
                       bucket: Dict[str, Any]) -> Tuple[bool, str]:
     """Whether a temporal profile disqualifies a claim, and why in one line."""
     for profile in (session, bucket):
         if profile.get("single_bucket_artefact"):
             return False, (
-                f"{profile['dominant_share_of_total_r']:.0%} of total R comes from "
-                f"the single {profile['axis']} bucket "
+                f"{_share_phrase(profile['dominant_share_of_total_r'])} total R "
+                f"comes from the single {profile['axis']} bucket "
                 f"'{profile['dominant_bucket']}' on {profile['dominant_sample']} "
                 f"trades (below the {MIN_SLICE_TRADES}-trade floor), and "
                 f"excluding it the remaining {profile['ex_dominant_trades']} trades "
@@ -926,8 +942,8 @@ class ResearchLiquidityAgent(StrategyResearchAgent):
                 file(ChallengeKind.REGIME_ARTEFACT,
                      f"{sid}'s edge is one {axis} bucket. "
                      f"'{profile['dominant_bucket']}' carries "
-                     f"{profile['dominant_share_of_total_r']:.0%} of total R on "
-                     f"{profile['dominant_sample']} trades - below the "
+                     f"{_share_phrase(profile['dominant_share_of_total_r'])} "
+                     f"total R on {profile['dominant_sample']} trades - below the "
                      f"{MIN_SLICE_TRADES}-trade floor - and excluding it the "
                      f"remaining {profile['ex_dominant_trades']} trades average "
                      f"{profile['ex_dominant_expectancy_r']:+.3f}R. That is a "
@@ -1235,7 +1251,8 @@ class ResearchLiquidityAgent(StrategyResearchAgent):
         if not concentrated:
             return rebut(Verdict.REBUTTED,
                          f"Re-measured, {sid} is not concentrated on {axis}: the "
-                         f"largest bucket '{dominant}' holds {share:.0%} of total R "
+                         f"largest bucket '{dominant}' holds "
+                         f"{_share_phrase(share)} total R "
                          f"on {sample} trades, and the remaining {ex.trades} trades "
                          f"average {ex.expectancy_r:+.3f}R - the edge is present "
                          f"outside the bucket the challenge names.", measurement)
@@ -1243,8 +1260,8 @@ class ResearchLiquidityAgent(StrategyResearchAgent):
         if ex.expectancy_r > 0 and ex.trades >= MIN_SLICE_TRADES:
             return rebut(Verdict.PARTIAL,
                          f"Accepted in part, and the claim is narrowed. {sid} does "
-                         f"concentrate in '{dominant}' ({share:.0%} of total R on "
-                         f"{sample} trades) - a breakout edge concentrating in "
+                         f"concentrate in '{dominant}' ({_share_phrase(share)} "
+                         f"total R on {sample} trades) - a breakout edge concentrating in "
                          f"expansion is the mechanism, not a defect. But it is not "
                          f"only that bucket: excluding it, {ex.trades} trades still "
                          f"average {ex.expectancy_r:+.3f}R (profit factor "
@@ -1254,7 +1271,7 @@ class ResearchLiquidityAgent(StrategyResearchAgent):
                          f"The unconditional claim is withdrawn.", measurement)
 
         return rebut(Verdict.CONCEDED,
-                     f"Conceded. {sid} earns {share:.0%} of its total R in "
+                     f"Conceded. {sid} earns {_share_phrase(share)} its total R in "
                      f"'{dominant}' on {sample} trades, and removing that bucket "
                      f"leaves {ex.trades} trades averaging {ex.expectancy_r:+.3f}R. "
                      f"There is no residual edge to narrow the claim to - the "
