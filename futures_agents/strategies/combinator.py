@@ -1,0 +1,389 @@
+"""Systematic generation of confluence combinations.
+
+The specification asks for thousands of *reasonable* combinations rather than a
+blind cartesian product. Two rules do most of the work:
+
+**Diversity.** Signal conditions are drawn from *distinct* condition groups. A
+confluence of five momentum indicators is five restatements of one observation;
+it will backtest beautifully and fail live. Requiring different groups means a
+five-factor setup really is trend + structure + order flow + location + volume.
+
+**Bounded, deterministic sampling.** The full product across conditions,
+timeframes, exits and filters runs to millions. The generator enumerates in a
+fixed order and samples with a fixed seed, so a research run is reproducible and
+a strategy id is stable between runs.
+
+Generation is not selection. Everything here is a *hypothesis*; only the
+walk-forward and robustness suite in ``backtest/`` decides what survives.
+"""
+
+from __future__ import annotations
+
+import itertools
+import random
+from dataclasses import dataclass, field
+from typing import Dict, FrozenSet, Iterable, Iterator, List, Optional, Sequence, Tuple
+
+from ..config import TIMEFRAME_GROUPS, get_contract
+from ..schema import Direction
+from .base import (Condition, ConditionKind, ExitModel, StopKind, Strategy,
+                   StrategyFilters)
+from .library import CONDITIONS, CONDITION_GROUPS, get_condition
+
+__all__ = [
+    "CombinationSpec", "StrategyTemplate", "TEMPLATES", "generate_combinations",
+    "generate_strategies", "expand_exit_models", "DEFAULT_EXITS",
+]
+
+
+# --------------------------------------------------------------------------
+# Exit model catalogue
+# --------------------------------------------------------------------------
+
+def expand_exit_models(*, include_structure: bool = True,
+                       include_aggressive: bool = False) -> List[ExitModel]:
+    """A spread of stop/target geometries to test against each rule set.
+
+    Deliberately modest in size. Exit parameters are the easiest place to
+    overfit - sweep fifty of them and one will look wonderful by chance - so the
+    catalogue covers genuinely different *shapes* (tight/wide, scalp/runner)
+    rather than a fine grid of one shape.
+    """
+    models = [
+        # Balanced ATR stop, three scale-out targets.
+        ExitModel(StopKind.ATR, 1.5, targets_r=(1.0, 2.0, 3.0),
+                  scale_out=(0.5, 0.3, 0.2), breakeven_at_r=1.0, time_stop_bars=60),
+        # Wider stop, fewer targets - fewer stop-outs, larger risk unit.
+        ExitModel(StopKind.ATR, 2.5, targets_r=(1.0, 2.0),
+                  scale_out=(0.6, 0.4), breakeven_at_r=1.0, time_stop_bars=90),
+        # Tight stop, runner target - low win rate, high payoff.
+        ExitModel(StopKind.ATR, 1.0, targets_r=(1.5, 3.0, 5.0),
+                  scale_out=(0.4, 0.3, 0.3), breakeven_at_r=1.5, time_stop_bars=120),
+        # Scalp: single target, no runner.
+        ExitModel(StopKind.ATR, 1.2, targets_r=(1.2,), scale_out=(1.0,),
+                  breakeven_at_r=None, time_stop_bars=30),
+    ]
+    if include_structure:
+        models += [
+            ExitModel(StopKind.STRUCTURE, 1.0, stop_pad_ticks=4,
+                      targets_r=(1.0, 2.0, 3.0), scale_out=(0.5, 0.3, 0.2),
+                      breakeven_at_r=1.0, time_stop_bars=80),
+            ExitModel(StopKind.VWAP_BAND, 1.0, stop_pad_ticks=3,
+                      targets_r=(1.0, 2.0), scale_out=(0.5, 0.5),
+                      breakeven_at_r=1.0, time_stop_bars=60),
+        ]
+    if include_aggressive:
+        models += [
+            ExitModel(StopKind.ATR, 0.75, targets_r=(2.0, 4.0), scale_out=(0.5, 0.5),
+                      breakeven_at_r=2.0, time_stop_bars=45),
+            ExitModel(StopKind.RANGE, 1.0, targets_r=(1.0, 2.0, 3.5),
+                      scale_out=(0.4, 0.3, 0.3), breakeven_at_r=1.0, time_stop_bars=100),
+        ]
+    return models
+
+
+DEFAULT_EXITS = expand_exit_models()
+
+
+# --------------------------------------------------------------------------
+# Templates
+# --------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class StrategyTemplate:
+    """A family of strategies sharing an idea, a shape and a scope.
+
+    ``required_groups`` picks exactly one condition from each named group;
+    ``optional_groups`` contributes 0..``max_optional`` further conditions from
+    distinct groups. That is what produces diverse confluences.
+    """
+
+    group: str
+    description: str
+    required_groups: Tuple[str, ...]
+    optional_groups: Tuple[str, ...] = ()
+    max_optional: int = 2
+    base_filters: Tuple[str, ...] = ("volatility_normal", "volume_not_thin")
+    filters: StrategyFilters = field(default_factory=StrategyFilters)
+    exits: Tuple[ExitModel, ...] = ()
+    directions: Tuple[Direction, ...] = (Direction.LONG, Direction.SHORT)
+    #: Conditions that must NOT appear together - they encode the same idea.
+    exclusive: Tuple[Tuple[str, ...], ...] = ()
+
+
+#: The per-symbol strategy groups named in the specification. Each is tested
+#: independently for every contract; nothing is shared between symbols.
+TEMPLATES: Tuple[StrategyTemplate, ...] = (
+    StrategyTemplate(
+        group="TREND",
+        description="Trend continuation: structure and momentum aligned with the regime",
+        required_groups=("trend", "structure"),
+        optional_groups=("momentum", "orderflow", "volume", "multitimeframe", "vwap"),
+        max_optional=3,
+        base_filters=("volatility_normal", "volume_not_thin", "regime_trending"),
+        exits=tuple(expand_exit_models()[:3]),
+    ),
+    StrategyTemplate(
+        group="PULLBACK",
+        description="Buy the dip inside an established trend",
+        required_groups=("trend", "meanreversion"),
+        optional_groups=("structure", "vwap", "orderflow", "multitimeframe"),
+        max_optional=3,
+        base_filters=("volatility_normal", "volume_not_thin", "mtf_not_conflicted"),
+        exits=tuple(expand_exit_models()[:4]),
+    ),
+    StrategyTemplate(
+        group="VWAP",
+        description="VWAP as the session's fair-value reference",
+        required_groups=("vwap",),
+        optional_groups=("orderflow", "momentum", "structure", "volume", "trend"),
+        max_optional=3,
+        base_filters=("volatility_normal", "volume_not_thin"),
+        exits=tuple(expand_exit_models()),
+        exclusive=(("above_vwap", "vwap_proximity"),),
+    ),
+    StrategyTemplate(
+        group="REVERSAL",
+        description="Exhaustion and absorption against the prevailing move",
+        required_groups=("meanreversion", "orderflow"),
+        optional_groups=("momentum", "liquidity", "structure", "vwap"),
+        max_optional=3,
+        base_filters=("volatility_normal", "volume_not_thin", "avoid_lunch"),
+        exits=tuple(expand_exit_models()[:4]),
+    ),
+    StrategyTemplate(
+        group="MOMENTUM",
+        description="Momentum ignition confirmed by participation",
+        required_groups=("momentum", "volume"),
+        optional_groups=("trend", "orderflow", "structure", "multitimeframe"),
+        max_optional=3,
+        base_filters=("volatility_normal",),
+        exits=tuple(expand_exit_models()[:3]),
+    ),
+    StrategyTemplate(
+        group="OPENING_RANGE",
+        description="Opening-range breakout and failure",
+        required_groups=("liquidity",),
+        optional_groups=("volume", "orderflow", "momentum", "trend", "vwap"),
+        max_optional=3,
+        base_filters=("volatility_normal", "volume_not_thin", "opening_drive_window"),
+        filters=StrategyFilters(rth_only=True, max_minutes_since_open=150),
+        exits=tuple(expand_exit_models()),
+    ),
+    StrategyTemplate(
+        group="LIQUIDITY",
+        description="Stop runs at reference levels, then reversion",
+        required_groups=("liquidity",),
+        optional_groups=("orderflow", "structure", "vwap", "momentum", "volume"),
+        max_optional=3,
+        base_filters=("volatility_normal", "volume_not_thin", "after_opening_range"),
+        exits=tuple(expand_exit_models()),
+    ),
+    StrategyTemplate(
+        group="MEAN_REVERSION",
+        description="Fade statistical extension in a ranging market",
+        required_groups=("meanreversion",),
+        optional_groups=("momentum", "vwap", "orderflow", "structure"),
+        max_optional=3,
+        base_filters=("volatility_normal", "volume_not_thin", "regime_ranging"),
+        exits=tuple(expand_exit_models()[:4]),
+    ),
+    StrategyTemplate(
+        group="BREAKOUT",
+        description="Expansion out of compression",
+        required_groups=("structure", "volume"),
+        optional_groups=("trend", "momentum", "orderflow", "liquidity"),
+        max_optional=3,
+        base_filters=("volatility_compressed", "volume_not_thin"),
+        exits=tuple(expand_exit_models()[:3]),
+    ),
+    StrategyTemplate(
+        group="MULTI_TIMEFRAME",
+        description="Higher-timeframe alignment as the primary edge",
+        required_groups=("multitimeframe", "structure"),
+        optional_groups=("trend", "momentum", "vwap", "orderflow"),
+        max_optional=2,
+        base_filters=("volatility_normal", "volume_not_thin"),
+        exits=tuple(expand_exit_models()[:3]),
+    ),
+)
+
+TEMPLATES_BY_GROUP: Dict[str, StrategyTemplate] = {t.group: t for t in TEMPLATES}
+
+
+# --------------------------------------------------------------------------
+# Combination generation
+# --------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class CombinationSpec:
+    """One concrete confluence, before it becomes a :class:`Strategy`."""
+
+    symbol: str
+    group: str
+    primary_tf: int
+    confirm_tfs: Tuple[int, ...]
+    signal_conditions: Tuple[str, ...]
+    filter_conditions: Tuple[str, ...]
+    exit_index: int
+    filters: StrategyFilters
+
+    def describe(self) -> str:
+        return (f"{self.symbol} {self.group} {self.primary_tf}m: "
+                + " + ".join(self.signal_conditions))
+
+
+def _signal_pools(template: StrategyTemplate) -> Tuple[List[List[str]], List[List[str]]]:
+    """Condition names available per required / optional group, signals only."""
+    def pool(group: str) -> List[str]:
+        return sorted(n for n in CONDITION_GROUPS.get(group, [])
+                      if CONDITIONS[n].kind is ConditionKind.SIGNAL)
+    required = [pool(g) for g in template.required_groups]
+    optional = [pool(g) for g in template.optional_groups]
+    return [p for p in required if p], [p for p in optional if p]
+
+
+def _violates_exclusive(names: Sequence[str],
+                        exclusive: Sequence[Sequence[str]]) -> bool:
+    s = set(names)
+    return any(len(s.intersection(pair)) > 1 for pair in exclusive)
+
+
+def generate_combinations(
+    symbol: str,
+    timeframes: Sequence[int],
+    *,
+    groups: Optional[Sequence[str]] = None,
+    confirm_map: Optional[Dict[int, Tuple[int, ...]]] = None,
+    max_total: int = 4_000,
+    max_per_template: Optional[int] = None,
+    seed: int = 20260922,
+    min_signals: int = 2,
+    max_signals: int = 4,
+) -> List[CombinationSpec]:
+    """Enumerate confluence specifications for one symbol.
+
+    ``confirm_map`` maps a primary timeframe to the higher timeframes used for
+    confirmation; it defaults to the next two timeframes up, which is what makes
+    the generated set test *timeframe groups* and not only single timeframes.
+    """
+    get_contract(symbol)                    # fail fast on an unknown contract
+    tfs = sorted({int(t) for t in timeframes})
+    if not tfs:
+        raise ValueError("at least one timeframe is required")
+    wanted = list(groups) if groups else [t.group for t in TEMPLATES]
+
+    if confirm_map is None:
+        confirm_map = {}
+        for i, tf in enumerate(tfs):
+            confirm_map[tf] = tuple(tfs[i + 1:i + 3])
+
+    rng = random.Random(f"{seed}:{symbol}")
+    out: List[CombinationSpec] = []
+    per_template = max_per_template or max(1, max_total // max(1, len(wanted)))
+
+    for group in wanted:
+        template = TEMPLATES_BY_GROUP.get(group)
+        if template is None:
+            raise KeyError(f"Unknown strategy group {group!r}")
+        required, optional = _signal_pools(template)
+        if not required:
+            continue
+
+        candidates: List[CombinationSpec] = []
+        # Deterministic enumeration order: sorted pools, ascending timeframes.
+        for base_combo in itertools.product(*required):
+            n_opt_max = min(template.max_optional, max_signals - len(base_combo))
+            for n_opt in range(0, max(0, n_opt_max) + 1):
+                for opt_groups in itertools.combinations(range(len(optional)), n_opt):
+                    for opt_choice in itertools.product(*(optional[g] for g in opt_groups)):
+                        names = tuple(base_combo) + tuple(opt_choice)
+                        if len(names) < min_signals or len(names) > max_signals:
+                            continue
+                        if len(set(names)) != len(names):
+                            continue
+                        if _violates_exclusive(names, template.exclusive):
+                            continue
+                        for tf in tfs:
+                            for ei in range(len(template.exits) or 1):
+                                candidates.append(CombinationSpec(
+                                    symbol=symbol.upper(), group=group,
+                                    primary_tf=tf,
+                                    confirm_tfs=confirm_map.get(tf, ()),
+                                    signal_conditions=tuple(sorted(names)),
+                                    filter_conditions=template.base_filters,
+                                    exit_index=ei, filters=template.filters,
+                                ))
+        if len(candidates) > per_template:
+            candidates = rng.sample(candidates, per_template)
+            candidates.sort(key=lambda c: (c.primary_tf, c.signal_conditions, c.exit_index))
+        out.extend(candidates)
+
+    if len(out) > max_total:
+        out = rng.sample(out, max_total)
+        out.sort(key=lambda c: (c.group, c.primary_tf, c.signal_conditions, c.exit_index))
+    return out
+
+
+def _build_strategy(spec: CombinationSpec) -> Optional[Strategy]:
+    template = TEMPLATES_BY_GROUP[spec.group]
+    exits = template.exits or tuple(DEFAULT_EXITS)
+    exit_model = exits[min(spec.exit_index, len(exits) - 1)]
+
+    conds: List[Condition] = []
+    for n in spec.signal_conditions:
+        conds.append(get_condition(n))
+    for n in spec.filter_conditions:
+        conds.append(get_condition(n))
+
+    # Bind higher-timeframe conditions to the confirmation timeframe so that a
+    # "multi-timeframe" strategy really reads a different timeframe rather than
+    # re-reading its own.
+    if spec.confirm_tfs:
+        htf = spec.confirm_tfs[0]
+        bound: List[Condition] = []
+        for c in conds:
+            if c.group in ("multitimeframe",) or (
+                    c.group == "structure" and c.kind is ConditionKind.SIGNAL
+                    and len(spec.signal_conditions) >= 3):
+                bound.append(c.bind(htf))
+            else:
+                bound.append(c)
+        conds = bound
+
+    name = f"{spec.group.lower()}_{'_'.join(spec.signal_conditions)}"
+    try:
+        return Strategy(
+            name=name[:120], symbol=spec.symbol, group=spec.group,
+            primary_tf=spec.primary_tf, conditions=tuple(conds),
+            exit=exit_model, filters=spec.filters,
+            allowed_directions=template.directions,
+            confirm_tfs=spec.confirm_tfs,
+            description=template.description,
+        )
+    except ValueError:
+        return None
+
+
+def generate_strategies(
+    symbol: str,
+    timeframes: Sequence[int],
+    *,
+    groups: Optional[Sequence[str]] = None,
+    max_total: int = 4_000,
+    seed: int = 20260922,
+    **kwargs,
+) -> List[Strategy]:
+    """Generate concrete, deduplicated :class:`Strategy` objects for one symbol.
+
+    Deduplication is by content hash, so two different generation paths that
+    arrive at the same rule set produce one strategy, not two.
+    """
+    specs = generate_combinations(symbol, timeframes, groups=groups,
+                                  max_total=max_total, seed=seed, **kwargs)
+    seen: Dict[str, Strategy] = {}
+    for spec in specs:
+        st = _build_strategy(spec)
+        if st is not None:
+            seen.setdefault(st.strategy_id, st)
+    return sorted(seen.values(), key=lambda s: (s.group, s.primary_tf, s.name))

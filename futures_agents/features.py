@@ -1,0 +1,648 @@
+"""Multi-timeframe feature assembly.
+
+This module turns raw bars into the single object that strategies, analysts and
+the backtester all read: a :class:`SymbolFrame`. Two design choices matter.
+
+**Precompute once, slice per bar.** A backtest evaluates tens of thousands of
+bars. Recomputing a 200-period EMA at every one is quadratic and pointless, so
+every indicator is computed once across the whole series into an aligned column,
+and a bar's snapshot is an O(1) index into those columns.
+
+**Alignment is explicit and lagged.** ``SymbolFrame`` stores, for every base bar,
+the index of the last *completed* bar on each higher timeframe. At 10:07 the
+15-minute row points at the 09:45 bar, because that is the newest 15-minute bar
+that had closed. This is the mechanism that makes multi-timeframe confluence
+honest: no strategy can accidentally read a higher-timeframe bar that had not
+yet formed.
+"""
+
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass, field
+from datetime import date, datetime
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+
+from .config import ContractSpec, get_contract, tf_label
+from .data.bars import Bar, BarSeries, resample
+from .indicators.core import (adx, atr, bollinger, ema, keltner, linreg_slope,
+                              macd, percent_rank, roc, rolling_max, rolling_min,
+                              rsi, sma, stdev, stochastic)
+from .indicators.regime import RegimeSnapshot, classify_regime, efficiency_ratio
+from .indicators.structure import (FVG, Swing, SRLevel, SessionLevels, Sweep,
+                                   fair_value_gaps, find_swings, opening_range,
+                                   support_resistance)
+from .indicators.volume import (cumulative_delta, delta_divergence,
+                                relative_volume, volume_profile, vwap_bands)
+from .timeutil import (classify_session, day_of_week_name, is_rth,
+                       minutes_since_open, time_bucket, to_et, trading_day)
+
+Num = Optional[float]
+
+__all__ = [
+    "TFSnapshot", "TimeframeFrame", "FeatureSnapshot", "SymbolFrame",
+    "build_symbol_frame", "FEATURE_NAMES",
+]
+
+#: Every column a strategy rule may reference. The combinator validates rule
+#: names against this list, so a typo fails loudly at construction instead of
+#: silently evaluating to None for an entire backtest.
+FEATURE_NAMES: Tuple[str, ...] = (
+    "open", "high", "low", "close", "volume", "delta", "cvd",
+    "ema9", "ema21", "ema50", "ema200", "sma20", "sma50",
+    "rsi", "macd", "macd_signal", "macd_hist",
+    "bb_upper", "bb_mid", "bb_lower", "bb_width_pct", "bb_pctb",
+    "atr", "atr_pct", "atr_percentile",
+    "vwap", "vwap_u1", "vwap_l1", "vwap_u2", "vwap_l2", "vwap_dist_atr",
+    "adx", "plus_di", "minus_di", "stoch_k", "stoch_d",
+    "rel_volume", "efficiency_ratio", "slope_atr",
+    "hh20", "ll20", "range_pos", "keltner_upper", "keltner_lower",
+)
+
+
+# --------------------------------------------------------------------------
+# Per-timeframe frame
+# --------------------------------------------------------------------------
+
+@dataclass
+class TFSnapshot:
+    """Indicator values for one timeframe at one bar. All fields may be None."""
+
+    timeframe: int
+    index: int
+    bar: Bar
+    values: Dict[str, Num] = field(default_factory=dict)
+    structure_trend: str = "UNDEFINED"
+    structure_event: str = ""
+    last_swing_high: Optional[float] = None
+    last_swing_low: Optional[float] = None
+    prior_swing_high: Optional[float] = None
+    prior_swing_low: Optional[float] = None
+    sr_levels: List[SRLevel] = field(default_factory=list)
+    divergence: Optional[str] = None
+    volume_regime: Optional[str] = None
+    active_fvgs: List[FVG] = field(default_factory=list)
+
+    def __getitem__(self, key: str) -> Num:
+        return self.values.get(key)
+
+    def get(self, key: str, default: Num = None) -> Num:
+        v = self.values.get(key)
+        return default if v is None else v
+
+    def has(self, *keys: str) -> bool:
+        """True when every named value is available (not warming up)."""
+        return all(self.values.get(k) is not None for k in keys)
+
+    @property
+    def close(self) -> float:
+        return self.bar.close
+
+    def to_dict(self) -> dict:
+        return {
+            "timeframe": self.timeframe,
+            "ts": to_et(self.bar.ts).isoformat(),
+            "close": self.bar.close,
+            "structure_trend": self.structure_trend,
+            "structure_event": self.structure_event,
+            "last_swing_high": self.last_swing_high,
+            "last_swing_low": self.last_swing_low,
+            "divergence": self.divergence,
+            "volume_regime": self.volume_regime,
+            "sr_levels": [l.to_dict() for l in self.sr_levels[:5]],
+            "values": {k: (round(v, 6) if isinstance(v, float) else v)
+                       for k, v in self.values.items() if v is not None},
+        }
+
+
+class TimeframeFrame:
+    """Precomputed indicator columns for one timeframe of one symbol."""
+
+    def __init__(self, series: BarSeries, spec: ContractSpec, *,
+                 swing_left: int = 3, swing_right: int = 3,
+                 sr_window_swings: int = 30):
+        self.series = series
+        self.timeframe = series.minutes
+        self.spec = spec
+        self.swing_left = swing_left
+        self.swing_right = swing_right
+        self.sr_window_swings = sr_window_swings
+        self.cols: Dict[str, List[Num]] = {}
+        self._build()
+
+    # ---- construction ------------------------------------------------
+    def _build(self) -> None:
+        bars = self.series.bars
+        n = len(bars)
+        if n == 0:
+            self.swings, self.fvgs = [], []
+            self._swing_ptr = []
+            return
+
+        o = [b.open for b in bars]
+        h = [b.high for b in bars]
+        l = [b.low for b in bars]
+        c = [b.close for b in bars]
+        v = [b.volume for b in bars]
+        d = [b.delta for b in bars]
+
+        C = self.cols
+        C["open"], C["high"], C["low"], C["close"], C["volume"] = o, h, l, c, v
+        C["delta"] = d
+        C["cvd"] = cumulative_delta(bars, "session")
+
+        C["ema9"] = ema(c, 9)
+        C["ema21"] = ema(c, 21)
+        C["ema50"] = ema(c, 50)
+        C["ema200"] = ema(c, 200)
+        C["sma20"] = sma(c, 20)
+        C["sma50"] = sma(c, 50)
+
+        C["rsi"] = rsi(c, 14)
+        C["macd"], C["macd_signal"], C["macd_hist"] = macd(c, 12, 26, 9)
+
+        bu, bm, bl = bollinger(c, 20, 2.0)
+        C["bb_upper"], C["bb_mid"], C["bb_lower"] = bu, bm, bl
+        C["bb_width_pct"] = [None if (u is None or m in (None, 0) or lo is None)
+                             else (u - lo) / m * 100.0 for u, m, lo in zip(bu, bm, bl)]
+        C["bb_pctb"] = [None if (u is None or lo is None or u == lo)
+                        else (cc - lo) / (u - lo) for cc, u, lo in zip(c, bu, bl)]
+
+        a = atr(h, l, c, 14)
+        C["atr"] = a
+        C["atr_pct"] = [None if (x is None or not cc) else x / cc * 100.0
+                        for x, cc in zip(a, c)]
+        C["atr_percentile"] = self._percentile_of(a, 250)
+
+        vb = vwap_bands(bars, "session", (1.0, 2.0))
+        C["vwap"] = vb["vwap"]
+        C["vwap_u1"], C["vwap_l1"] = vb["upper_1"], vb["lower_1"]
+        C["vwap_u2"], C["vwap_l2"] = vb["upper_2"], vb["lower_2"]
+        C["vwap_dist_atr"] = [
+            None if (w is None or x in (None, 0)) else (cc - w) / x
+            for cc, w, x in zip(c, vb["vwap"], a)]
+
+        C["adx"], C["plus_di"], C["minus_di"] = adx(h, l, c, 14)
+        C["stoch_k"], C["stoch_d"] = stochastic(h, l, c, 14, 3, 3)
+
+        C["rel_volume"] = relative_volume(bars, 20)
+        C["efficiency_ratio"] = efficiency_ratio(c, 20)
+        sl = linreg_slope(c, 20)
+        C["slope_atr"] = [None if (s is None or x in (None, 0)) else s / x
+                          for s, x in zip(sl, a)]
+
+        C["hh20"] = rolling_max(h, 20)
+        C["ll20"] = rolling_min(l, 20)
+        C["range_pos"] = [
+            None if (hi is None or lo is None or hi == lo) else (cc - lo) / (hi - lo)
+            for cc, hi, lo in zip(c, C["hh20"], C["ll20"])]
+
+        ku, _, kl = keltner(h, l, c, 20, 1.5)
+        C["keltner_upper"], C["keltner_lower"] = ku, kl
+
+        self.divergence = delta_divergence(bars, 20, "session")
+        self.volume_regime_col = self._volume_regime(v)
+
+        # Structure: computed once for the whole series, then exposed through a
+        # per-bar pointer that only reveals CONFIRMED swings.
+        self.swings: List[Swing] = find_swings(bars, self.swing_left, self.swing_right)
+        self._swing_ptr = self._build_swing_pointers(n)
+        self.fvgs: List[FVG] = fair_value_gaps(bars, as_of=n - 1, track_fills=True)
+        self._fvg_ptr = self._build_fvg_pointers(n)
+        self._sr_cache: Dict[int, List[SRLevel]] = {}
+
+    @staticmethod
+    def _percentile_of(values: Sequence[Num], window: int) -> List[Num]:
+        out: List[Num] = [None] * len(values)
+        buf: List[float] = []
+        for i, val in enumerate(values):
+            if val is None:
+                continue
+            if buf:
+                out[i] = sum(1 for x in buf if x < val) / len(buf)
+            buf.append(val)
+            if len(buf) > window:
+                buf.pop(0)
+        return out
+
+    @staticmethod
+    def _volume_regime(vols: Sequence[float]) -> List[Optional[str]]:
+        pr = percent_rank(vols, 60)
+        out: List[Optional[str]] = [None] * len(vols)
+        for i, p in enumerate(pr):
+            if p is None:
+                continue
+            out[i] = ("SURGE" if p >= 0.90 else "ABOVE_AVERAGE" if p >= 0.70
+                      else "AVERAGE" if p >= 0.30 else "BELOW_AVERAGE" if p >= 0.10
+                      else "THIN")
+        return out
+
+    def _build_swing_pointers(self, n: int) -> List[int]:
+        """For each bar index: how many swings were confirmed by that bar, plus
+        the last two confirmed highs and lows.
+
+        The last-two arrays are built in this single forward pass on purpose.
+        Deriving them per snapshot by filtering the whole swing list is O(n) per
+        bar and O(n^2) over a backtest - it was measured at 25 million calls for
+        a 20-day run, and it dominated everything else.
+        """
+        ptr = [0] * n
+        self._last_high: List[Num] = [None] * n
+        self._prior_high: List[Num] = [None] * n
+        self._last_low: List[Num] = [None] * n
+        self._prior_low: List[Num] = [None] * n
+        k = 0
+        ordered = sorted(self.swings, key=lambda s: s.confirmed_index)
+        self._swings_by_confirm = ordered
+        lh = ph = ll = pl = None
+        for i in range(n):
+            while k < len(ordered) and ordered[k].confirmed_index <= i:
+                s = ordered[k]
+                if s.is_high:
+                    ph, lh = lh, s.price
+                else:
+                    pl, ll = ll, s.price
+                k += 1
+            ptr[i] = k
+            self._last_high[i], self._prior_high[i] = lh, ph
+            self._last_low[i], self._prior_low[i] = ll, pl
+        return ptr
+
+    def _build_fvg_pointers(self, n: int) -> List[int]:
+        ptr = [0] * n
+        k = 0
+        ordered = sorted(self.fvgs, key=lambda g: g.index + 1)
+        self._fvgs_by_visible = ordered
+        for i in range(n):
+            while k < len(ordered) and ordered[k].index + 1 <= i:
+                k += 1
+            ptr[i] = k
+        return ptr
+
+    # ---- access -------------------------------------------------------
+    def __len__(self) -> int:
+        return len(self.series)
+
+    def visible_swings(self, index: int) -> List[Swing]:
+        if not self.swings or index < 0:
+            return []
+        k = self._swing_ptr[min(index, len(self._swing_ptr) - 1)]
+        return self._swings_by_confirm[:k]
+
+    def sr_levels(self, index: int) -> List[SRLevel]:
+        """S/R clustered from the most recent confirmed swings.
+
+        Cached per 5-bar bucket: levels do not meaningfully change bar to bar,
+        and recomputing them for every bar of an 80,000-bar backtest is the
+        difference between a 20-second run and a 20-minute one.
+        """
+        bucket = index // 5
+        hit = self._sr_cache.get(bucket)
+        if hit is not None:
+            return hit
+        vis = self.visible_swings(index)[-self.sr_window_swings:]
+        levels: List[SRLevel] = []
+        if vis:
+            bars = self.series.bars
+            ref = bars[min(index, len(bars) - 1)].close or 1.0
+            band = abs(ref) * 0.0015
+            clusters: List[List[Swing]] = []
+            for s in sorted(vis, key=lambda x: x.price):
+                if clusters and abs(s.price - clusters[-1][0].price) <= band:
+                    clusters[-1].append(s)
+                else:
+                    clusters.append([s])
+            for cl in clusters:
+                if len(cl) < 2:
+                    continue
+                price = sum(s.price for s in cl) / len(cl)
+                n_high = sum(1 for s in cl if s.is_high)
+                kind = ("RESISTANCE" if n_high > len(cl) - n_high
+                        else "SUPPORT" if n_high < len(cl) - n_high else "PIVOT")
+                levels.append(SRLevel(price, len(cl), kind,
+                                      min(s.index for s in cl),
+                                      max(s.index for s in cl),
+                                      float(len(cl))))
+            levels.sort(key=lambda lv: lv.strength, reverse=True)
+        self._sr_cache[bucket] = levels
+        return levels
+
+    #: How many recently-visible gaps to consider. An FVG a thousand bars old
+    #: that price has never revisited is not a level anyone trades off, and
+    #: scanning the full list every bar is quadratic.
+    FVG_SCAN_WINDOW = 60
+
+    def active_fvgs(self, index: int, limit: int = 6) -> List[FVG]:
+        """Unfilled FVGs visible at ``index``, most recent first."""
+        if not self.fvgs:
+            return []
+        k = self._fvg_ptr[min(index, len(self._fvg_ptr) - 1)]
+        start = max(0, k - self.FVG_SCAN_WINDOW)
+        out = [g for g in self._fvgs_by_visible[start:k]
+               if g.filled_index is None or g.filled_index > index]
+        return out[-limit:][::-1]
+
+    def snapshot(self, index: int) -> Optional[TFSnapshot]:
+        bars = self.series.bars
+        if not bars or index < 0:
+            return None
+        i = min(index, len(bars) - 1)
+        vals: Dict[str, Num] = {}
+        for name in FEATURE_NAMES:
+            col = self.cols.get(name)
+            vals[name] = col[i] if col is not None and i < len(col) else None
+
+        last_high, prior_high = self._last_high[i], self._prior_high[i]
+        last_low, prior_low = self._last_low[i], self._prior_low[i]
+
+        trend = "UNDEFINED"
+        event = ""
+        if None not in (last_high, prior_high, last_low, prior_low):
+            hh = last_high > prior_high
+            hl = last_low > prior_low
+            lh = last_high < prior_high
+            ll = last_low < prior_low
+            if hh and hl:
+                trend, event = "UPTREND", "BOS_UP"
+            elif lh and ll:
+                trend, event = "DOWNTREND", "BOS_DOWN"
+            elif hh and ll:
+                trend, event = "RANGE", "EXPANSION"
+            else:
+                trend = "RANGE"
+
+        return TFSnapshot(
+            timeframe=self.timeframe, index=i, bar=bars[i], values=vals,
+            structure_trend=trend, structure_event=event,
+            last_swing_high=last_high, last_swing_low=last_low,
+            prior_swing_high=prior_high, prior_swing_low=prior_low,
+            sr_levels=self.sr_levels(i),
+            divergence=self.divergence[i] if i < len(self.divergence) else None,
+            volume_regime=(self.volume_regime_col[i]
+                           if i < len(self.volume_regime_col) else None),
+            active_fvgs=self.active_fvgs(i),
+        )
+
+
+# --------------------------------------------------------------------------
+# Symbol-level frame
+# --------------------------------------------------------------------------
+
+@dataclass
+class FeatureSnapshot:
+    """Everything known about one symbol at one instant, across all timeframes."""
+
+    symbol: str
+    ts: datetime
+    base_index: int
+    price: float
+    spec: ContractSpec
+    tfs: Dict[int, TFSnapshot] = field(default_factory=dict)
+    regime: RegimeSnapshot = field(default_factory=RegimeSnapshot)
+    session: str = ""
+    time_bucket: str = ""
+    day_of_week: str = ""
+    minutes_since_open: float = 0.0
+    is_rth: bool = False
+    session_levels: SessionLevels = field(default_factory=SessionLevels)
+    opening_range: Optional[Any] = None
+    trading_day: Optional[date] = None
+
+    def tf(self, timeframe: int) -> Optional[TFSnapshot]:
+        return self.tfs.get(int(timeframe))
+
+    def value(self, timeframe: int, name: str) -> Num:
+        s = self.tfs.get(int(timeframe))
+        return s[name] if s else None
+
+    @property
+    def timeframes(self) -> List[int]:
+        return sorted(self.tfs)
+
+    def alignment(self) -> float:
+        """Directional agreement across timeframes, in [-1, 1].
+
+        Each timeframe votes with its structural trend, weighted by its length -
+        a 4-hour trend is worth more than a 1-minute one. Near zero means the
+        timeframes disagree, which is itself a tradeable piece of information
+        (and usually an argument for standing aside).
+        """
+        num = den = 0.0
+        for tf, snap in self.tfs.items():
+            w = math.log(tf + 1.0)
+            vote = {"UPTREND": 1.0, "DOWNTREND": -1.0}.get(snap.structure_trend, 0.0)
+            num += vote * w
+            den += w
+        return (num / den) if den else 0.0
+
+    def to_dict(self) -> dict:
+        return {
+            "symbol": self.symbol,
+            "ts": to_et(self.ts).isoformat(),
+            "price": self.price,
+            "session": self.session,
+            "time_bucket": self.time_bucket,
+            "day_of_week": self.day_of_week,
+            "minutes_since_open": round(self.minutes_since_open, 1),
+            "is_rth": self.is_rth,
+            "regime": self.regime.to_dict(),
+            "alignment": round(self.alignment(), 3),
+            "session_levels": self.session_levels.to_dict(),
+            "opening_range": self.opening_range.to_dict() if self.opening_range else None,
+            "timeframes": {str(tf): s.to_dict() for tf, s in sorted(self.tfs.items())},
+        }
+
+
+class SymbolFrame:
+    """All timeframes of one symbol, with look-ahead-safe cross-timeframe alignment."""
+
+    def __init__(self, base: BarSeries, timeframes: Sequence[int],
+                 spec: Optional[ContractSpec] = None, *,
+                 regime_timeframe: Optional[int] = None):
+        self.symbol = base.symbol
+        self.spec = spec or get_contract(base.symbol)
+        self.base = base
+        self.timeframes = tuple(sorted({int(t) for t in timeframes}))
+        if any(tf < base.minutes for tf in self.timeframes):
+            raise ValueError(
+                f"{self.symbol}: requested a timeframe finer than the {base.minutes}m source")
+
+        self.frames: Dict[int, TimeframeFrame] = {}
+        for tf in self.timeframes:
+            series = base if tf == base.minutes else resample(base, tf, keep_partial=False)
+            self.frames[tf] = TimeframeFrame(series, self.spec)
+
+        self.regime_tf = regime_timeframe or self._default_regime_tf()
+        self._align = self._build_alignment()
+        self._session_state = self._build_session_state()
+        self._regime_cache: Dict[int, RegimeSnapshot] = {}
+
+    def _default_regime_tf(self) -> int:
+        """Regime is read off an intermediate timeframe - 1-minute regime labels
+        are noise, daily ones are stale."""
+        for pref in (15, 30, 5, 60, 10, 3, 1):
+            if pref in self.frames:
+                return pref
+        return self.timeframes[-1]
+
+    def _build_alignment(self) -> Dict[int, List[int]]:
+        """base bar index -> index of the last COMPLETED bar on each timeframe.
+
+        ``-1`` means no bar on that timeframe had closed yet.
+        """
+        out: Dict[int, List[int]] = {}
+        base_bars = self.base.bars
+        for tf, frame in self.frames.items():
+            tf_bars = frame.series.bars
+            ptr: List[int] = []
+            k = -1
+            j = 0
+            for b in base_bars:
+                end = b.end_ts
+                while j < len(tf_bars) and tf_bars[j].end_ts <= end:
+                    k = j
+                    j += 1
+                ptr.append(k)
+            out[tf] = ptr
+        return out
+
+    def _build_session_state(self) -> List[Tuple[SessionLevels, Optional[Any]]]:
+        """Running session levels and opening range for every base bar.
+
+        Computed in one forward pass: each bar updates the running extremes, so
+        the value at bar *i* contains only information available at bar *i*.
+        """
+        out: List[Tuple[SessionLevels, Optional[Any]]] = []
+        spec = self.spec
+        cur_day: Optional[date] = None
+        prev_day_summary: Tuple[Optional[float], Optional[float], Optional[float]] = (None, None, None)
+        day_rth: List[float] = []      # running [high, low, close]
+        on_high = on_low = None
+        rth_high = rth_low = day_open = None
+        ib_high = ib_low = None
+        or_high = or_low = None
+        or_complete = False
+        or_minutes = 30
+
+        for b in self.base.bars:
+            day = trading_day(b.ts)
+            if day != cur_day:
+                if cur_day is not None and rth_high is not None:
+                    prev_day_summary = (rth_high, rth_low, day_rth[-1] if day_rth else None)
+                cur_day = day
+                on_high = on_low = None
+                rth_high = rth_low = day_open = None
+                ib_high = ib_low = None
+                or_high = or_low = None
+                or_complete = False
+                day_rth = []
+
+            in_rth = is_rth(b.ts, spec.rth_open, spec.rth_close)
+            if in_rth:
+                if day_open is None:
+                    day_open = b.open
+                rth_high = b.high if rth_high is None else max(rth_high, b.high)
+                rth_low = b.low if rth_low is None else min(rth_low, b.low)
+                day_rth.append(b.close)
+                mso = minutes_since_open(b.ts, spec.rth_open)
+                if mso < 60:
+                    ib_high = b.high if ib_high is None else max(ib_high, b.high)
+                    ib_low = b.low if ib_low is None else min(ib_low, b.low)
+                if mso < or_minutes:
+                    or_high = b.high if or_high is None else max(or_high, b.high)
+                    or_low = b.low if or_low is None else min(or_low, b.low)
+                elif or_high is not None:
+                    or_complete = True
+            else:
+                on_high = b.high if on_high is None else max(on_high, b.high)
+                on_low = b.low if on_low is None else min(on_low, b.low)
+
+            lv = SessionLevels(
+                prev_day_high=prev_day_summary[0], prev_day_low=prev_day_summary[1],
+                prev_day_close=prev_day_summary[2],
+                overnight_high=on_high, overnight_low=on_low,
+                session_high=rth_high, session_low=rth_low,
+                initial_balance_high=ib_high, initial_balance_low=ib_low,
+                day_open=day_open,
+            )
+            orr = None
+            if or_high is not None and or_low is not None:
+                from .indicators.structure import OpeningRange
+                orr = OpeningRange(day=day, minutes=or_minutes, high=or_high,
+                                   low=or_low, complete=or_complete,
+                                   open_price=day_open or or_high)
+            out.append((lv, orr))
+        return out
+
+    # ---- access -------------------------------------------------------
+    def __len__(self) -> int:
+        return len(self.base)
+
+    def tf_index(self, base_index: int, timeframe: int) -> int:
+        """Index of the newest completed ``timeframe`` bar at ``base_index``."""
+        ptr = self._align.get(int(timeframe))
+        if ptr is None:
+            raise KeyError(f"{self.symbol}: timeframe {timeframe}m not in this frame")
+        return ptr[min(max(0, base_index), len(ptr) - 1)]
+
+    def regime_at(self, base_index: int) -> RegimeSnapshot:
+        """Regime read off the regime timeframe, cached per regime bar.
+
+        Recomputing the regime for every base bar would dominate backtest
+        runtime and would produce the same answer within a single higher
+        timeframe bar anyway.
+        """
+        ri = self.tf_index(base_index, self.regime_tf)
+        if ri < 0:
+            return RegimeSnapshot()
+        hit = self._regime_cache.get(ri)
+        if hit is None:
+            bars = self.frames[self.regime_tf].series.bars[: ri + 1]
+            hit = classify_regime(bars[-400:]) if len(bars) >= 60 else RegimeSnapshot()
+            self._regime_cache[ri] = hit
+        return hit
+
+    def snapshot(self, base_index: int) -> Optional[FeatureSnapshot]:
+        """Full cross-timeframe snapshot at ``base_index``."""
+        bars = self.base.bars
+        if not bars:
+            return None
+        i = min(max(0, base_index), len(bars) - 1)
+        bar = bars[i]
+
+        tfs: Dict[int, TFSnapshot] = {}
+        for tf, frame in self.frames.items():
+            idx = self.tf_index(i, tf)
+            if idx < 0:
+                continue
+            snap = frame.snapshot(idx)
+            if snap is not None:
+                tfs[tf] = snap
+
+        lv, orr = self._session_state[i]
+        return FeatureSnapshot(
+            symbol=self.symbol, ts=bar.ts, base_index=i, price=bar.close,
+            spec=self.spec, tfs=tfs, regime=self.regime_at(i),
+            session=classify_session(bar.ts), time_bucket=time_bucket(bar.ts, 30),
+            day_of_week=day_of_week_name(bar.ts),
+            minutes_since_open=minutes_since_open(bar.ts, self.spec.rth_open),
+            is_rth=is_rth(bar.ts, self.spec.rth_open, self.spec.rth_close),
+            session_levels=lv, opening_range=orr, trading_day=trading_day(bar.ts),
+        )
+
+    def iter_snapshots(self, start: int = 0, end: Optional[int] = None,
+                       step: int = 1) -> Iterable[FeatureSnapshot]:
+        stop = len(self.base) if end is None else min(end, len(self.base))
+        for i in range(max(0, start), stop, max(1, step)):
+            snap = self.snapshot(i)
+            if snap is not None:
+                yield snap
+
+    def __repr__(self) -> str:
+        tfs = ",".join(tf_label(t) for t in self.timeframes)
+        return f"<SymbolFrame {self.symbol} [{tfs}] bars={len(self.base)}>"
+
+
+def build_symbol_frame(series: BarSeries, timeframes: Sequence[int],
+                       spec: Optional[ContractSpec] = None) -> SymbolFrame:
+    return SymbolFrame(series, timeframes, spec)
