@@ -31,6 +31,7 @@ _OPTIONAL = (
     ("decision", ("DecisionAgent",)),
     ("risk_agent", ("RiskAgent",)),
     ("journal_agent", ("JournalAgent",)),
+    ("budget_agent", ("BudgetAgent",)),
 )
 
 for _module, _names in _OPTIONAL:
@@ -52,7 +53,7 @@ __all__ = [
     "NewsMacroAgent", "StrategyResearchAgent",
     "ResearchTrendAgent", "ResearchReversionAgent", "ResearchLiquidityAgent",
     "AnalystAAgent", "AnalystBAgent", "AnalystCAgent",
-    "DecisionAgent", "RiskAgent", "JournalAgent",
+    "DecisionAgent", "RiskAgent", "JournalAgent", "BudgetAgent",
     "IMPORT_ERRORS", "staffing_report",
 ]
 
@@ -63,7 +64,8 @@ def staffing_report() -> Dict[str, Any]:
                              "ResearchTrendAgent", "ResearchReversionAgent",
                              "ResearchLiquidityAgent",
                              "AnalystAAgent", "AnalystBAgent", "AnalystCAgent",
-                             "DecisionAgent", "RiskAgent", "JournalAgent")
+                             "DecisionAgent", "RiskAgent", "JournalAgent",
+                             "BudgetAgent")
                  if globals().get(n) is not None]
     return {"available": available, "missing": sorted(IMPORT_ERRORS),
             "errors": dict(IMPORT_ERRORS)}

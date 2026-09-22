@@ -33,6 +33,7 @@ class Role(str, Enum):
     DECISION = "decision"
     RISK = "risk"
     JOURNAL = "journal"
+    BUDGET = "budget"              # usage monitoring and dispatch gating
 
     @property
     def folder(self) -> str:
@@ -265,6 +266,25 @@ ROLES: Dict[Role, RoleSpec] = {
         publishes=("risk_assessment", "account_state", "callout"),
         consumes=("decision", "account_state", "news_context"),
         llm_backed=False,          # risk decisions stay deterministic and auditable
+    ),
+    Role.BUDGET: RoleSpec(
+        role=Role.BUDGET,
+        title="Usage Budget Monitor",
+        mandate=(
+            "Measures what this session has actually consumed from the Claude "
+            "Code transcripts and gates the team's dispatch against the "
+            "operator's session and weekly limits. Slows the team past the "
+            "first threshold and stops new work past the second. Reports "
+            "measured consumption honestly and refuses to report a percentage "
+            "it cannot compute - the subscription limit is not readable from "
+            "inside a session, so an uncalibrated monitor says so rather than "
+            "inventing a denominator."
+        ),
+        accepts=_A({"check_budget", "calibrate_budget", "budget_status"}),
+        may_message=_A(set(Role)),
+        publishes=("budget_state", "usage_report"),
+        consumes=("*",),
+        llm_backed=False,          # arithmetic over measured data, never a guess
     ),
     Role.JOURNAL: RoleSpec(
         role=Role.JOURNAL,

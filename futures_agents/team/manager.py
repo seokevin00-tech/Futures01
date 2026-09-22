@@ -271,6 +271,46 @@ class ManagerAgent(TeamAgent):
         self.log(f"planned a {len(created)}-task research debate for {sym}")
         return created
 
+    # ---- usage budget --------------------------------------------------
+    #: How often the dispatch loop re-checks the budget, in tasks.
+    budget_check_every: int = 3
+
+    @property
+    def budget(self) -> Optional[TeamAgent]:
+        """The usage budget agent, if this team has one staffed."""
+        return self.team.get(Role.BUDGET)
+
+    def _budget_blocks(self) -> str:
+        """Reason the budget forbids new work, or "" if it permits it.
+
+        Fails OPEN. If the budget agent is absent, or cannot determine the
+        limit, the team keeps working - a monitor that halted the run on its
+        own ignorance would be worse than no monitor. It warns instead, and the
+        agent's own artefact records that the percentage was not computable.
+        """
+        agent = self.budget
+        if agent is None:
+            return ""
+        try:
+            if agent.gate():
+                return ""
+            state = getattr(agent, "last_state", None)
+            reasons = getattr(state, "reasons", None) or ["usage limit reached"]
+            return reasons[0]
+        except Exception as exc:                        # noqa: BLE001
+            self.log(f"budget check failed, continuing: {type(exc).__name__}: {exc}")
+            return ""
+
+    def budget_multiplier(self) -> float:
+        """Fraction of normal workload to place, in [0, 1]."""
+        agent = self.budget
+        if agent is None:
+            return 1.0
+        try:
+            return float(agent.multiplier())
+        except Exception:                               # noqa: BLE001
+            return 1.0
+
     # ---- execution ----------------------------------------------------
     def dispatch(self, task: Task) -> AgentResult:
         """Hand one task to its owning agent."""
@@ -302,6 +342,21 @@ class ManagerAgent(TeamAgent):
             task = self.board.next_task()
             if task is None:
                 break
+
+            # Consult the usage budget BEFORE placing work, not after. Checking
+            # afterwards would mean the task that breached the limit has
+            # already been paid for. Re-checked every few tasks because the
+            # check rescans the transcripts on disk.
+            if processed % self.budget_check_every == 0:
+                reason = self._budget_blocks()
+                if reason:
+                    report.halted = True
+                    report.halt_reason = reason
+                    for pending in self.board.all():
+                        if not pending.status.is_terminal:
+                            self.board.skip(pending, f"usage budget: {reason}")
+                    break
+
             self.board.start(task)
             result = self.dispatch(task)
             if result.ok:
