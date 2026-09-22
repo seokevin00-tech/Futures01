@@ -29,11 +29,14 @@ from .indicators.core import (adx, atr, bollinger, ema, keltner, linreg_slope,
                               macd, percent_rank, roc, rolling_max, rolling_min,
                               rsi, sma, stdev, stochastic)
 from .indicators.regime import RegimeSnapshot, classify_regime, efficiency_ratio
-from .indicators.structure import (FVG, Swing, SRLevel, SessionLevels, Sweep,
-                                   fair_value_gaps, find_swings, opening_range,
-                                   support_resistance)
-from .indicators.volume import (cumulative_delta, delta_divergence,
-                                relative_volume, volume_profile, vwap_bands)
+from .indicators.structure import (FVG, SDZone, Swing, SRLevel, SessionLevels,
+                                   Sweep, fair_value_gaps, find_swings,
+                                   opening_range, support_resistance,
+                                   supply_demand_zones)
+from .econ_calendar import Impact, event_proximity, project_events
+from .indicators.volume import (VolumeProfile, cumulative_delta,
+                                delta_divergence, relative_volume,
+                                volume_profile, vwap_bands)
 from .timeutil import (classify_session, day_of_week_name, is_rth,
                        minutes_since_open, time_bucket, to_et, trading_day)
 
@@ -57,6 +60,7 @@ FEATURE_NAMES: Tuple[str, ...] = (
     "adx", "plus_di", "minus_di", "stoch_k", "stoch_d",
     "rel_volume", "efficiency_ratio", "slope_atr",
     "hh20", "ll20", "range_pos", "keltner_upper", "keltner_lower",
+    "open_interest", "oi_change",
 )
 
 
@@ -82,6 +86,58 @@ class TFSnapshot:
     divergence: Optional[str] = None
     volume_regime: Optional[str] = None
     active_fvgs: List[FVG] = field(default_factory=list)
+    #: Price-by-volume profile of the PRIOR completed session. Backward
+    #: looking by construction, so POC/VAH/VAL are usable as reference
+    #: levels without leaking the session being traded.
+    prior_profile: Optional[VolumeProfile] = None
+    open_interest: Optional[float] = None
+    imbalance: Optional[str] = None      # BULLISH | BEARISH on this bar
+    recent_imbalance: Optional[str] = None
+    bars_since_imbalance: Optional[int] = None
+    #: Untested-or-tested supply and demand zones visible at this bar, most
+    #: recent first. Already masked to this bar: ``fresh`` and ``touches``
+    #: answer for now, not for the end of the series.
+    sd_zones: List[SDZone] = field(default_factory=list)
+    #: Bar index of the most recent confirmed swing of each kind. Needed to
+    #: know which way the last impulse leg ran, which is what a Fibonacci
+    #: retracement is measured against.
+    last_swing_high_index: Optional[int] = None
+    last_swing_low_index: Optional[int] = None
+
+    # ---- derived reference levels -----------------------------------
+    def swing_leg(self) -> Optional[Tuple[float, float, str]]:
+        """``(low, high, direction)`` of the last confirmed impulse leg.
+
+        ``direction`` is ``"UP"`` when the high was made after the low - a leg
+        whose retracement is a pullback to buy - and ``"DOWN"`` otherwise.
+        Returns ``None`` until both a high and a low have been confirmed, which
+        is the honest answer rather than a leg invented from one swing.
+        """
+        hi, lo = self.last_swing_high, self.last_swing_low
+        hi_i, lo_i = self.last_swing_high_index, self.last_swing_low_index
+        if hi is None or lo is None or hi_i is None or lo_i is None or hi <= lo:
+            return None
+        return (lo, hi, "UP" if hi_i > lo_i else "DOWN")
+
+    def fib_zone(self, lower: float = 0.5, upper: float = 0.786
+                 ) -> Optional[Tuple[float, float, str]]:
+        """Price band between two retracement ratios of the last leg.
+
+        Ratios are measured from the *end* of the leg back towards its start,
+        the way a trader draws them: 0.618 of an up leg sits above 0.786.
+        """
+        leg = self.swing_leg()
+        if leg is None:
+            return None
+        lo, hi, direction = leg
+        span = hi - lo
+        if span <= 0:
+            return None
+        if direction == "UP":
+            a, b = hi - upper * span, hi - lower * span
+        else:
+            a, b = lo + lower * span, lo + upper * span
+        return (min(a, b), max(a, b), direction)
 
     def __getitem__(self, key: str) -> Num:
         return self.values.get(key)
@@ -109,6 +165,10 @@ class TFSnapshot:
             "last_swing_low": self.last_swing_low,
             "divergence": self.divergence,
             "volume_regime": self.volume_regime,
+            "imbalance": self.imbalance,
+            "open_interest": self.open_interest,
+            "prior_profile": self.prior_profile.to_dict() if self.prior_profile else None,
+            "sd_zones": [z.to_dict() for z in self.sd_zones[:4]],
             "sr_levels": [l.to_dict() for l in self.sr_levels[:5]],
             "values": {k: (round(v, 6) if isinstance(v, float) else v)
                        for k, v in self.values.items() if v is not None},
@@ -200,6 +260,14 @@ class TimeframeFrame:
         ku, _, kl = keltner(h, l, c, 20, 1.5)
         C["keltner_upper"], C["keltner_lower"] = ku, kl
 
+        # Open interest, when the feed carries it. Most intraday exports do
+        # not, so every consumer has to treat None as "unknown" rather than
+        # "unchanged" - an OI strategy validated on a column of zeros has not
+        # been validated.
+        oi = [b.open_interest for b in bars]
+        C["open_interest"] = list(oi)
+        C["oi_change"] = self._oi_change(oi, 20)
+
         self.divergence = delta_divergence(bars, 20, "session")
         self.volume_regime_col = self._volume_regime(v)
 
@@ -210,6 +278,21 @@ class TimeframeFrame:
         self.fvgs: List[FVG] = fair_value_gaps(bars, as_of=n - 1, track_fills=True)
         self._fvg_ptr = self._build_fvg_pointers(n)
         self._sr_cache: Dict[int, List[SRLevel]] = {}
+        self._profile_cache: Dict[Any, Optional[VolumeProfile]] = {}
+        self._build_session_index()
+        self._build_imbalances()
+        self.zones: List[SDZone] = supply_demand_zones(bars, as_of=n - 1)
+        self._zone_ptr = self._build_zone_pointers(n)
+
+    @staticmethod
+    def _oi_change(values: Sequence[Num], lookback: int) -> List[Num]:
+        """Open-interest change over ``lookback`` bars, None where unknown."""
+        out: List[Num] = [None] * len(values)
+        for i in range(lookback, len(values)):
+            now, then = values[i], values[i - lookback]
+            if now is not None and then is not None:
+                out[i] = now - then
+        return out
 
     @staticmethod
     def _percentile_of(values: Sequence[Num], window: int) -> List[Num]:
@@ -251,21 +334,44 @@ class TimeframeFrame:
         self._prior_high: List[Num] = [None] * n
         self._last_low: List[Num] = [None] * n
         self._prior_low: List[Num] = [None] * n
+        self._last_high_i: List[Optional[int]] = [None] * n
+        self._last_low_i: List[Optional[int]] = [None] * n
         k = 0
         ordered = sorted(self.swings, key=lambda s: s.confirmed_index)
         self._swings_by_confirm = ordered
         lh = ph = ll = pl = None
+        lh_i = ll_i = None
         for i in range(n):
             while k < len(ordered) and ordered[k].confirmed_index <= i:
                 s = ordered[k]
                 if s.is_high:
                     ph, lh = lh, s.price
+                    lh_i = s.index
                 else:
                     pl, ll = ll, s.price
+                    ll_i = s.index
                 k += 1
             ptr[i] = k
             self._last_high[i], self._prior_high[i] = lh, ph
             self._last_low[i], self._prior_low[i] = ll, pl
+            self._last_high_i[i], self._last_low_i[i] = lh_i, ll_i
+        return ptr
+
+    def _build_zone_pointers(self, n: int) -> List[int]:
+        """For each bar: how many supply/demand zones had formed by then.
+
+        A zone is knowable once its departure bar has closed, so the pointer
+        advances at the departure index itself - unlike an FVG, which needs the
+        bar after the displacement before its geometry exists.
+        """
+        ptr = [0] * n
+        k = 0
+        ordered = sorted(self.zones, key=lambda z: z.index)
+        self._zones_by_index = ordered
+        for i in range(n):
+            while k < len(ordered) and ordered[k].index <= i:
+                k += 1
+            ptr[i] = k
         return ptr
 
     def _build_fvg_pointers(self, n: int) -> List[int]:
@@ -353,6 +459,100 @@ class TimeframeFrame:
             # else: already filled at or before this bar - not active.
         return out[-limit:][::-1]
 
+
+    #: How far back to look for a still-relevant zone. Matches the forward
+    #: scan in :func:`supply_demand_zones`, so a zone the detector stopped
+    #: tracking is not reported as untouched.
+    ZONE_SCAN_WINDOW = 400
+
+    def active_zones(self, index: int, limit: int = 6) -> List[SDZone]:
+        """Zones visible and not yet invalidated at ``index``, newest first.
+
+        Every zone is passed through :meth:`SDZone.as_of` before it leaves this
+        method. The stored object knows which future bars will test and break
+        it; handing that out would let a strategy prefer the zones that are
+        about to hold.
+        """
+        if not getattr(self, "zones", None):
+            return []
+        k = self._zone_ptr[min(index, len(self._zone_ptr) - 1)]
+        start = max(0, k - self.ZONE_SCAN_WINDOW)
+        out: List[SDZone] = []
+        for z in self._zones_by_index[start:k]:
+            if index - z.index > self.ZONE_SCAN_WINDOW:
+                continue
+            masked = z.as_of(index)
+            if masked.invalidated_index is None:
+                out.append(masked)
+        return out[-limit:][::-1]
+
+    def _build_session_index(self) -> None:
+        """Map each bar to its trading day, and each day to its bar range.
+
+        Needed so the prior session's volume profile can be built once per day
+        rather than rescanned per bar.
+        """
+        from .timeutil import trading_day
+        self._day_of: List[Any] = []
+        self._day_bars: Dict[Any, List[int]] = {}
+        self._day_order: List[Any] = []
+        for i, bar in enumerate(self.series.bars):
+            day = trading_day(bar.ts)
+            self._day_of.append(day)
+            if day not in self._day_bars:
+                self._day_bars[day] = []
+                self._day_order.append(day)
+            self._day_bars[day].append(i)
+
+    def _build_imbalances(self) -> None:
+        """Per-bar aggressive-participation flag, precomputed once."""
+        from .indicators.structure import detect_imbalances
+        n = len(self.series)
+        self.imbalance_col: List[Optional[str]] = [None] * n
+        #: Direction of the most recent imbalance at or before each bar, and
+        #: how many bars ago it was. A displacement two bars back is still
+        #: shaping the tape; one four hundred bars back is history.
+        self.recent_imbalance_col: List[Optional[str]] = [None] * n
+        self.bars_since_imbalance_col: List[Optional[int]] = [None] * n
+        if n:
+            for idx, direction, _mult in detect_imbalances(self.series.bars):
+                if 0 <= idx < n:
+                    self.imbalance_col[idx] = direction
+            last_dir: Optional[str] = None
+            last_at: Optional[int] = None
+            for i in range(n):
+                if self.imbalance_col[i] is not None:
+                    last_dir, last_at = self.imbalance_col[i], i
+                self.recent_imbalance_col[i] = last_dir
+                self.bars_since_imbalance_col[i] = (
+                    None if last_at is None else i - last_at)
+
+    def prior_session_profile(self, index: int) -> Optional[VolumeProfile]:
+        """Volume profile of the last COMPLETED session before ``index``.
+
+        Strictly backward looking: the session being traded never contributes,
+        so POC, VAH and VAL are reference levels the bar could actually have
+        known. Cached per day, because a profile is a property of the session,
+        not of the bar asking about it.
+        """
+        if not self._day_of or index < 0:
+            return None
+        day = self._day_of[min(index, len(self._day_of) - 1)]
+        if day in self._profile_cache:
+            return self._profile_cache[day]
+        try:
+            position = self._day_order.index(day)
+        except ValueError:
+            return None
+        profile = None
+        if position > 0:
+            prior_bars = [self.series.bars[i]
+                          for i in self._day_bars[self._day_order[position - 1]]]
+            if len(prior_bars) >= 10:
+                profile = volume_profile(prior_bars, bins=40)
+        self._profile_cache[day] = profile
+        return profile
+
     def snapshot(self, index: int) -> Optional[TFSnapshot]:
         bars = self.series.bars
         if not bars or index < 0:
@@ -392,6 +592,17 @@ class TimeframeFrame:
             volume_regime=(self.volume_regime_col[i]
                            if i < len(self.volume_regime_col) else None),
             active_fvgs=self.active_fvgs(i),
+            prior_profile=self.prior_session_profile(i),
+            open_interest=bars[i].open_interest,
+            imbalance=(self.imbalance_col[i]
+                       if i < len(self.imbalance_col) else None),
+            recent_imbalance=(self.recent_imbalance_col[i]
+                              if i < len(self.recent_imbalance_col) else None),
+            bars_since_imbalance=(self.bars_since_imbalance_col[i]
+                                  if i < len(self.bars_since_imbalance_col) else None),
+            sd_zones=self.active_zones(i),
+            last_swing_high_index=self._last_high_i[i],
+            last_swing_low_index=self._last_low_i[i],
         )
 
 
@@ -418,6 +629,16 @@ class FeatureSnapshot:
     session_levels: SessionLevels = field(default_factory=SessionLevels)
     opening_range: Optional[Any] = None
     trading_day: Optional[date] = None
+    #: Minutes to the next high-impact scheduled release, from the
+    #: rule-based economic calendar. Deterministic and identical in a
+    #: backtest and live, which is what makes "news conditions" a testable
+    #: variable rather than a live-only annotation.
+    minutes_to_high_impact: float = float("inf")
+    #: Minutes since the last high-impact release. The reaction window after a
+    #: print behaves nothing like the drift before one, so a strategy has to be
+    #: able to condition on which side of the event it is standing.
+    minutes_since_high_impact: float = float("inf")
+    in_news_blackout: bool = False
 
     def tf(self, timeframe: int) -> Optional[TFSnapshot]:
         return self.tfs.get(int(timeframe))
@@ -460,6 +681,11 @@ class FeatureSnapshot:
             "alignment": round(self.alignment(), 3),
             "session_levels": self.session_levels.to_dict(),
             "opening_range": self.opening_range.to_dict() if self.opening_range else None,
+            "minutes_to_high_impact": (None if self.minutes_to_high_impact == float("inf")
+                                       else round(self.minutes_to_high_impact, 1)),
+            "minutes_since_high_impact": (None if self.minutes_since_high_impact == float("inf")
+                                          else round(self.minutes_since_high_impact, 1)),
+            "in_news_blackout": self.in_news_blackout,
             "timeframes": {str(tf): s.to_dict() for tf, s in sorted(self.tfs.items())},
         }
 
@@ -487,6 +713,7 @@ class SymbolFrame:
         self._align = self._build_alignment()
         self._session_state = self._build_session_state()
         self._regime_cache: Dict[int, RegimeSnapshot] = {}
+        self._news = self._build_news_proximity()
 
     def _default_regime_tf(self) -> int:
         """Regime is read off an intermediate timeframe - 1-minute regime labels
@@ -613,6 +840,52 @@ class SymbolFrame:
             self._regime_cache[ri] = hit
         return hit
 
+
+    def _build_news_proximity(self) -> List[Tuple[float, float, bool]]:
+        """Minutes-to-next-high-impact and blackout flag for every base bar.
+
+        Projected ONCE across the whole series from the recurrence rules, then
+        walked with a pointer - calling event_proximity per bar would re-project
+        a 72-hour horizon tens of thousands of times.
+        """
+        bars = self.base.bars
+        if not bars:
+            return []
+        from datetime import timedelta
+        start = bars[0].ts - timedelta(days=2)
+        # Far enough forward that the last bar of any series still sees a
+        # qualifying release ahead of it. At +5 days a run ending mid-month
+        # reported "no high-impact event ahead" purely because CPI, payrolls
+        # and PCE all sat outside the projection - an artefact of the horizon
+        # that a strategy would have read as a quiet calendar.
+        end = bars[-1].ts + timedelta(days=45)
+        events = [e for e in project_events(start, end)
+                  if e.impact.rank >= Impact.HIGH.rank]
+        out: List[Tuple[float, float, bool]] = []
+        if not events:
+            return [(float("inf"), float("inf"), False)] * len(bars)
+
+        before = float(getattr(getattr(self, "_account", None),
+                               "news_blackout_before_min", 10) or 10)
+        after = 5.0
+        k = 0
+        for bar in bars:
+            ts = bar.ts
+            while k < len(events) - 1 and events[k].when < ts - timedelta(minutes=after):
+                k += 1
+            local = events[max(0, k - 1):k + 2]
+            ahead = [e for e in local if e.when >= ts]
+            behind = [e for e in local if e.when <= ts]
+            minutes = ((ahead[0].when - ts).total_seconds() / 60.0
+                       if ahead else float("inf"))
+            since = ((ts - behind[-1].when).total_seconds() / 60.0
+                     if behind else float("inf"))
+            blackout = any(
+                -after <= (ts - e.when).total_seconds() / 60.0 <= before
+                for e in local)
+            out.append((minutes, since, blackout))
+        return out
+
     def snapshot(self, base_index: int) -> Optional[FeatureSnapshot]:
         """Full cross-timeframe snapshot at ``base_index``."""
         bars = self.base.bars
@@ -639,6 +912,11 @@ class SymbolFrame:
             minutes_since_open=minutes_since_open(bar.ts, self.spec.rth_open),
             is_rth=is_rth(bar.ts, self.spec.rth_open, self.spec.rth_close),
             session_levels=lv, opening_range=orr, trading_day=trading_day(bar.ts),
+            minutes_to_high_impact=(self._news[i][0] if i < len(self._news)
+                                    else float("inf")),
+            minutes_since_high_impact=(self._news[i][1] if i < len(self._news)
+                                       else float("inf")),
+            in_news_blackout=(self._news[i][2] if i < len(self._news) else False),
         )
 
     def iter_snapshots(self, start: int = 0, end: Optional[int] = None,

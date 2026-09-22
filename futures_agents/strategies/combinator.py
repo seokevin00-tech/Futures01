@@ -104,6 +104,13 @@ class StrategyTemplate:
     optional_groups: Tuple[str, ...] = ()
     max_optional: int = 2
     base_filters: Tuple[str, ...] = ("volatility_normal", "volume_not_thin")
+    #: Filters the generator switches on and off, producing a variant with and
+    #: a variant without each. A filter nailed into ``base_filters`` is an
+    #: assumption; one enumerated here is a tested variable - which is what the
+    #: specification asks for with "news conditions", and the only way to learn
+    #: whether standing aside for a release actually helps this strategy.
+    optional_filters: Tuple[str, ...] = ()
+    max_optional_filters: int = 2
     filters: StrategyFilters = field(default_factory=StrategyFilters)
     exits: Tuple[ExitModel, ...] = ()
     directions: Tuple[Direction, ...] = (Direction.LONG, Direction.SHORT)
@@ -118,93 +125,157 @@ TEMPLATES: Tuple[StrategyTemplate, ...] = (
         group="TREND",
         description="Trend continuation: structure and momentum aligned with the regime",
         required_groups=("trend", "structure"),
-        optional_groups=("momentum", "orderflow", "volume", "multitimeframe", "vwap"),
+        optional_groups=("momentum", "orderflow", "volume", "multitimeframe", "vwap",
+                         "profile", "imbalance"),
         max_optional=3,
         base_filters=("volatility_normal", "volume_not_thin", "regime_trending"),
         exits=tuple(expand_exit_models()[:3]),
+        optional_filters=("outside_news_blackout", "no_imminent_release"),
     ),
     StrategyTemplate(
         group="PULLBACK",
         description="Buy the dip inside an established trend",
         required_groups=("trend", "meanreversion"),
-        optional_groups=("structure", "vwap", "orderflow", "multitimeframe"),
+        optional_groups=("structure", "vwap", "orderflow", "multitimeframe",
+                         "fibonacci", "supplydemand"),
         max_optional=3,
         base_filters=("volatility_normal", "volume_not_thin", "mtf_not_conflicted"),
         exits=tuple(expand_exit_models()[:4]),
+        optional_filters=("outside_news_blackout", "no_imminent_release"),
     ),
     StrategyTemplate(
         group="VWAP",
         description="VWAP as the session's fair-value reference",
         required_groups=("vwap",),
-        optional_groups=("orderflow", "momentum", "structure", "volume", "trend"),
+        optional_groups=("orderflow", "momentum", "structure", "volume", "trend",
+                         "profile"),
         max_optional=3,
         base_filters=("volatility_normal", "volume_not_thin"),
         exits=tuple(expand_exit_models()),
+        optional_filters=("outside_news_blackout", "no_imminent_release"),
         exclusive=(("above_vwap", "vwap_proximity"),),
     ),
     StrategyTemplate(
         group="REVERSAL",
         description="Exhaustion and absorption against the prevailing move",
         required_groups=("meanreversion", "orderflow"),
-        optional_groups=("momentum", "liquidity", "structure", "vwap"),
+        optional_groups=("momentum", "liquidity", "structure", "vwap",
+                         "supplydemand", "profile", "fibonacci"),
         max_optional=3,
         base_filters=("volatility_normal", "volume_not_thin", "avoid_lunch"),
         exits=tuple(expand_exit_models()[:4]),
+        optional_filters=("outside_news_blackout", "no_imminent_release"),
     ),
     StrategyTemplate(
         group="MOMENTUM",
         description="Momentum ignition confirmed by participation",
         required_groups=("momentum", "volume"),
-        optional_groups=("trend", "orderflow", "structure", "multitimeframe"),
+        optional_groups=("trend", "orderflow", "structure", "multitimeframe",
+                         "imbalance", "openinterest"),
         max_optional=3,
         base_filters=("volatility_normal",),
         exits=tuple(expand_exit_models()[:3]),
+        optional_filters=("outside_news_blackout", "post_news_window"),
     ),
     StrategyTemplate(
         group="OPENING_RANGE",
         description="Opening-range breakout and failure",
         required_groups=("liquidity",),
-        optional_groups=("volume", "orderflow", "momentum", "trend", "vwap"),
+        optional_groups=("volume", "orderflow", "momentum", "trend", "vwap",
+                         "profile"),
         max_optional=3,
         base_filters=("volatility_normal", "volume_not_thin", "opening_drive_window"),
         filters=StrategyFilters(rth_only=True, max_minutes_since_open=150),
         exits=tuple(expand_exit_models()),
+        optional_filters=("outside_news_blackout", "no_imminent_release"),
     ),
     StrategyTemplate(
         group="LIQUIDITY",
         description="Stop runs at reference levels, then reversion",
         required_groups=("liquidity",),
-        optional_groups=("orderflow", "structure", "vwap", "momentum", "volume"),
+        optional_groups=("orderflow", "structure", "vwap", "momentum", "volume",
+                         "supplydemand", "imbalance"),
         max_optional=3,
         base_filters=("volatility_normal", "volume_not_thin", "after_opening_range"),
         exits=tuple(expand_exit_models()),
+        optional_filters=("outside_news_blackout", "no_imminent_release"),
     ),
     StrategyTemplate(
         group="MEAN_REVERSION",
         description="Fade statistical extension in a ranging market",
         required_groups=("meanreversion",),
-        optional_groups=("momentum", "vwap", "orderflow", "structure"),
+        optional_groups=("momentum", "vwap", "orderflow", "structure",
+                         "profile", "fibonacci"),
         max_optional=3,
         base_filters=("volatility_normal", "volume_not_thin", "regime_ranging"),
         exits=tuple(expand_exit_models()[:4]),
+        optional_filters=("outside_news_blackout", "no_imminent_release"),
     ),
     StrategyTemplate(
         group="BREAKOUT",
         description="Expansion out of compression",
         required_groups=("structure", "volume"),
-        optional_groups=("trend", "momentum", "orderflow", "liquidity"),
+        optional_groups=("trend", "momentum", "orderflow", "liquidity",
+                         "imbalance", "profile", "openinterest"),
         max_optional=3,
         base_filters=("volatility_compressed", "volume_not_thin"),
         exits=tuple(expand_exit_models()[:3]),
+        optional_filters=("outside_news_blackout", "no_imminent_release"),
     ),
     StrategyTemplate(
         group="MULTI_TIMEFRAME",
         description="Higher-timeframe alignment as the primary edge",
         required_groups=("multitimeframe", "structure"),
-        optional_groups=("trend", "momentum", "vwap", "orderflow"),
+        optional_groups=("trend", "momentum", "vwap", "orderflow",
+                         "fibonacci", "supplydemand"),
         max_optional=2,
         base_filters=("volatility_normal", "volume_not_thin"),
         exits=tuple(expand_exit_models()[:3]),
+        optional_filters=("outside_news_blackout", "no_imminent_release"),
+    ),
+    StrategyTemplate(
+        group="VOLUME_PROFILE",
+        description="Trade location against the prior session's volume distribution",
+        required_groups=("profile",),
+        optional_groups=("volume", "orderflow", "vwap", "structure", "trend",
+                         "momentum"),
+        max_optional=3,
+        base_filters=("volatility_normal", "volume_not_thin"),
+        exits=tuple(expand_exit_models()),
+        optional_filters=("outside_news_blackout", "no_imminent_release"),
+        # POC reversion and value-area breakout are opposite readings of the
+        # same profile; a confluence containing both is incoherent, not strong.
+        exclusive=(("poc_reversion", "value_area_breakout"),
+                   ("value_area_edge", "value_area_breakout")),
+    ),
+    StrategyTemplate(
+        group="SUPPLY_DEMAND",
+        description="Reaction at zones a decisive move departed from",
+        required_groups=("supplydemand",),
+        optional_groups=("structure", "orderflow", "imbalance", "trend",
+                         "momentum", "volume"),
+        max_optional=3,
+        base_filters=("volatility_normal", "volume_not_thin"),
+        exits=tuple(expand_exit_models()),
+        optional_filters=("outside_news_blackout", "no_imminent_release"),
+        exclusive=(("zone_touch", "away_from_zone"),
+                   ("fresh_zone_approach", "away_from_zone")),
+    ),
+    StrategyTemplate(
+        group="FIBONACCI",
+        description="Retracement of the last confirmed leg, in the direction of the trend",
+        required_groups=("fibonacci", "trend"),
+        optional_groups=("structure", "momentum", "vwap", "orderflow",
+                         "supplydemand"),
+        max_optional=2,
+        base_filters=("volatility_normal", "volume_not_thin"),
+        exits=tuple(expand_exit_models()[:4]),
+        optional_filters=("outside_news_blackout", "no_imminent_release"),
+        # A shallow retracement and a deep one are mutually exclusive prices,
+        # and an extension is the opposite trade to either.
+        exclusive=(("fib_golden_pocket", "fib_shallow_retrace"),
+                   ("fib_golden_pocket", "fib_extension_reached"),
+                   ("fib_shallow_retrace", "fib_extension_reached")),
     ),
 )
 
@@ -241,6 +312,18 @@ def _signal_pools(template: StrategyTemplate) -> Tuple[List[List[str]], List[Lis
     required = [pool(g) for g in template.required_groups]
     optional = [pool(g) for g in template.optional_groups]
     return [p for p in required if p], [p for p in optional if p]
+
+
+def _filter_sets(template: StrategyTemplate) -> List[Tuple[str, ...]]:
+    """Every filter set to test: the base filters, plus each subset of the
+    optional ones. Index 0 is always the bare base set, so "with the news
+    filter" always has a like-for-like control to be compared against."""
+    known = tuple(f for f in template.optional_filters if f in CONDITIONS)
+    out: List[Tuple[str, ...]] = [tuple(template.base_filters)]
+    for k in range(1, min(len(known), template.max_optional_filters) + 1):
+        for combo in itertools.combinations(known, k):
+            out.append(tuple(template.base_filters) + combo)
+    return out
 
 
 def _violates_exclusive(names: Sequence[str],
@@ -289,6 +372,7 @@ def generate_combinations(
         required, optional = _signal_pools(template)
         if not required:
             continue
+        filter_sets = _filter_sets(template)
 
         candidates: List[CombinationSpec] = []
         # Deterministic enumeration order: sorted pools, ascending timeframes.
@@ -304,16 +388,17 @@ def generate_combinations(
                             continue
                         if _violates_exclusive(names, template.exclusive):
                             continue
-                        for tf in tfs:
-                            for ei in range(len(template.exits) or 1):
-                                candidates.append(CombinationSpec(
-                                    symbol=symbol.upper(), group=group,
-                                    primary_tf=tf,
-                                    confirm_tfs=confirm_map.get(tf, ()),
-                                    signal_conditions=tuple(sorted(names)),
-                                    filter_conditions=template.base_filters,
-                                    exit_index=ei, filters=template.filters,
-                                ))
+                        for filt in filter_sets:
+                            for tf in tfs:
+                                for ei in range(len(template.exits) or 1):
+                                    candidates.append(CombinationSpec(
+                                        symbol=symbol.upper(), group=group,
+                                        primary_tf=tf,
+                                        confirm_tfs=confirm_map.get(tf, ()),
+                                        signal_conditions=tuple(sorted(names)),
+                                        filter_conditions=filt,
+                                        exit_index=ei, filters=template.filters,
+                                    ))
         if len(candidates) > per_template:
             candidates = rng.sample(candidates, per_template)
             candidates.sort(key=lambda c: (c.primary_tf, c.signal_conditions, c.exit_index))
@@ -351,7 +436,13 @@ def _build_strategy(spec: CombinationSpec) -> Optional[Strategy]:
                 bound.append(c)
         conds = bound
 
+    extra = tuple(n for n in spec.filter_conditions
+                  if n not in template.base_filters)
     name = f"{spec.group.lower()}_{'_'.join(spec.signal_conditions)}"
+    if extra:
+        # Two strategies that differ only by a filter must not share a name;
+        # the ids differ, and a report keyed on name would merge them.
+        name += "__f_" + "_".join(sorted(extra))
     try:
         return Strategy(
             name=name[:120], symbol=spec.symbol, group=spec.group,

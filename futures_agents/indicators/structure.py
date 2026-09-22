@@ -21,6 +21,7 @@ __all__ = [
     "Swing", "find_swings", "market_structure", "SRLevel", "support_resistance",
     "OpeningRange", "opening_range", "SessionLevels", "session_levels",
     "FVG", "fair_value_gaps", "Sweep", "liquidity_sweeps", "detect_imbalances",
+    "SDZone", "supply_demand_zones",
 ]
 
 
@@ -512,4 +513,178 @@ def liquidity_sweeps(bars: Sequence[Bar], levels: Dict[str, float], *,
                                          level - b.low, j))
                         break
     out.sort(key=lambda s: s.reclaim_index)
+    return out
+
+
+# --------------------------------------------------------------------------
+# Supply and demand zones
+# --------------------------------------------------------------------------
+
+@dataclass
+class SDZone:
+    """A base of balance that a decisive move departed from.
+
+    The idea a supply/demand trader is expressing is that unfilled orders were
+    left behind where price last turned violently, so a return to that area
+    meets resting interest. Whether that is true is exactly what the backtester
+    is for; this structure only locates the area.
+
+    A zone is defined by two parts, both required:
+
+    * a **base** - one to a few bars of genuinely small range, i.e. balance;
+    * a **departure** - the next bar leaving that base with a range several
+      times the recent average and a body that dominates its own range.
+
+    A large bar on its own is not a zone. Without the preceding balance it is
+    just a large bar, and taking every one of them would paint the whole chart.
+
+    ``touch_indices`` and ``invalidated_index`` are recorded over the full
+    series, so consumers **must** mask them to the bar being evaluated -
+    :meth:`as_of` does that. Handing the raw object to a strategy would tell it
+    how many times a zone is going to be tested in the future.
+    """
+
+    index: int                    # departure bar; the zone is knowable at its close
+    ts: datetime
+    kind: str                     # "DEMAND" | "SUPPLY"
+    top: float
+    bottom: float
+    base_start: int
+    base_end: int
+    departure_strength: float     # departure range / recent average range
+    touch_indices: Tuple[int, ...] = ()
+    invalidated_index: Optional[int] = None
+
+    @property
+    def height(self) -> float:
+        return self.top - self.bottom
+
+    @property
+    def mid(self) -> float:
+        return (self.top + self.bottom) / 2.0
+
+    @property
+    def proximal(self) -> float:
+        """The edge price reaches first coming back to the zone."""
+        return self.top if self.kind == "DEMAND" else self.bottom
+
+    @property
+    def distal(self) -> float:
+        """The far edge - where the zone is wrong rather than merely tested."""
+        return self.bottom if self.kind == "DEMAND" else self.top
+
+    @property
+    def touches(self) -> int:
+        return len(self.touch_indices)
+
+    @property
+    def fresh(self) -> bool:
+        """Untested. Freshness is the one property this idea insists on."""
+        return not self.touch_indices and self.invalidated_index is None
+
+    def contains(self, price: float) -> bool:
+        return self.bottom <= price <= self.top
+
+    def distance_atr(self, price: float, atr_value: Optional[float]) -> Optional[float]:
+        """Distance from ``price`` to the proximal edge, in ATR units."""
+        if not atr_value:
+            return None
+        return (self.proximal - price) / atr_value
+
+    def as_of(self, index: int) -> "SDZone":
+        """A copy carrying only what was knowable at ``index``.
+
+        Future touches are dropped and a future invalidation is hidden, so
+        ``fresh`` and ``touches`` answer for that bar rather than for the end of
+        the series.
+        """
+        inv = (self.invalidated_index
+               if self.invalidated_index is not None and self.invalidated_index <= index
+               else None)
+        return SDZone(self.index, self.ts, self.kind, self.top, self.bottom,
+                      self.base_start, self.base_end, self.departure_strength,
+                      tuple(t for t in self.touch_indices if t <= index), inv)
+
+    def to_dict(self) -> dict:
+        return {"index": self.index, "kind": self.kind,
+                "top": round(self.top, 6), "bottom": round(self.bottom, 6),
+                "proximal": round(self.proximal, 6),
+                "strength": round(self.departure_strength, 2),
+                "touches": self.touches, "fresh": self.fresh,
+                "invalidated": self.invalidated_index is not None}
+
+
+def supply_demand_zones(bars: Sequence[Bar], *, window: int = 20,
+                        departure_mult: float = 2.0, base_max_mult: float = 0.8,
+                        max_base_bars: int = 3, body_frac: float = 0.55,
+                        max_age: int = 400,
+                        as_of: Optional[int] = None) -> List[SDZone]:
+    """Locate demand and supply zones and track how each one has been used.
+
+    ``window`` sets the lookback the "average range" is measured over, so the
+    same multipliers behave the same on a 1-minute MNQ chart and a daily MGC
+    one. ``max_age`` bounds the forward scan: a zone nobody has traded for four
+    hundred bars is not a level, and scanning to the end of the series for each
+    one is quadratic.
+    """
+    end = len(bars) - 1 if as_of is None else min(as_of, len(bars) - 1)
+    if end < window + 1:
+        return []
+
+    out: List[SDZone] = []
+    last_base_end: Dict[str, int] = {"DEMAND": -1, "SUPPLY": -1}
+
+    for i in range(window + 1, end + 1):
+        bar = bars[i]
+        rng = bar.range
+        if rng <= 0:
+            continue
+        prior = bars[i - window:i]
+        avg_range = sum(b.range for b in prior) / float(window)
+        if avg_range <= 0 or rng < departure_mult * avg_range:
+            continue
+        if abs(bar.close - bar.open) < body_frac * rng:
+            continue            # a wide bar that closed mid-range is indecision
+
+        kind = "DEMAND" if bar.close > bar.open else "SUPPLY"
+
+        # Walk back over the balance that the departure left.
+        base: List[Bar] = []
+        j = i - 1
+        while j >= 0 and len(base) < max_base_bars:
+            if bars[j].range > base_max_mult * avg_range:
+                break
+            base.append(bars[j])
+            j -= 1
+        if not base:
+            continue            # no balance before the move: not a zone
+        base_start, base_end = j + 1, i - 1
+
+        # Consecutive departures share a base; keep the first and move on,
+        # otherwise one impulse paints five overlapping zones.
+        if base_start <= last_base_end[kind]:
+            continue
+        last_base_end[kind] = base_end
+
+        top = max(b.high for b in base)
+        bottom = min(b.low for b in base)
+        if top <= bottom:
+            continue
+
+        touches: List[int] = []
+        invalidated: Optional[int] = None
+        stop = min(end, i + max_age)
+        for k in range(i + 1, stop + 1):
+            nb = bars[k]
+            if nb.low <= top and nb.high >= bottom:
+                touches.append(k)
+            if kind == "DEMAND" and nb.close < bottom:
+                invalidated = k
+                break
+            if kind == "SUPPLY" and nb.close > top:
+                invalidated = k
+                break
+
+        out.append(SDZone(i, bar.ts, kind, top, bottom, base_start, base_end,
+                          rng / avg_range, tuple(touches), invalidated))
     return out

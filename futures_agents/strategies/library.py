@@ -18,7 +18,7 @@ import math
 from typing import Callable, Dict, List, Optional, Sequence
 
 from ..features import FeatureSnapshot, TFSnapshot
-from ..schema import Direction
+from ..schema import Direction, fmt_price
 from .base import Condition, ConditionKind, ConditionResult
 
 __all__ = ["CONDITIONS", "CONDITION_GROUPS", "condition", "get_condition",
@@ -66,6 +66,23 @@ def all_condition_names() -> List[str]:
 
 def _s(snap: FeatureSnapshot, tf: int) -> Optional[TFSnapshot]:
     return snap.tf(tf)
+
+
+def _px(snap: FeatureSnapshot, price: Optional[float]) -> str:
+    """Format a price at the contract's own tick resolution.
+
+    ``fmt_price`` takes a decimal count, not a contract. Passing the spec
+    straight through raises inside the f-string, and
+    :meth:`Condition.evaluate` swallows that into "no signal" - so the
+    condition would quietly never fire instead of failing loudly. Deriving the
+    decimals here keeps the call sites honest.
+    """
+    tick = getattr(getattr(snap, "spec", None), "tick_size", 0.0) or 0.0
+    decimals = None
+    if tick > 0:
+        text = f"{tick:.10f}".rstrip("0")
+        decimals = len(text.split(".")[1]) if "." in text else 0
+    return fmt_price(price, decimals)
 
 
 # ==========================================================================
@@ -750,3 +767,427 @@ def _after_or(snap, tf):
     m = snap.minutes_since_open
     return (ConditionResult.yes(FLAT, f"{m:.0f}m since open")
             if m >= 30 else ConditionResult.no())
+
+
+# ==========================================================================
+# VOLUME PROFILE / MARKET PROFILE
+#
+# Volume profile and market profile share one group on purpose. They are two
+# renderings of the same observation - where the market spent its effort - and
+# the combinator's diversity rule exists to stop a "five-factor confluence"
+# from being five restatements of one idea. Splitting them into two groups
+# would let a strategy claim location twice and look more corroborated than it
+# is. Every profile here is the PRIOR session's, so the levels were knowable
+# before the bar being traded.
+# ==========================================================================
+
+def _profile(snap: FeatureSnapshot, tf: int):
+    s = _s(snap, tf)
+    return (s, s.prior_profile) if s is not None else (None, None)
+
+
+@condition("poc_reversion", "profile",
+           description="Inside prior value, rotating back toward the POC")
+def _poc_revert(snap, tf):
+    s, prof = _profile(snap, tf)
+    if not s or prof is None:
+        return ConditionResult.no()
+    atr_v = s.get("atr")
+    if not atr_v:
+        return ConditionResult.no()
+    px = s.close
+    if not prof.in_value_area(px):
+        return ConditionResult.no()          # outside value is a different trade
+    gap = prof.poc - px
+    if abs(gap) < atr_v * 0.5:
+        return ConditionResult.no()          # already at the magnet
+    direction = LONG if gap > 0 else SHORT
+    return ConditionResult.yes(
+        direction, f"in value, POC {_px(snap, prof.poc)} "
+                   f"{abs(gap) / atr_v:.1f} ATR away",
+        round(prof.poc, 4), min(1.0, abs(gap) / atr_v / 2.0))
+
+
+@condition("value_area_edge", "profile",
+           description="Responsive trade at the prior value-area high or low")
+def _va_edge(snap, tf):
+    s, prof = _profile(snap, tf)
+    if not s or prof is None:
+        return ConditionResult.no()
+    atr_v = s.get("atr")
+    if not atr_v:
+        return ConditionResult.no()
+    b, px = s.bar, s.close
+    band = atr_v * 0.35
+    # Tagged the edge and closed back inside: the value area held.
+    if abs(px - prof.val) <= band and b.low <= prof.val and px >= prof.val:
+        return ConditionResult.yes(LONG, f"held VAL {_px(snap, prof.val)}",
+                                   round(prof.val, 4), 0.8)
+    if abs(px - prof.vah) <= band and b.high >= prof.vah and px <= prof.vah:
+        return ConditionResult.yes(SHORT, f"held VAH {_px(snap, prof.vah)}",
+                                   round(prof.vah, 4), 0.8)
+    return ConditionResult.no()
+
+
+@condition("value_area_breakout", "profile",
+           description="Accepted beyond the prior session's value area")
+def _va_break(snap, tf):
+    s, prof = _profile(snap, tf)
+    if not s or prof is None:
+        return ConditionResult.no()
+    atr_v = s.get("atr")
+    if not atr_v:
+        return ConditionResult.no()
+    px = s.close
+    # Acceptance, not a tag: the close has to clear the edge by a real margin.
+    margin = atr_v * 0.25
+    if px > prof.vah + margin:
+        return ConditionResult.yes(LONG, f"accepted above VAH {_px(snap, prof.vah)}",
+                                   round(prof.vah, 4),
+                                   min(1.0, (px - prof.vah) / atr_v / 2.0))
+    if px < prof.val - margin:
+        return ConditionResult.yes(SHORT, f"accepted below VAL {_px(snap, prof.val)}",
+                                   round(prof.val, 4),
+                                   min(1.0, (prof.val - px) / atr_v / 2.0))
+    return ConditionResult.no()
+
+
+@condition("lvn_rejection", "profile",
+           description="At a low-volume node - price does not linger there")
+def _lvn(snap, tf):
+    s, prof = _profile(snap, tf)
+    if not s or prof is None or not prof.lvn:
+        return ConditionResult.no()
+    atr_v = s.get("atr")
+    if not atr_v:
+        return ConditionResult.no()
+    px = s.close
+    near = min(prof.lvn, key=lambda x: abs(x - px))
+    if abs(near - px) > atr_v * 0.3:
+        return ConditionResult.no()
+    b = s.bar
+    if b.close == b.open:
+        return ConditionResult.no()
+    # An LVN is traversed, not held; the bar's own resolution says which way.
+    direction = LONG if b.close > b.open else SHORT
+    return ConditionResult.yes(direction, f"at LVN {_px(snap, near)}",
+                               round(near, 4), 0.7)
+
+
+@condition("away_from_hvn", "profile", kind=ConditionKind.FILTER,
+           description="Not initiating into a high-volume node")
+def _hvn_clear(snap, tf):
+    s, prof = _profile(snap, tf)
+    if not s or prof is None:
+        return ConditionResult.no()
+    if not prof.hvn:
+        return ConditionResult.yes(FLAT, "no HVN in prior profile")
+    atr_v = s.get("atr")
+    if not atr_v:
+        return ConditionResult.no()
+    px = s.close
+    near = min(prof.hvn, key=lambda x: abs(x - px))
+    if abs(near - px) <= atr_v * 0.25:
+        return ConditionResult.no()          # an HVN absorbs; do not start there
+    return ConditionResult.yes(FLAT, f"nearest HVN {abs(near - px) / atr_v:.1f} ATR away")
+
+
+@condition("open_outside_value", "profile", kind=ConditionKind.FILTER,
+           description="Session opened outside the prior value area (open-drive day type)")
+def _open_out(snap, tf):
+    s, prof = _profile(snap, tf)
+    if not s or prof is None:
+        return ConditionResult.no()
+    day_open = snap.session_levels.day_open
+    if day_open is None:
+        return ConditionResult.no()
+    if prof.in_value_area(day_open):
+        return ConditionResult.no()
+    side = "above" if day_open > prof.vah else "below"
+    return ConditionResult.yes(FLAT, f"opened {side} prior value")
+
+
+# ==========================================================================
+# FIBONACCI
+#
+# Measured against the last CONFIRMED swing leg only. A retracement drawn from
+# a swing that is not yet fractal-confirmed is drawn from a point the market
+# had not yet made, and every level it produces is a look-ahead.
+# ==========================================================================
+
+def _fib_pullback(snap, tf, lower: float, upper: float, label: str):
+    """Shared: price inside a retracement band of the last leg."""
+    s = _s(snap, tf)
+    if not s:
+        return ConditionResult.no()
+    zone = s.fib_zone(lower, upper)
+    if zone is None:
+        return ConditionResult.no()
+    lo, hi, direction = zone
+    px = s.close
+    if not (lo <= px <= hi):
+        return ConditionResult.no()
+    # A retracement is a pullback: it argues for the leg, not against it.
+    side = LONG if direction == "UP" else SHORT
+    return ConditionResult.yes(
+        side, f"{label} of {direction.lower()} leg "
+              f"({_px(snap, lo)}-{_px(snap, hi)})",
+        round((lo + hi) / 2.0, 4), 0.8)
+
+
+@condition("fib_golden_pocket", "fibonacci",
+           description="Price in the 0.618-0.786 retracement of the last confirmed leg")
+def _fib_golden(snap, tf):
+    return _fib_pullback(snap, tf, 0.618, 0.786, "golden pocket")
+
+
+@condition("fib_shallow_retrace", "fibonacci",
+           description="Price in the 0.382-0.5 retracement - a strong-trend pullback")
+def _fib_shallow(snap, tf):
+    return _fib_pullback(snap, tf, 0.382, 0.5, "shallow retracement")
+
+
+@condition("fib_extension_reached", "fibonacci",
+           description="Price at the 1.272-1.618 extension of the last leg")
+def _fib_ext(snap, tf):
+    s = _s(snap, tf)
+    if not s:
+        return ConditionResult.no()
+    leg = s.swing_leg()
+    if leg is None:
+        return ConditionResult.no()
+    lo, hi, direction = leg
+    span = hi - lo
+    if span <= 0:
+        return ConditionResult.no()
+    px = s.close
+    if direction == "UP":
+        a, b = lo + 1.272 * span, lo + 1.618 * span
+        side = SHORT                 # extension of an up leg is exhaustion
+    else:
+        a, b = hi - 1.618 * span, hi - 1.272 * span
+        side = LONG
+    if not (min(a, b) <= px <= max(a, b)):
+        return ConditionResult.no()
+    return ConditionResult.yes(
+        side, f"at {direction.lower()}-leg extension "
+              f"{_px(snap, min(a, b))}-{_px(snap, max(a, b))}",
+        round(px, 4), 0.7)
+
+
+@condition("fib_sr_confluence", "fibonacci", kind=ConditionKind.FILTER,
+           description="A retracement level coincides with a support/resistance level")
+def _fib_sr(snap, tf):
+    s = _s(snap, tf)
+    if not s or not s.sr_levels:
+        return ConditionResult.no()
+    leg = s.swing_leg()
+    atr_v = s.get("atr")
+    if leg is None or not atr_v:
+        return ConditionResult.no()
+    lo, hi, _ = leg
+    span = hi - lo
+    if span <= 0:
+        return ConditionResult.no()
+    tol = atr_v * 0.4
+    for ratio in (0.382, 0.5, 0.618, 0.786):
+        level = lo + ratio * span
+        for lv in s.sr_levels:
+            if abs(lv.price - level) <= tol:
+                return ConditionResult.yes(
+                    FLAT, f"{ratio:.3f} fib at {lv.kind.lower()} "
+                          f"{_px(snap, lv.price)}", round(level, 4))
+    return ConditionResult.no()
+
+
+# ==========================================================================
+# IMBALANCES
+#
+# Bar-level aggressive participation: range and volume both far above the
+# recent norm. Distinct from ``fvg_nearby``, which is about *location* (an
+# unfilled gap acting as a level); this group is about *initiative* (someone
+# paying up right now).
+# ==========================================================================
+
+@condition("imbalance_bar", "imbalance",
+           description="This bar shows one-sided aggressive participation")
+def _imb_bar(snap, tf):
+    s = _s(snap, tf)
+    if not s or not s.imbalance:
+        return ConditionResult.no()
+    return ConditionResult.yes(LONG if s.imbalance == "BULLISH" else SHORT,
+                               f"{s.imbalance.lower()} imbalance bar", None, 0.9)
+
+
+@condition("imbalance_pullback", "imbalance",
+           description="Pullback into a displacement of the last few bars")
+def _imb_pull(snap, tf):
+    s = _s(snap, tf)
+    if not s or not s.recent_imbalance:
+        return ConditionResult.no()
+    since = s.bars_since_imbalance
+    if since is None or not (1 <= since <= 10):
+        return ConditionResult.no()
+    return ConditionResult.yes(
+        LONG if s.recent_imbalance == "BULLISH" else SHORT,
+        f"{s.recent_imbalance.lower()} displacement {since} bars back",
+        since, max(0.4, 1.0 - since / 12.0))
+
+
+@condition("no_recent_imbalance", "imbalance", kind=ConditionKind.FILTER,
+           description="No violent bar in the last three - do not initiate into one")
+def _imb_quiet(snap, tf):
+    s = _s(snap, tf)
+    if not s:
+        return ConditionResult.no()
+    since = s.bars_since_imbalance
+    if since is not None and since <= 2:
+        return ConditionResult.no()
+    return ConditionResult.yes(FLAT, "no displacement in the last 3 bars")
+
+
+# ==========================================================================
+# SUPPLY AND DEMAND ZONES
+# ==========================================================================
+
+@condition("zone_touch", "supplydemand",
+           description="Price trading inside a visible supply or demand zone")
+def _zone_touch(snap, tf):
+    s = _s(snap, tf)
+    if not s or not s.sd_zones:
+        return ConditionResult.no()
+    px = s.close
+    for z in s.sd_zones:
+        if z.contains(px):
+            return ConditionResult.yes(
+                LONG if z.kind == "DEMAND" else SHORT,
+                f"in {z.kind.lower()} zone {_px(snap, z.bottom)}-"
+                f"{_px(snap, z.top)} ({z.touches} prior touches)",
+                round(z.proximal, 4),
+                0.9 if z.fresh else max(0.3, 0.9 - 0.2 * z.touches))
+    return ConditionResult.no()
+
+
+@condition("fresh_zone_approach", "supplydemand",
+           description="Approaching an untested zone from the correct side")
+def _zone_fresh(snap, tf):
+    s = _s(snap, tf)
+    if not s or not s.sd_zones:
+        return ConditionResult.no()
+    atr_v = s.get("atr")
+    if not atr_v:
+        return ConditionResult.no()
+    px = s.close
+    for z in s.sd_zones:
+        if not z.fresh:
+            continue
+        gap = z.proximal - px
+        if z.kind == "DEMAND" and -atr_v * 0.1 <= -gap <= atr_v * 0.75:
+            return ConditionResult.yes(
+                LONG, f"approaching fresh demand {_px(snap, z.proximal)}",
+                round(z.proximal, 4), 0.85)
+        if z.kind == "SUPPLY" and -atr_v * 0.1 <= gap <= atr_v * 0.75:
+            return ConditionResult.yes(
+                SHORT, f"approaching fresh supply {_px(snap, z.proximal)}",
+                round(z.proximal, 4), 0.85)
+    return ConditionResult.no()
+
+
+@condition("away_from_zone", "supplydemand", kind=ConditionKind.FILTER,
+           description="Not initiating on top of an untested decision level")
+def _zone_clear(snap, tf):
+    s = _s(snap, tf)
+    if not s:
+        return ConditionResult.no()
+    atr_v = s.get("atr")
+    if not atr_v:
+        return ConditionResult.no()
+    px = s.close
+    for z in s.sd_zones:
+        if abs(z.proximal - px) <= atr_v * 0.2 or z.contains(px):
+            return ConditionResult.no()
+    return ConditionResult.yes(FLAT, "clear of supply/demand zones")
+
+
+# ==========================================================================
+# OPEN INTEREST
+#
+# Every condition here returns "no signal" when the feed carries no open
+# interest, which is most intraday exports. That is deliberate: a strategy
+# built on an absent column would backtest as never firing, which is the
+# honest result, rather than firing on a default of zero.
+# ==========================================================================
+
+@condition("oi_price_confirmation", "openinterest",
+           description="Open interest expanding with the price move - new money, not covering")
+def _oi_confirm(snap, tf):
+    s = _s(snap, tf)
+    if not s or not s.has("oi_change", "open_interest"):
+        return ConditionResult.no()
+    doi = s["oi_change"]
+    base = s["open_interest"]
+    if not base or doi is None:
+        return ConditionResult.no()
+    pct = doi / base * 100.0
+    if pct <= 0.1:
+        return ConditionResult.no()          # flat or falling OI: not initiative
+    # Price direction over the same window is read from the bar's position in
+    # its 20-bar range, the same lookback the OI change uses.
+    hi, lo = s.get("hh20"), s.get("ll20")
+    if hi is None or lo is None or hi == lo:
+        return ConditionResult.no()
+    pos = (s.close - lo) / (hi - lo)
+    if pos >= 0.65:
+        return ConditionResult.yes(LONG, f"OI +{pct:.2f}% into new highs", round(pct, 3))
+    if pos <= 0.35:
+        return ConditionResult.yes(SHORT, f"OI +{pct:.2f}% into new lows", round(pct, 3))
+    return ConditionResult.no()
+
+
+@condition("oi_expanding", "openinterest", kind=ConditionKind.FILTER,
+           description="Participation is growing rather than positions being closed")
+def _oi_rising(snap, tf):
+    s = _s(snap, tf)
+    if not s or not s.has("oi_change", "open_interest"):
+        return ConditionResult.no()
+    doi, base = s["oi_change"], s["open_interest"]
+    if not base or doi is None or doi <= 0:
+        return ConditionResult.no()
+    return ConditionResult.yes(FLAT, f"OI +{doi / base * 100.0:.2f}% over 20 bars")
+
+
+# ==========================================================================
+# NEWS CONDITIONS
+#
+# Driven by the rule-based economic calendar, not by headlines. A recurrence
+# rule projects identically backwards and forwards, so these filters evaluate
+# the same way in a 2019 backtest and at the live edge. Conditioning on a
+# scraped headline would mean reading an article written after the bar.
+# ==========================================================================
+
+@condition("outside_news_blackout", "news", kind=ConditionKind.FILTER,
+           description="Not inside the window around a scheduled high-impact release")
+def _news_clear(snap, tf):
+    if snap.in_news_blackout:
+        return ConditionResult.no()
+    return ConditionResult.yes(FLAT, "outside the release blackout")
+
+
+@condition("no_imminent_release", "news", kind=ConditionKind.FILTER,
+           description="At least 30 minutes before the next high-impact release")
+def _news_far(snap, tf):
+    mins = snap.minutes_to_high_impact
+    if mins < 30.0:
+        return ConditionResult.no()
+    return ConditionResult.yes(
+        FLAT, "no release within 30m"
+              if mins == float("inf") else f"next release in {mins:.0f}m")
+
+
+@condition("post_news_window", "news", kind=ConditionKind.FILTER,
+           description="In the 5-60 minute reaction window after a high-impact release")
+def _news_after(snap, tf):
+    since = snap.minutes_since_high_impact
+    if since == float("inf") or not (5.0 <= since <= 60.0):
+        return ConditionResult.no()
+    return ConditionResult.yes(FLAT, f"{since:.0f}m after a high-impact release")
