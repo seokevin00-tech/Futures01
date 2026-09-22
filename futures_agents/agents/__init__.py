@@ -24,6 +24,9 @@ IMPORT_ERRORS: Dict[str, str] = {}
 _OPTIONAL = (
     ("news_macro", ("NewsMacroAgent",)),
     ("research", ("StrategyResearchAgent",)),
+    ("research_trend", ("ResearchTrendAgent",)),
+    ("research_reversion", ("ResearchReversionAgent",)),
+    ("research_liquidity", ("ResearchLiquidityAgent",)),
     ("analysts", ("AnalystAAgent", "AnalystBAgent", "AnalystCAgent")),
     ("decision", ("DecisionAgent",)),
     ("risk_agent", ("RiskAgent",)),
@@ -47,6 +50,7 @@ __all__ = [
     "AgentContext", "build_context", "DomainAgent",
     "LLMClient", "LLMResponse", "build_client",
     "NewsMacroAgent", "StrategyResearchAgent",
+    "ResearchTrendAgent", "ResearchReversionAgent", "ResearchLiquidityAgent",
     "AnalystAAgent", "AnalystBAgent", "AnalystCAgent",
     "DecisionAgent", "RiskAgent", "JournalAgent",
     "IMPORT_ERRORS", "staffing_report",
@@ -56,6 +60,8 @@ __all__ = [
 def staffing_report() -> Dict[str, Any]:
     """Which domain agents are available, and why any are missing."""
     available = [n for n in ("NewsMacroAgent", "StrategyResearchAgent",
+                             "ResearchTrendAgent", "ResearchReversionAgent",
+                             "ResearchLiquidityAgent",
                              "AnalystAAgent", "AnalystBAgent", "AnalystCAgent",
                              "DecisionAgent", "RiskAgent", "JournalAgent")
                  if globals().get(n) is not None]

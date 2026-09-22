@@ -87,12 +87,17 @@ def _domain_agent_classes() -> Dict[Role, Type[TeamAgent]]:
     try:
         from ..agents import (AnalystAAgent, AnalystBAgent, AnalystCAgent,
                               DecisionAgent, JournalAgent, NewsMacroAgent,
-                              RiskAgent, StrategyResearchAgent)
+                              RiskAgent, StrategyResearchAgent,
+                              ResearchTrendAgent, ResearchReversionAgent,
+                              ResearchLiquidityAgent)
     except ImportError:
         return out
     out.update({
         Role.NEWS_MACRO: NewsMacroAgent,
         Role.STRATEGY_RESEARCH: StrategyResearchAgent,
+        Role.RESEARCH_TREND: ResearchTrendAgent,
+        Role.RESEARCH_REVERSION: ResearchReversionAgent,
+        Role.RESEARCH_LIQUIDITY: ResearchLiquidityAgent,
         Role.ANALYST_A: AnalystAAgent,
         Role.ANALYST_B: AnalystBAgent,
         Role.ANALYST_C: AnalystCAgent,

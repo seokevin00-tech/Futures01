@@ -13,7 +13,8 @@ from enum import Enum
 from typing import Dict, FrozenSet, List, Optional, Sequence, Tuple
 
 __all__ = ["Role", "RoleSpec", "ROLES", "role_for_task", "roles_for_task",
-           "TASK_ROUTING", "is_ambiguous", "may_message"]
+           "TASK_ROUTING", "is_ambiguous", "may_message", "RESEARCH_FAMILIES",
+           "RESEARCH_SPECIALISTS", "families_for", "opponents_of"]
 
 
 class Role(str, Enum):
@@ -22,7 +23,10 @@ class Role(str, Enum):
     MANAGER = "manager"
     DEVELOPER = "developer"
     NEWS_MACRO = "news_macro"
-    STRATEGY_RESEARCH = "strategy_research"
+    STRATEGY_RESEARCH = "strategy_research"      # desk lead: pools and adjudicates
+    RESEARCH_TREND = "research_trend"            # specialist: directional continuation
+    RESEARCH_REVERSION = "research_reversion"    # specialist: fade and exhaustion
+    RESEARCH_LIQUIDITY = "research_liquidity"    # specialist: liquidity and session
     ANALYST_A = "analyst_a"          # technical / market structure
     ANALYST_B = "analyst_b"          # quantitative / statistical
     ANALYST_C = "analyst_c"          # macro / news / context
@@ -114,19 +118,73 @@ ROLES: Dict[Role, RoleSpec] = {
     ),
     Role.STRATEGY_RESEARCH: RoleSpec(
         role=Role.STRATEGY_RESEARCH,
-        title="Strategy Research & Backtesting",
+        title="Strategy Research Desk Lead",
         mandate=(
-            "Discovers, composes and tests strategies and confluence "
-            "combinations per symbol and per timeframe. Runs walk-forward, "
-            "Monte Carlo and robustness analysis, and publishes only what "
-            "survives out of sample."
+            "Runs the research desk. Performs primary research itself, and "
+            "adjudicates the three specialists: pools their surviving findings, "
+            "applies the penalties their challenges established, de-duplicates "
+            "edges that are the same edge under different names, and publishes "
+            "one reconciled ranking. Does not debate - it scores the debate, "
+            "which is why it holds no family of its own."
         ),
         accepts=_A({"research_strategies", "backtest", "walk_forward",
-                    "optimise", "rank_strategies", "robustness"}),
+                    "optimise", "rank_strategies", "robustness", "pool"}),
         may_message=_A({Role.MANAGER, Role.DEVELOPER, Role.ANALYST_B,
-                        Role.DECISION, Role.JOURNAL, Role.RISK}),
-        publishes=("strategy_rankings", "performance_db", "robustness_report"),
-        consumes=("market_data", "news_context", "journal_feedback"),
+                        Role.DECISION, Role.JOURNAL, Role.RISK,
+                        Role.RESEARCH_TREND, Role.RESEARCH_REVERSION,
+                        Role.RESEARCH_LIQUIDITY}),
+        publishes=("strategy_rankings", "performance_db", "robustness_report",
+                   "pooled_rankings", "debate_log"),
+        consumes=("market_data", "news_context", "journal_feedback", "findings",
+                  "challenges", "rebuttals"),
+    ),
+    # ---- The three research specialists ----------------------------------
+    # Unlike the three live analysts, these agents are REQUIRED to talk to each
+    # other. The analysts are isolated because their independence is the signal
+    # the decision layer consumes; a research finding, by contrast, gets better
+    # under cross-examination. An edge nobody tried to break is an edge nobody
+    # has tested.
+    Role.RESEARCH_TREND: RoleSpec(
+        role=Role.RESEARCH_TREND,
+        title="Research Specialist - Trend, Momentum & Continuation",
+        mandate=(
+            "Researches directional continuation: trend, pullback, momentum "
+            "and multi-timeframe alignment families. Challenges the other "
+            "specialists' findings with measurements, and answers theirs."
+        ),
+        accepts=_A({"research_family", "challenge", "rebut"}),
+        may_message=_A({Role.MANAGER, Role.STRATEGY_RESEARCH, Role.DEVELOPER,
+                        Role.RESEARCH_REVERSION, Role.RESEARCH_LIQUIDITY}),
+        publishes=("findings", "challenges", "rebuttals"),
+        consumes=("market_data", "findings", "challenges", "journal_feedback"),
+    ),
+    Role.RESEARCH_REVERSION: RoleSpec(
+        role=Role.RESEARCH_REVERSION,
+        title="Research Specialist - Mean Reversion, Reversal & VWAP",
+        mandate=(
+            "Researches fade and exhaustion: mean-reversion, reversal and VWAP "
+            "families. Challenges the other specialists' findings with "
+            "measurements, and answers theirs."
+        ),
+        accepts=_A({"research_family", "challenge", "rebut"}),
+        may_message=_A({Role.MANAGER, Role.STRATEGY_RESEARCH, Role.DEVELOPER,
+                        Role.RESEARCH_TREND, Role.RESEARCH_LIQUIDITY}),
+        publishes=("findings", "challenges", "rebuttals"),
+        consumes=("market_data", "findings", "challenges", "journal_feedback"),
+    ),
+    Role.RESEARCH_LIQUIDITY: RoleSpec(
+        role=Role.RESEARCH_LIQUIDITY,
+        title="Research Specialist - Liquidity, Breakout & Session",
+        mandate=(
+            "Researches liquidity and session structure: liquidity, "
+            "opening-range and breakout families. Challenges the other "
+            "specialists' findings with measurements, and answers theirs."
+        ),
+        accepts=_A({"research_family", "challenge", "rebut"}),
+        may_message=_A({Role.MANAGER, Role.STRATEGY_RESEARCH, Role.DEVELOPER,
+                        Role.RESEARCH_TREND, Role.RESEARCH_REVERSION}),
+        publishes=("findings", "challenges", "rebuttals"),
+        consumes=("market_data", "findings", "challenges", "journal_feedback"),
     ),
     Role.ANALYST_A: RoleSpec(
         role=Role.ANALYST_A,
@@ -224,6 +282,32 @@ ROLES: Dict[Role, RoleSpec] = {
         llm_backed=False,
     ),
 }
+
+
+#: Which strategy families each research specialist owns. The split is by
+#: *market behaviour*, not by indicator, so the three are genuinely researching
+#: different hypotheses about why a market moves rather than three shufflings of
+#: one idea. Every family in the combinator is owned by exactly one specialist -
+#: no overlap, no gaps - so a pooled ranking cannot double-count an edge.
+RESEARCH_FAMILIES: Dict[Role, Tuple[str, ...]] = {
+    Role.RESEARCH_TREND: ("TREND", "PULLBACK", "MOMENTUM", "MULTI_TIMEFRAME"),
+    Role.RESEARCH_REVERSION: ("MEAN_REVERSION", "REVERSAL", "VWAP"),
+    Role.RESEARCH_LIQUIDITY: ("LIQUIDITY", "OPENING_RANGE", "BREAKOUT"),
+}
+
+#: The three specialists, in a fixed order so a debate round is reproducible.
+RESEARCH_SPECIALISTS: Tuple[Role, ...] = (
+    Role.RESEARCH_TREND, Role.RESEARCH_REVERSION, Role.RESEARCH_LIQUIDITY)
+
+
+def families_for(role: Role) -> Tuple[str, ...]:
+    """Strategy families a research specialist is responsible for."""
+    return RESEARCH_FAMILIES.get(role, ())
+
+
+def opponents_of(role: Role) -> Tuple[Role, ...]:
+    """The other two specialists - the ones this agent cross-examines."""
+    return tuple(r for r in RESEARCH_SPECIALISTS if r is not role)
 
 
 def _build_routing() -> Dict[str, Tuple[Role, ...]]:

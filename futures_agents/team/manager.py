@@ -198,6 +198,79 @@ class ManagerAgent(TeamAgent):
         self.log(f"planned {len(created)} tasks for {len(symbols)} symbol(s)")
         return created
 
+    def plan_research_debate(self, symbol: str, *,
+                             timeframes: Sequence[int] = (1, 5, 15, 60),
+                             max_strategies: int = 600,
+                             days: Optional[int] = None) -> List[Task]:
+        """Plan one adversarial research round for a single symbol.
+
+        Four phases, gated by dependency so the order cannot be short-circuited:
+
+        1. **Research.** Each specialist sweeps its own families. The three are
+           independent of each other and may run in any order.
+        2. **Cross-examination.** Each challenges the other two - possible only
+           once all three sets of findings exist, or a specialist would be
+           challenging an empty file and calling it agreement.
+        3. **Rebuttal.** Each answers the challenges filed against it, with a
+           measurement or a concession.
+        4. **Pooling.** The desk lead - which holds no family and therefore no
+           stake - reconciles everything into one ranking.
+        """
+        from .roles import RESEARCH_SPECIALISTS, families_for
+
+        board = self.board
+        created: List[Task] = []
+        sym = symbol.upper()
+
+        research_ids: List[str] = []
+        for role in RESEARCH_SPECIALISTS:
+            t = board.add(
+                "research_family",
+                f"{sym}: research {', '.join(families_for(role))}",
+                detail=ROLES[role].mandate, priority=TaskPriority.NORMAL,
+                assigned_to=role,
+                payload={"symbol": sym, "timeframes": list(timeframes),
+                         "families": list(families_for(role)),
+                         "max_strategies": max_strategies, "days": days})
+            created.append(t)
+            research_ids.append(t.task_id)
+
+        challenge_ids: List[str] = []
+        for role in RESEARCH_SPECIALISTS:
+            t = board.add(
+                "challenge", f"{sym}: cross-examine the other specialists",
+                detail=("Re-test their findings on a split they did not choose, "
+                        "check deflation, cost fragility, regime concentration "
+                        "and redundancy. A challenge without a measurement is "
+                        "discarded."),
+                priority=TaskPriority.NORMAL, depends_on=tuple(research_ids),
+                assigned_to=role, payload={"symbol": sym})
+            created.append(t)
+            challenge_ids.append(t.task_id)
+
+        rebut_ids: List[str] = []
+        for role in RESEARCH_SPECIALISTS:
+            t = board.add(
+                "rebut", f"{sym}: answer the challenges filed against you",
+                detail=("Concede, or produce a counter-measurement. An "
+                        "unmeasured denial does not answer a measured "
+                        "objection and is recorded as unanswered."),
+                priority=TaskPriority.NORMAL, depends_on=tuple(challenge_ids),
+                assigned_to=role, payload={"symbol": sym})
+            created.append(t)
+            rebut_ids.append(t.task_id)
+
+        created.append(board.add(
+            "pool", f"{sym}: pool the findings and score the debate",
+            detail=("Deterministic and symmetric. Discard unsubstantiated "
+                    "challenges, disqualify findings carrying a standing fatal "
+                    "challenge, collapse redundant edges, then rank."),
+            priority=TaskPriority.HIGH, depends_on=tuple(rebut_ids),
+            assigned_to=Role.STRATEGY_RESEARCH, payload={"symbol": sym}))
+
+        self.log(f"planned a {len(created)}-task research debate for {sym}")
+        return created
+
     # ---- execution ----------------------------------------------------
     def dispatch(self, task: Task) -> AgentResult:
         """Hand one task to its owning agent."""

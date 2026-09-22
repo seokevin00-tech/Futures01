@@ -120,6 +120,27 @@ class StrategyResearchAgent(DomainAgent):
         super().__init__(Role.STRATEGY_RESEARCH, fs, bus,
                          context=context, config=config, llm=llm)
 
+    #: Handed to every consumer of ``strategy_rankings``. The performance table
+    #: holds three kinds of row under one primary key, and a caller that reads
+    #: a session slice as if it were a strategy would double-count the strategy
+    #: and quote the wrong sample size.
+    STORAGE_CONTRACT: Dict[str, Any] = {
+        "table": "strategy_performance",
+        "row_kinds": {
+            "strategy": "regime='ALL' AND session='ALL' - the whole backtest",
+            "regime_slice": "regime=<REGIME> AND session='ALL'",
+            "session_slice": "regime='ALL' AND session=<SESSION>",
+        },
+        "warning": (
+            "Storage.top_strategies filters on regime only, so a query with "
+            "regime=X returns strategy rows, regime slices AND session slices "
+            "interleaved. Read the regime and session columns, or the "
+            "payload's is_slice flag, before treating a row as a strategy."),
+        "live_eligible": (
+            "Set only from RobustnessReport.live_eligible. A slice carries its "
+            "parent strategy's flag and never earns one of its own."),
+    }
+
     # ==================================================================
     # Entry point
     # ==================================================================
@@ -568,41 +589,39 @@ class StrategyResearchAgent(DomainAgent):
 
     def _persist_slices(self, symbol: str, strategy: Strategy,
                         trades: Sequence[Trade], *,
-                        robustness_score: float = 0.0,
                         live_eligible: bool = False) -> None:
         """Store per-regime and per-session breakdowns for one strategy.
 
         The decision layer's real question is never "is this strategy good" but
         "is this strategy good *in the regime I am looking at right now*", and
-        that is a query, not a paragraph. ``live_eligible`` here is only ever
-        the parent strategy's verdict copied down; a slice never earns
-        eligibility on its own.
+        that is a query, not a paragraph.
+
+        Two rules keep a slice honest. Its ranking score is computed from its
+        own trades, so a twelve-trade regime slice takes the full sample-size
+        penalty rather than borrowing its parent's confidence. Its
+        ``live_eligible`` flag is the parent strategy's verdict copied down - a
+        slice can never earn eligibility on its own, because eligibility is a
+        property of the strategy, not of a favourable subset of its history.
         """
         store = self.require_context().storage
-        for regime, m in slice_metrics(trades, "regime",
-                                       min_trades=MIN_TRADES_PER_SLICE).items():
-            store.upsert_strategy_performance(
-                strategy_id=strategy.strategy_id, symbol=symbol,
-                timeframe=strategy.primary_tf, metrics=m, scope="backtest",
-                regime=str(regime), session="ALL",
-                robustness_score=robustness_score, live_eligible=live_eligible,
-                payload={"slice_kind": "regime", "regime": str(regime),
-                         "strategy_name": strategy.name, "group": strategy.group,
-                         "trades": m.trades,
-                         "note": "regime slice of the parent strategy; the "
-                                 "eligibility flag is the parent's verdict"})
-        for session, m in slice_metrics(trades, "session",
-                                        min_trades=MIN_TRADES_PER_SLICE).items():
-            store.upsert_strategy_performance(
-                strategy_id=strategy.strategy_id, symbol=symbol,
-                timeframe=strategy.primary_tf, metrics=m, scope="backtest",
-                regime="ALL", session=str(session),
-                robustness_score=robustness_score, live_eligible=live_eligible,
-                payload={"slice_kind": "session", "session": str(session),
-                         "strategy_name": strategy.name, "group": strategy.group,
-                         "trades": m.trades,
-                         "note": "session slice of the parent strategy; the "
-                                 "eligibility flag is the parent's verdict"})
+        for key, regime_of, session_of in (
+                ("regime", lambda k: str(k), lambda _k: "ALL"),
+                ("session", lambda _k: "ALL", lambda k: str(k))):
+            for bucket, m in slice_metrics(
+                    trades, key, min_trades=MIN_TRADES_PER_SLICE).items():
+                store.upsert_strategy_performance(
+                    strategy_id=strategy.strategy_id, symbol=symbol,
+                    timeframe=strategy.primary_tf, metrics=m, scope="backtest",
+                    regime=regime_of(bucket), session=session_of(bucket),
+                    robustness_score=max(0.0, robust_score(
+                        m, min_trades=MIN_TRADES_FOR_RANK)),
+                    live_eligible=live_eligible,
+                    payload={"is_slice": True, "slice_kind": key,
+                             key: str(bucket), "strategy_name": strategy.name,
+                             "group": strategy.group, "trades": m.trades,
+                             "note": f"{key} slice of the parent strategy: its "
+                                     "score is measured on these trades alone, "
+                                     "its eligibility is the parent's verdict"})
 
     def _persist_report(self, frame: SymbolFrame, strategy: Strategy,
                         trades: Sequence[Trade], report: RobustnessReport,
@@ -635,7 +654,6 @@ class StrategyResearchAgent(DomainAgent):
             })
         if trades:
             self._persist_slices(frame.symbol, strategy, trades,
-                                 robustness_score=report.score,
                                  live_eligible=report.live_eligible)
 
     # ==================================================================
@@ -768,6 +786,7 @@ class StrategyResearchAgent(DomainAgent):
             "window": sweep.window,
             "trials_searched": len(sweep.strategies),
             "rows_in_database": len(sweep.strategies),
+            "storage_contract": self.STORAGE_CONTRACT,
             "universe": {"strategies": len(sweep.strategies),
                          "by_group": counts_by_group,
                          "by_timeframe": counts_by_tf},
@@ -855,6 +874,7 @@ class StrategyResearchAgent(DomainAgent):
                 "strategy that has been through the full suite"),
             "trials_searched": trials,
             "rows_in_database": len(rows),
+            "storage_contract": self.STORAGE_CONTRACT,
             "top": top,
             "live_eligible": eligible,
             "live_eligibility_note": self._storage_eligibility_note(symbol, eligible),

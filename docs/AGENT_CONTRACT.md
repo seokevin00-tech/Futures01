@@ -189,3 +189,81 @@ python3 -m pytest -q tests   # if tests exist
 Report honestly. If something does not work, say so and say why. A truthful
 "this part is unfinished" is worth more than a claim that does not survive
 the integrator's check.
+
+---
+
+# Addendum: the three research specialists
+
+Three agents research *different* strategy families, then cross-examine each
+other before anything reaches the live system.
+
+**This is the opposite of the analysts' rule, deliberately.** The three live
+analysts are isolated because their independence is the signal the decision
+layer consumes. The three researchers are *required* to talk, because an edge
+nobody tried to break is an edge nobody has tested.
+
+## Ownership
+
+| Agent | File | Class | Role | Families |
+|---|---|---|---|---|
+| trend | `agents/research_trend.py` | `ResearchTrendAgent` | `Role.RESEARCH_TREND` | TREND, PULLBACK, MOMENTUM, MULTI_TIMEFRAME |
+| reversion | `agents/research_reversion.py` | `ResearchReversionAgent` | `Role.RESEARCH_REVERSION` | MEAN_REVERSION, REVERSAL, VWAP |
+| liquidity | `agents/research_liquidity.py` | `ResearchLiquidityAgent` | `Role.RESEARCH_LIQUIDITY` | LIQUIDITY, OPENING_RANGE, BREAKOUT |
+
+Every family is owned by exactly one specialist — no overlap, no gaps — so a
+pooled ranking cannot double-count an edge. `families_for(role)` in
+`team/roles.py` is authoritative; do not hard-code the list.
+
+## Task kinds
+
+`research_family`, `challenge`, `rebut`. All three are accepted by all three
+specialists, so they are always dispatched with an explicit assignee.
+
+The desk lead (`Role.STRATEGY_RESEARCH`, `agents/research.py`) keeps
+`research_strategies`, `backtest`, `walk_forward`, `optimise`,
+`rank_strategies`, `robustness` and adds `pool`. Do not claim those kinds.
+
+## Base class
+
+Subclass `StrategyResearchAgent` from `agents/research.py`. It already has the
+sweep, persistence, walk-forward and ranking machinery; `_universe()` takes a
+`groups=` family filter. Reuse it — do not reimplement backtesting.
+
+## The debate protocol
+
+`agents/debate.py` is written and tested. Use it; do not invent a parallel one.
+
+- `Finding` — your claim that a strategy has an edge. Populate
+  `trade_fingerprint` as `[(entry_bar_index, direction_sign), ...]`; redundancy
+  detection depends on it.
+- `Challenge(challenger, target_owner, target_strategy_id, symbol, kind, claim,
+  measurement)` — **`measurement` is mandatory.** An empty one makes
+  `is_substantiated` False and the pooler discards it. "I doubt this" proves
+  nothing.
+- `Rebuttal(responder, challenger, target_strategy_id, verdict, argument,
+  measurement)` — a `REBUTTED` verdict with no measurement is downgraded to
+  `UNANSWERED`. An unmeasured denial does not answer a measured objection.
+- Measurement helpers ready to use: `adversarial_retest` (re-run a rival's
+  strategy on a split its owner did not choose), `cost_stress` (doubled
+  slippage), `regime_concentration`, `trade_overlap`, `find_redundancy`.
+- `pool_findings` is deterministic, symmetric and does not mutate its inputs.
+
+`ChallengeKind`: `OUT_OF_SAMPLE_FAILURE`, `DATA_MINING`, `SAMPLE_TOO_SMALL`
+(fatal — disqualify outright); `REGIME_ARTEFACT`, `COST_FRAGILE`, `REDUNDANT`
+(graded penalties).
+
+## Artefacts
+
+Publish `findings`, `challenges`, `rebuttals` — each in your own workspace, so
+the names do not collide. Read rivals' findings with
+`self.read_from(Role.RESEARCH_X, "findings")`, which is permitted here (unlike
+between analysts) and may return `None`.
+
+## What makes this real rather than theatre
+
+Challenge what you can *measure*, not what you dislike. A specialist that files
+six unsubstantiated objections against its rivals has contributed nothing and
+the pooler will discard all six. A specialist that concedes a well-measured
+challenge against its own finding has done its job correctly — **conceding is
+not losing.** The scorecard records challenges filed, upheld, received and
+survived, so both padding and stonewalling are visible.
