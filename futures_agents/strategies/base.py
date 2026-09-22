@@ -32,7 +32,8 @@ from ..schema import Direction, Evidence, MarketRegime
 from ..timeutil import to_et
 
 __all__ = [
-    "ConditionKind", "ConditionResult", "Condition", "StopKind", "ExitModel",
+    "ConditionKind", "ConditionResult", "Condition", "StopKind", "TargetKind",
+    "ExitModel",
     "StrategyFilters", "StrategySignal", "Strategy",
     "CONDITION_ERRORS", "condition_errors", "reset_condition_errors",
 ]
@@ -161,6 +162,28 @@ class Condition:
 # Exits
 # --------------------------------------------------------------------------
 
+class TargetKind(str, Enum):
+    """Where the target comes from.
+
+    ``R_MULTIPLE`` is the default and was until now the only option: targets
+    are multiples of the stop distance. That is self-consistent and it quietly
+    defeats the entire point of honing an entry on a lower timeframe - tighten
+    the stop and every target moves proportionally closer, so a 4-hour thesis
+    entered on a 15-minute trigger does not capture the 4-hour move, it
+    captures a fifteen-minute-sized version of it. Measured: dropping the entry
+    from 240m to 15m changed realised reward:risk from 0.87 to 0.91, when the
+    ATR arithmetic said it should have gone to roughly 4:1.
+
+    The anchored kinds fix that by deriving the target from the ANCHOR
+    timeframe in price, independent of the stop. Then a tight stop genuinely
+    buys reward:risk, because the objective stays where the thesis put it.
+    """
+
+    R_MULTIPLE = "R_MULTIPLE"              # multiples of the stop distance
+    ANCHOR_ATR = "ANCHOR_ATR"              # multiples of the ANCHOR timeframe's ATR
+    ANCHOR_STRUCTURE = "ANCHOR_STRUCTURE"  # the anchor timeframe's own swing objective
+
+
 class StopKind(str, Enum):
     ATR = "ATR"                # N x ATR from entry
     STRUCTURE = "STRUCTURE"    # beyond the last confirmed swing, padded
@@ -180,6 +203,15 @@ class ExitModel:
 
     stop_kind: StopKind = StopKind.ATR
     stop_mult: float = 1.5
+    #: Where targets come from. See :class:`TargetKind`.
+    target_kind: TargetKind = TargetKind.R_MULTIPLE
+    #: For ANCHOR_ATR: multiples of the anchor timeframe's ATR.
+    #: For ANCHOR_STRUCTURE: fraction of the distance to the anchor swing.
+    anchor_mult: Tuple[float, ...] = (1.0, 2.0, 3.0)
+    #: Reject the setup when the anchored target is closer than this in R.
+    #: Without it an anchored target can land inside the stop distance and the
+    #: trade becomes a negative-expectancy coin flip that still "fired".
+    min_reward_risk: float = 1.5
     stop_pad_ticks: int = 2            # buffer beyond a structural level
     targets_r: Tuple[float, ...] = (1.0, 2.0, 3.0)
     #: Fraction of the position taken off at each target. Must sum to <= 1.
@@ -259,10 +291,55 @@ class ExitModel:
         return spec.round_to_tick(raw)
 
     def target_prices(self, entry: float, stop: float, direction: Direction,
-                      spec: ContractSpec) -> List[float]:
+                      spec: ContractSpec, *,
+                      snap: Optional[FeatureSnapshot] = None,
+                      anchor_tf: Optional[int] = None) -> List[float]:
+        """Target prices for this setup.
+
+        ``snap``/``anchor_tf`` are only consulted by the anchored kinds, and an
+        anchored kind falls back to R multiples when the anchor data is not
+        available - a missing ATR must not silently produce a target at the
+        entry price.
+        """
         risk = abs(entry - stop)
         sign = direction.sign
+
+        if (self.target_kind is not TargetKind.R_MULTIPLE
+                and snap is not None and anchor_tf is not None):
+            anchored = self._anchored_targets(entry, direction, snap, anchor_tf, spec)
+            if anchored:
+                return anchored
+
         return [spec.round_to_tick(entry + sign * risk * r) for r in self.targets_r]
+
+    def _anchored_targets(self, entry: float, direction: Direction,
+                          snap: "FeatureSnapshot", anchor_tf: int,
+                          spec: ContractSpec) -> List[float]:
+        s = snap.tf(anchor_tf)
+        if s is None:
+            return []
+        sign = direction.sign
+
+        if self.target_kind is TargetKind.ANCHOR_ATR:
+            a = s.get("atr")
+            if not a:
+                return []
+            return [spec.round_to_tick(entry + sign * a * m) for m in self.anchor_mult]
+
+        # ANCHOR_STRUCTURE: trade towards the anchor's own swing objective -
+        # the level the thesis is actually about - taking fractions of the way
+        # there so the runner has somewhere to run to.
+        objective = s.last_swing_high if sign > 0 else s.last_swing_low
+        if objective is None:
+            return []
+        span = (objective - entry) * sign
+        if span <= 0:
+            return []                      # the objective is already behind us
+        out = []
+        for m in self.anchor_mult:
+            frac = min(1.0, m / max(self.anchor_mult))
+            out.append(spec.round_to_tick(entry + sign * span * frac))
+        return sorted(set(out), reverse=sign < 0)
 
 
 # --------------------------------------------------------------------------
@@ -395,6 +472,29 @@ class Strategy:
     filters: StrategyFilters = field(default_factory=StrategyFilters)
     allowed_directions: Tuple[Direction, ...] = (Direction.LONG, Direction.SHORT)
     confirm_tfs: Tuple[int, ...] = ()
+    #: Timeframe the ENTRY is located on, when it differs from the timeframe
+    #: the thesis is built on.
+    #:
+    #: ``primary_tf`` is the anchor: where the confluence is read and the
+    #: target lives. ``execution_tf`` is where the trade is actually placed,
+    #: and - this is the whole point - where the STOP is measured. A 4-hour
+    #: thesis stopped on 4-hour structure risks a 4-hour ATR to make a 4-hour
+    #: move, which is about 1:1 before costs. The same thesis entered on a
+    #: 15-minute trigger risks a 15-minute ATR for the same move: measured on
+    #: this desk's data, the 240m ATR is a median 4.5x the 15m ATR, so the
+    #: reward-to-risk goes from 1.0:1 to roughly 4.3:1 without the target
+    #: moving at all.
+    #:
+    #: The catch, and why ``trigger_conditions`` exists: a tight stop under a
+    #: big thesis is only an edge if the entry is located somewhere the noise
+    #: does not reach. Otherwise it is the same trade with a stop that gets
+    #: hit more often, which is strictly worse.
+    execution_tf: Optional[int] = None
+    #: Conditions evaluated on ``execution_tf`` that must fire AND agree with
+    #: the anchor's direction before the trade is taken. This is the "hone in
+    #: on the location" half: the anchor says which way and roughly where, the
+    #: trigger says exactly when.
+    trigger_conditions: Tuple[Condition, ...] = ()
     description: str = ""
     _id: Optional[str] = None
 
@@ -405,6 +505,16 @@ class Strategy:
             raise ValueError(
                 f"{self.name}: at least one SIGNAL condition is required - "
                 "a strategy of pure filters has no entry trigger")
+        if self.trigger_conditions and self.execution_tf is None:
+            raise ValueError(
+                f"{self.name}: trigger conditions need an execution_tf to "
+                "evaluate on, otherwise they silently re-read the anchor")
+        if self.execution_tf is not None and self.execution_tf > self.primary_tf:
+            raise ValueError(
+                f"{self.name}: execution_tf {self.execution_tf}m is coarser "
+                f"than the {self.primary_tf}m anchor. Entering on a slower "
+                "timeframe than the thesis widens the stop, which is the "
+                "opposite of the point.")
 
     # ---- identity ---------------------------------------------------
     @property
@@ -419,6 +529,8 @@ class Strategy:
                 self.exit.label, self.filters.label(),
                 "".join(sorted(d.value for d in self.allowed_directions)),
                 ",".join(str(t) for t in sorted(self.confirm_tfs)),
+                str(self.execution_tf or ""),
+                "|".join(sorted(c.label for c in self.trigger_conditions)),
             ]
             digest = hashlib.sha1("::".join(parts).encode()).hexdigest()[:12]
             object.__setattr__(self, "_id", f"{self.symbol}-{self.primary_tf}m-{digest}")
@@ -428,7 +540,15 @@ class Strategy:
     def timeframes(self) -> List[int]:
         tfs = {self.primary_tf, *self.confirm_tfs}
         tfs.update(c.timeframe for c in self.conditions if c.timeframe)
+        if self.execution_tf:
+            tfs.add(self.execution_tf)
+        tfs.update(c.timeframe for c in self.trigger_conditions if c.timeframe)
         return sorted(t for t in tfs if t)
+
+    @property
+    def entry_tf(self) -> int:
+        """Where the trade is placed and the stop is measured."""
+        return self.execution_tf or self.primary_tf
 
     @property
     def signal_conditions(self) -> List[Condition]:
@@ -487,11 +607,44 @@ class Strategy:
         if direction is None or direction not in self.allowed_directions:
             return None
 
+        # ---- hone the entry on the execution timeframe -------------------
+        # The anchor has said which way. The trigger says whether price is
+        # somewhere worth risking a tight stop on, and it must AGREE - a
+        # trigger firing the other way is the lower timeframe telling you the
+        # location is wrong, not a detail to average out.
+        for cond in self.trigger_conditions:
+            res = cond.evaluate(snap, self.entry_tf, cache)
+            if not res.triggered:
+                return None
+            if (cond.kind is ConditionKind.SIGNAL
+                    and res.direction is not direction):
+                conflicts.append(
+                    f"{tf_label(self.entry_tf)} trigger {cond.name} disagrees")
+                return None
+            confluences.append(f"{cond.label} [{tf_label(self.entry_tf)}]: {res.detail}"
+                               if res.detail else cond.label)
+
         entry = spec.round_to_tick(snap.price)
-        stop = self.exit.stop_price(snap, self.primary_tf, direction, entry, spec)
+        # The stop is measured where the trade is placed, not where the thesis
+        # was formed. This is the mechanism that expands reward-to-risk.
+        stop = self.exit.stop_price(snap, self.entry_tf, direction, entry, spec)
         if stop is None or abs(entry - stop) < spec.tick_size:
             return None
-        targets = self.exit.target_prices(entry, stop, direction, spec)
+        # A stop inside the contract's own noise floor is not a tight stop, it
+        # is a coin flip with good manners. min_stop_ticks is per-contract
+        # precisely so this check means something on both MGC and MNQ.
+        if abs(entry - stop) < spec.min_stop_ticks * spec.tick_size:
+            return None
+        targets = self.exit.target_prices(entry, stop, direction, spec,
+                                          snap=snap, anchor_tf=self.primary_tf)
+        if not targets:
+            return None
+        # With an anchored target the reward is no longer guaranteed to exceed
+        # the risk, so it has to be checked rather than assumed.
+        risk = abs(entry - stop)
+        reward = abs(targets[-1] - entry)
+        if risk <= 0 or reward / risk < self.exit.min_reward_risk:
+            return None
 
         # Record higher-timeframe disagreement as a conflict rather than hiding
         # it - the decision layer weighs conflicts explicitly.
