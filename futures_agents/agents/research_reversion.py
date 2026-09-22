@@ -83,6 +83,9 @@ MAX_FINDINGS = 5
 #: Rival findings cross-examined per opponent. Bounded because an
 #: ``adversarial_retest`` is a full pass over the history per finding, and a
 #: specialist that spends an hour to file twelve objections has not helped.
+#: The ones examined are the first the owner listed, which is the owner's own
+#: ranking order - so the findings most likely to reach the live system are the
+#: ones that get cross-examined, and the choice is reproducible.
 MAX_CHALLENGE_TARGETS = 3
 
 #: Matches ``find_redundancy``'s default, so a REDUNDANT challenge this agent
@@ -1237,6 +1240,14 @@ class ResearchReversionAgent(StrategyResearchAgent):
             f"split_{second_fraction:.2f}": at_second,
             "challenger_measurement": theirs,
         }
+        # A re-test that could not run is not a re-test that failed. Reading a
+        # missing result as "the edge is absent" would concede the finding on
+        # the strength of a measurement nobody took.
+        errors = [r["error"] for r in (at_theirs, at_second) if "error" in r]
+        if errors:
+            return self._unanswered(
+                challenger, sid,
+                f"the split re-test could not be run ({'; '.join(errors)})")
         holds_theirs = bool(at_theirs.get("both_halves_positive"))
         holds_second = bool(at_second.get("both_halves_positive"))
         if not holds_theirs and not holds_second:
@@ -1494,9 +1505,27 @@ class ResearchReversionAgent(StrategyResearchAgent):
             self.log(f"{owner.value} has published no {artefact} artefact yet")
         return doc
 
+    #: Container keys whose contents are explicitly *not* claims. All three
+    #: specialists publish the candidates they declined alongside the ones they
+    #: stand behind - which is good practice, and exactly why a challenge must
+    #: never be filed against one. Objecting to a finding its owner already
+    #: withheld is noise that the pooler discards and the scorecard remembers.
+    NON_CLAIM_CONTAINERS: Tuple[str, ...] = (
+        "withheld", "near_misses", "rejected", "discarded", "excluded",
+        "not_published", "disqualified", "audit")
+
+    #: Row-level fields that mark a row as a candidate that was not claimed.
+    #: None of these appear in ``Finding.to_dict()``.
+    NON_CLAIM_FIELDS: Tuple[str, ...] = (
+        "withheld_because", "withheld_reason", "reason", "is_slice",
+        "disqualified_by")
+
     @staticmethod
     def _rows_matching(doc: Any, symbol: str, required: str,
-                       markers: Sequence[str]) -> List[Dict[str, Any]]:
+                       markers: Sequence[str],
+                       deny_fields: Sequence[str] = (),
+                       skip_containers: Sequence[str] = ()
+                       ) -> List[Dict[str, Any]]:
         """Every row of one shape in an artefact, wherever the owner nested it.
 
         The three specialists are written in parallel by three different people
@@ -1510,18 +1539,30 @@ class ResearchReversionAgent(StrategyResearchAgent):
         strategy, but a challenger may legitimately file two different kinds of
         objection against one strategy, and collapsing on the strategy id would
         silently discard the second.
+
+        ``markers`` has to be a field only the row type in question carries.
+        Matching on something generic like ``metrics`` pulls in every nested
+        robustness block and every candidate the owner listed as withheld,
+        and a challenge filed against a claim nobody made is worse than no
+        challenge at all. ``deny_fields`` and ``skip_containers`` exclude the
+        not-claimed rows from the other direction.
         """
         out: List[Dict[str, Any]] = []
         target = symbol.upper()
+        skip = {s.lower() for s in skip_containers}
 
         def walk(node: Any) -> None:
             if isinstance(node, dict):
                 key = node.get(required)
-                if isinstance(key, str) and key and any(m in node for m in markers):
+                if (isinstance(key, str) and key
+                        and any(m in node for m in markers)
+                        and not any(d in node for d in deny_fields)):
                     if str(node.get("symbol") or target).upper() == target:
                         out.append(node)
                     return          # a matched row's sub-dicts are its own detail
-                for value in node.values():
+                for name, value in node.items():
+                    if str(name).lower() in skip:
+                        continue
                     walk(value)
             elif isinstance(node, list):
                 for value in node:
@@ -1540,13 +1581,31 @@ class ResearchReversionAgent(StrategyResearchAgent):
         return list(seen.values())
 
     def _finding_rows(self, doc: Any, symbol: str) -> List[Dict[str, Any]]:
-        rows = self._rows_matching(doc, symbol, "strategy_id",
-                                   ("owner", "base_score", "metrics", "claim"))
+        """Rows their owner actually stands behind, in any document shape.
+
+        ``owner``, ``claim`` and ``base_score`` are carried by
+        ``Finding.to_dict()`` and by nothing else in these artefacts, which is
+        what keeps a nested ``RobustnessReport`` or a withheld candidate from
+        being read as a claim.
+        """
+        rows = self._rows_matching(
+            doc, symbol, "strategy_id", ("owner", "claim", "base_score"),
+            deny_fields=self.NON_CLAIM_FIELDS,
+            skip_containers=self.NON_CLAIM_CONTAINERS)
         return self._unique_by(rows, lambda r: str(r.get("strategy_id")))
 
     def _challenge_rows(self, doc: Any, symbol: str) -> List[Dict[str, Any]]:
-        rows = self._rows_matching(doc, symbol, "target_strategy_id",
-                                   ("kind", "challenger", "measurement"))
+        """Challenges only - ``Rebuttal.to_dict()`` also carries
+        ``target_strategy_id``, so an owner that publishes both in one document
+        would otherwise have its answers read as fresh objections. ``kind`` and
+        ``target_owner`` belong to a Challenge; ``responder`` and ``argument``
+        belong to a Rebuttal and disqualify the row.
+        """
+        rows = self._rows_matching(
+            doc, symbol, "target_strategy_id", ("kind", "target_owner"),
+            deny_fields=("responder", "argument"),
+            skip_containers=("discarded", "rejected", "unsubstantiated",
+                             "rebuttals"))
         # One objection per (challenger, target, kind): the same challenge
         # echoed in a summary block and again in the detail block is one
         # challenge, but two kinds against one finding are two.
