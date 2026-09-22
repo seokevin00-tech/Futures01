@@ -116,7 +116,8 @@ def test_appending_a_future_bar_never_changes_history(name, fn):
     violations = _lookahead_violations(fn, len(CLOSES))
     assert not violations, (
         f"{name}: appending a bar changed {len(violations)} historical "
-        f"value(s); first: {violations[:5]}")
+        f"value(s); first: {violations[:5]}"
+        + (f"\n{_ADX_REGRESSION}" if name == "adx" else ""))
 
 
 @pytest.mark.parametrize("name,fn", [
@@ -133,18 +134,23 @@ def test_every_prefix_agrees_with_the_full_series(name, fn):
         for ci, (sc, fc) in enumerate(zip(short, full)):
             assert sc == fc[:k], (
                 f"{name}: prefix of {k} bars disagrees with the full series "
-                f"in column {ci}")
+                f"in column {ci}"
+                + (f"\n{_ADX_REGRESSION}" if name == "adx" else ""))
 
 
 def test_adx_published_values_never_change():
-    """ADX's defect is asymmetric, and the asymmetry matters.
+    """The higher-consequence half of the look-ahead property, stated alone.
 
-    ``adx()`` never lets a *future* bar alter a value it has already published -
-    the dangerous direction. What it does do is withhold values it could have
-    computed (guard at ``indicators/core.py:295`` requires ``2*period+1`` bars
-    where ``period+1`` suffices for +DI/-DI), so a historical ``None`` can turn
-    into a number later. This test pins the half that is safe, so a future fix
-    to the warm-up guard cannot silently introduce real look-ahead.
+    The two tests above assert that ADX's columns are prefix-stable in full.
+    This one isolates the half that would be worst to lose: a value ADX has
+    already *published* must never be revised by a later bar.
+
+    They are separable, which is the reason to keep them apart. When the
+    warm-up guard was wrong (see ``_ADX_REGRESSION``) the prefix tests failed
+    while this one passed, because the guard only affected *when* values
+    started appearing, never *what* they were. Anyone tuning that guard again
+    gets the same split signal: this test failing means the recurrence itself
+    has started reading forwards, which is a far more serious break.
     """
     n = len(CLOSES)
     full = adx(HIGHS, LOWS, CLOSES, 7)

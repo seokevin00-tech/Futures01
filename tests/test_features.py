@@ -155,11 +155,12 @@ def test_snapshots_do_not_change_when_more_data_arrives():
             assert ([lv.to_dict() for lv in x.sr_levels]
                     == [lv.to_dict() for lv in y.sr_levels]), (
                 f"bar {i}, {tf}m: S/R levels changed when later bars arrived")
-            # Identity and geometry only. The ``filled`` flag used to be
-            # back-filled from the future; active_fvgs now masks it to the
-            # observing bar, and the test below guards that.
-            assert ([(g.index, g.top, g.bottom, g.direction) for g in x.active_fvgs]
-                    == [(g.index, g.top, g.bottom, g.direction) for g in y.active_fvgs]), (
+            # The full serialised form, ``filled`` flag included. This is the
+            # assertion that caught the flag being back-filled from the future,
+            # and it exercises the masking in active_fvgs across 390 real bars
+            # rather than the single hand-built gap the dedicated test uses.
+            assert ([g.to_dict() for g in x.active_fvgs]
+                    == [g.to_dict() for g in y.active_fvgs]), (
                 f"bar {i}, {tf}m: active FVGs changed when later bars arrived")
         assert a.session_levels.to_dict() == b.session_levels.to_dict()
         assert a.regime.to_dict() == b.regime.to_dict()
@@ -183,7 +184,11 @@ def _fvg_then_fill_series() -> BarSeries:
 
 
 def test_an_fvg_is_dropped_from_active_once_it_has_actually_been_filled():
-    """The half that is correct: the *membership* filter is look-ahead safe."""
+    """Membership: a gap leaves the active list on the bar that fills it.
+
+    Paired with the fill-state test below - masking ``filled_index`` must not
+    be achieved by keeping genuinely filled gaps in the list.
+    """
     frame = SymbolFrame(_fvg_then_fill_series(), (1,)).frames[1]
     assert [g.index for g in frame.active_fvgs(2)] == [1]
     assert [g.index for g in frame.active_fvgs(3)] == [1]

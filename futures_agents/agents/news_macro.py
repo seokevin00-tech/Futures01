@@ -866,6 +866,29 @@ class NewsMacroAgent(DomainAgent):
                           Direction.SHORT if pct < 0 else Direction.NEUTRAL),
                 weight=0.5, source="measured:1m bars"))
 
+        overnight = self._overnight(symbols, now)
+        if overnight is not None:
+            average, per_symbol = overnight
+            # Published under the desk's standard name and led by its sign, so a
+            # consumer reads the direction without parsing prose. Only the
+            # equity complex is measured here, so only the overnight tape is
+            # claimed - not the dollar, yields or global cash markets, which no
+            # data source in this system covers.
+            readings["OVERNIGHT"] = (
+                f"{average:+.2f}% average across "
+                f"{', '.join(sorted(per_symbol))} over the overnight session")
+            evidence.append(Evidence(
+                kind="statistic", name="overnight_index_move",
+                value=round(average, 4),
+                detail=("mean overnight change of the index complex from the "
+                        "18:00 ET Globex open to the 09:30 ET cash open, "
+                        "measured from 1-minute bars: "
+                        + ", ".join(f"{s} {v:+.2f}%"
+                                    for s, v in sorted(per_symbol.items()))),
+                supports=(Direction.LONG if average > 0 else
+                          Direction.SHORT if average < 0 else Direction.NEUTRAL),
+                weight=0.6, source="measured:1m bars"))
+
         sentiment = _sentiment_from(pct_moves)
         if pct_moves:
             evidence.append(Evidence(
@@ -876,6 +899,43 @@ class NewsMacroAgent(DomainAgent):
                 supports=Direction.NEUTRAL, weight=0.4,
                 source="measured:1m bars"))
         return readings, evidence, sentiment
+
+    def _overnight(self, symbols: Sequence[str], now: datetime
+                   ) -> Optional[Tuple[float, Dict[str, float]]]:
+        """Measured overnight move of the index complex, as a percentage.
+
+        The overnight session runs from the 18:00 ET Globex open to the 09:30
+        ET cash open; before the cash open it is reported as far as it has run.
+        Only index futures are averaged - "the overnight tape was firm" is a
+        statement about equities, and folding gold or crude into it would make
+        the number mean nothing.
+        """
+        start = datetime.combine(now.date(), time(18, 0), tzinfo=ET)
+        if now.time() < time(18, 0):
+            start -= timedelta(days=1)
+        rth_open = datetime.combine((start + timedelta(days=1)).date(),
+                                    time(9, 30), tzinfo=ET)
+        end = min(now, rth_open)
+        if end <= start:
+            return None
+
+        per_symbol: Dict[str, float] = {}
+        for symbol in symbols:
+            if symbol.upper() not in _EQUITY:
+                continue
+            index = self._index(symbol)
+            if index is None or not len(index):
+                continue
+            window = index.window(start, end)
+            last = index.last_closed_at(end)
+            if not window or last is None or not window[0].open:
+                continue
+            per_symbol[symbol.upper()] = (
+                (float(last.close) - float(window[0].open))
+                / float(window[0].open) * 100.0)
+        if not per_symbol:
+            return None
+        return sum(per_symbol.values()) / len(per_symbol), per_symbol
 
     # ---- analogues -----------------------------------------------------
     def _analogues(self, symbols: Sequence[str], category: Optional[str],
