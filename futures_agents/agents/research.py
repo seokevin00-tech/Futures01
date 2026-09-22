@@ -47,7 +47,7 @@ from __future__ import annotations
 import json
 import statistics
 import time
-from dataclasses import MISSING, dataclass, field, fields
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from ..backtest.costs import CostModel
@@ -236,179 +236,121 @@ def _as_enum(enum_cls, raw: Any):
     return None
 
 
-def _as_metrics(raw: Any) -> Optional[Metrics]:
-    """A published ``Metrics.to_dict()`` back into a ``Metrics``.
+def _warn_if_unmeasured(raw: Any, warnings: List[str], *, what: str) -> None:
+    """Flag a measurement that is not a mapping.
 
-    Only declared fields are read, and each is coerced to the type of its own
-    default, so an extra key added by a specialist cannot break the pool and a
-    float where an int belongs cannot reach the database.
+    ``Challenge.from_dict`` and ``Rebuttal.from_dict`` reduce anything that is
+    not a mapping to an empty one, which is the right reading - ``"trust me"``
+    is not a measurement, and ``is_substantiated`` must stay False. It is
+    reported here rather than passed over, because a specialist that believes
+    it filed evidence should find out that the pooler did not count it.
     """
-    if not isinstance(raw, dict):
-        return None
-    kwargs: Dict[str, Any] = {}
-    for spec in fields(Metrics):
-        if spec.name not in raw:
-            continue
-        value = raw[spec.name]
-        default = spec.default if spec.default is not MISSING else None
-        if spec.name == "exit_reasons":
-            kwargs[spec.name] = ({str(k): _as_int(v, 0) or 0
-                                  for k, v in value.items()}
-                                 if isinstance(value, dict) else {})
-        elif isinstance(default, bool) or value is None:
-            continue
-        elif isinstance(default, int):
-            kwargs[spec.name] = _as_int(value, 0) or 0
-        elif isinstance(default, float):
-            kwargs[spec.name] = _as_float(value)
-    return Metrics(**kwargs)
-
-
-def _as_fingerprint(raw: Any) -> List[Tuple[int, int]]:
-    """``[(entry_bar_index, direction_sign), ...]`` from published JSON.
-
-    JSON has no tuples, so the pairs arrive as two-element lists. Anything that
-    is not a readable pair is dropped rather than guessed at - a fabricated
-    fingerprint would invent redundancy between two findings that share
-    nothing.
-    """
-    out: List[Tuple[int, int]] = []
-    if not isinstance(raw, (list, tuple)):
-        return out
-    for item in raw:
-        if not isinstance(item, (list, tuple)) or len(item) < 2:
-            continue
-        bar, direction = _as_int(item[0]), _as_int(item[1])
-        if bar is not None and direction is not None:
-            out.append((bar, direction))
-    return out
-
-
-def _as_r_series(raw: Any) -> List[float]:
-    if not isinstance(raw, (list, tuple)):
-        return []
-    return [_as_float(v) for v in raw
-            if isinstance(v, (int, float)) and not isinstance(v, bool)]
-
-
-def _as_measurement(raw: Any, warnings: List[str], *, what: str
-                    ) -> Dict[str, Any]:
-    """The numbers behind a challenge or rebuttal, or an empty dict.
-
-    Strictly a mapping. A measurement published as a bare string or a number is
-    *not* promoted into one: ``is_substantiated`` tests the truthiness of this
-    field, so accepting ``"trust me"`` as a measurement would substantiate an
-    objection that measured nothing. The coercion is recorded instead.
-    """
-    if isinstance(raw, dict):
-        return dict(raw)
-    if raw not in (None, "", [], {}):
+    if not isinstance(raw, dict) and raw not in (None, "", [], {}):
         warnings.append(f"{what} carried a non-mapping measurement "
                         f"({type(raw).__name__}); it is read as no measurement, "
                         f"so the record counts as unsubstantiated")
-    return {}
 
 
 def _finding_from(raw: Dict[str, Any], *, owner: str, symbol: str,
                   warnings: List[str]) -> Finding:
-    strategy_id = str(raw.get("strategy_id") or "").strip()
-    if not strategy_id:
+    """One published finding, rehydrated by ``Finding.from_dict``.
+
+    The parsing itself belongs to ``debate`` - three agents each writing their
+    own tolerant parser is how the fingerprint got dropped once already. What
+    happens here is only what a *reader* can add: defaulting the owner and
+    symbol to the workspace the record was read from, refusing a record that
+    names no strategy, and reporting the two omissions that quietly weaken a
+    finding rather than breaking it.
+    """
+    data = dict(raw)
+    if not str(data.get("owner") or ""):
+        data["owner"] = owner
+    if not str(data.get("symbol") or ""):
+        data["symbol"] = symbol
+    if not str(data.get("strategy_id") or "").strip():
         raise ValueError("a finding with no strategy_id names nothing and "
                          "cannot be pooled")
-    metrics = _as_metrics(raw.get("metrics"))
-    if metrics is None:
-        warnings.append(f"{strategy_id} was filed without metrics, so its "
-                        f"base score is 0 and it cannot rank")
-    fingerprint = _as_fingerprint(raw.get("trade_fingerprint")
-                                  or raw.get("fingerprint"))
-    if not fingerprint:
-        warnings.append(f"{strategy_id} was filed without a trade_fingerprint, "
-                        f"so redundancy against it cannot be measured and it "
-                        f"can never be collapsed into another specialist's "
-                        f"identical edge")
-    finding = Finding(
-        owner=str(raw.get("owner") or owner),
-        symbol=str(raw.get("symbol") or symbol).upper(),
-        strategy_id=strategy_id,
-        strategy_name=str(raw.get("strategy_name") or raw.get("name") or ""),
-        family=str(raw.get("family") or raw.get("group") or ""),
-        timeframe=_as_int(raw.get("timeframe")),
-        metrics=metrics,
-        robustness_score=_as_float(raw.get("robustness_score")),
-        walk_forward_efficiency=_as_float(raw.get("walk_forward_efficiency")),
-        trials_searched=max(1, _as_int(raw.get("trials_searched"), 1) or 1),
-        live_eligible=bool(raw.get("live_eligible")),
-        trade_fingerprint=fingerprint,
-        r_series=_as_r_series(raw.get("r_series")),
-        claim=str(raw.get("claim") or ""))
-    stamp = raw.get("timestamp_et")
-    if isinstance(stamp, str) and stamp:
-        finding.timestamp_et = stamp
-    return finding
+    if not isinstance(data.get("metrics"), dict):
+        warnings.append(f"{data['strategy_id']} was filed without metrics, so "
+                        f"its base score is 0 and it cannot rank")
+    if not data.get("trade_fingerprint"):
+        # Silent failure if unreported: find_redundancy simply returns nothing
+        # for this finding, which reads exactly like "this edge is independent".
+        warnings.append(f"{data['strategy_id']} was filed without a "
+                        f"trade_fingerprint, so redundancy against it cannot be "
+                        f"measured - it can neither absorb nor be absorbed by "
+                        f"another specialist's identical edge, and its "
+                        f"independence here is unverified rather than shown")
+    if not data.get("r_series"):
+        warnings.append(f"{data['strategy_id']} was filed without an r_series, "
+                        f"so the pooled row reports 0 trades; read the sample "
+                        f"size from its metrics instead")
+    return Finding.from_dict(data)
 
 
 def _challenge_from(raw: Dict[str, Any], *, challenger: str, symbol: str,
                     warnings: List[str]) -> Challenge:
-    target = str(raw.get("target_strategy_id") or "").strip()
-    if not target:
+    """One published challenge, rehydrated by ``Challenge.from_dict``.
+
+    The kind is validated *before* handing the record over. ``from_dict``
+    falls back to ``REDUNDANT`` for an unreadable kind, and REDUNDANT is a
+    scored objection carrying a 0.60 penalty - so an unreadable record would
+    become a penalty against a rival that nobody filed and nobody measured.
+    This desk does not invent verdicts, so such a record is dropped and
+    reported instead.
+    """
+    data = dict(raw)
+    if not str(data.get("challenger") or ""):
+        data["challenger"] = challenger
+    if not str(data.get("symbol") or ""):
+        data["symbol"] = symbol
+    if not str(data.get("target_strategy_id") or "").strip():
         raise ValueError("a challenge with no target_strategy_id objects to "
                          "nothing and cannot be attached to a finding")
-    kind = _as_enum(ChallengeKind, raw.get("kind"))
+    kind = _as_enum(ChallengeKind, data.get("kind"))
     if kind is None:
         raise ValueError(
-            f"unknown challenge kind {raw.get('kind')!r} against {target}: it "
-            f"carries no penalty the protocol defines, and assigning it one "
-            f"would be this desk inventing a verdict")
-    challenge = Challenge(
-        challenger=str(raw.get("challenger") or challenger),
-        target_owner=str(raw.get("target_owner") or ""),
-        target_strategy_id=target,
-        symbol=str(raw.get("symbol") or symbol).upper(),
-        kind=kind,
-        claim=str(raw.get("claim") or ""),
-        measurement=_as_measurement(raw.get("measurement"), warnings,
-                                    what=f"challenge against {target}"),
-        verdict=_as_enum(Verdict, raw.get("verdict")) or Verdict.UNANSWERED)
-    stamp = raw.get("timestamp_et")
-    if isinstance(stamp, str) and stamp:
-        challenge.timestamp_et = stamp
-    return challenge
+            f"unknown challenge kind {data.get('kind')!r} against "
+            f"{data['target_strategy_id']}: it names no objection the protocol "
+            f"defines, and reading it as any particular one would be this desk "
+            f"filing a penalty nobody measured")
+    data["kind"] = kind.value                       # normalised for from_dict
+    _warn_if_unmeasured(data.get("measurement"), warnings,
+                        what=f"challenge against {data['target_strategy_id']}")
+    verdict = _as_enum(Verdict, data.get("verdict"))
+    data["verdict"] = (verdict or Verdict.UNANSWERED).value
+    return Challenge.from_dict(data)
 
 
 def _rebuttal_from(raw: Dict[str, Any], *, responder: str,
                    warnings: List[str]) -> Rebuttal:
-    target = str(raw.get("target_strategy_id") or "").strip()
+    """One published rebuttal, rehydrated by ``Rebuttal.from_dict``."""
+    data = dict(raw)
+    if not str(data.get("responder") or ""):
+        data["responder"] = responder
+    target = str(data.get("target_strategy_id") or "").strip()
     if not target:
         raise ValueError("a rebuttal with no target_strategy_id answers "
                          "nothing and cannot be attached to a challenge")
-    verdict = _as_enum(Verdict, raw.get("verdict"))
+    verdict = _as_enum(Verdict, data.get("verdict"))
     if verdict is None:
         # An answer that states no outcome has not answered. UNANSWERED is the
-        # same reading the protocol gives an unmeasured denial, and it is the
-        # conservative one: the challenge stands until it is actually met.
+        # reading the protocol already gives an unmeasured denial, and it is
+        # the conservative one: the challenge stands until it is actually met.
         warnings.append(f"rebuttal on {target} carried no readable verdict "
-                        f"({raw.get('verdict')!r}); recorded as UNANSWERED, so "
+                        f"({data.get('verdict')!r}); recorded as UNANSWERED, so "
                         f"the challenge it answers still stands")
         verdict = Verdict.UNANSWERED
-    challenger = str(raw.get("challenger") or "")
-    if not challenger:
+    data["verdict"] = verdict.value
+    if not str(data.get("challenger") or ""):
         # Deliberately not inferred. Guessing which objection this answers
         # could overturn a measured challenge on this desk's say-so.
         warnings.append(f"rebuttal on {target} names no challenger, so it "
                         f"cannot be attached to any challenge; every objection "
                         f"it may have meant to answer stays unanswered")
-    rebuttal = Rebuttal(
-        responder=str(raw.get("responder") or responder),
-        challenger=challenger,
-        target_strategy_id=target,
-        verdict=verdict,
-        argument=str(raw.get("argument") or ""),
-        measurement=_as_measurement(raw.get("measurement"), warnings,
-                                    what=f"rebuttal on {target}"))
-    stamp = raw.get("timestamp_et")
-    if isinstance(stamp, str) and stamp:
-        rebuttal.timestamp_et = stamp
-    return rebuttal
+    _warn_if_unmeasured(data.get("measurement"), warnings,
+                        what=f"rebuttal on {target}")
+    return Rebuttal.from_dict(data)
 
 
 #: Every (regime, session) key a slice row can be stored under - the regime
@@ -1635,26 +1577,42 @@ class StrategyResearchAgent(DomainAgent):
     # Universe construction
     # ==================================================================
     def _universe(self, ctx, symbol: str, timeframes: Sequence[int],
-                  max_strategies: int, *, generate: bool) -> List[Strategy]:
+                  max_strategies: int, *, generate: bool,
+                  groups: Optional[Sequence[str]] = None) -> List[Strategy]:
         """This symbol's strategies, generated once and registered once.
 
         Every symbol is its own universe: the generator is seeded per symbol and
         the registry refuses a strategy whose symbol does not match, so nothing
         measured on MNQ can leak into MES's rankings.
+
+        ``groups`` narrows the universe to one family set, which is what the
+        research specialists need: each owns four families or fewer, and a
+        budget of N combinations spent across all ten searches a tenth as
+        deeply in the families that seat is actually responsible for. It
+        filters the *registered* pool as well as generation - a specialist
+        reading a registry another seat has already filled would otherwise be
+        handed every family and silently research its rivals' territory.
+        ``None`` (the default) means the whole universe, so this desk's own
+        handlers are unaffected.
         """
+        wanted = {str(g).upper() for g in groups} if groups else None
         registered = ctx.registry.symbol(symbol).all()
+        if wanted is not None:
+            registered = [s for s in registered if str(s.group).upper() in wanted]
         if registered and not generate:
             # Never truncated: the searched universe is what it is, and
             # trials_searched has to reflect all of it.
             return registered
 
-        strategies = generate_strategies(symbol, timeframes, max_total=max_strategies)
+        strategies = generate_strategies(symbol, timeframes, groups=groups,
+                                         max_total=max_strategies)
         added = 0
         for s in strategies:
             if ctx.registry.get(s.strategy_id) is None:
                 ctx.registry.add(s)
                 added += 1
-        self.log(f"{symbol}: generated {len(strategies)} strategies over "
+        scope = f" in {sorted(wanted)}" if wanted else ""
+        self.log(f"{symbol}: generated {len(strategies)} strategies{scope} over "
                  f"timeframes {[tf_label(t) for t in timeframes]} ({added} new)")
         return strategies
 
