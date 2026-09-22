@@ -285,23 +285,31 @@ class ResearchReversionAgent(StrategyResearchAgent):
         is scaled is the *pool*, which decides how many strategies are screened,
         not how hard each one is tested.
 
-        The finalist count preserves the desk lead's own ratio exactly: it runs
-        5 finalists from 40 candidates, so one in eight, and that is what is
-        applied here. The candidate count is a pragmatic compromise rather than
-        a preserved ratio, and is worth saying plainly - the desk lead screens
-        40 from 4,000, and one in a hundred of a 120-strategy family universe
-        would be a single candidate. A floor of 8 keeps the per-fold selection
-        with something to choose between; a cap at the base default keeps a
-        full-size universe behaving exactly as the desk lead's would.
+        The finalist count applies the desk lead's own ratio - it runs 5
+        finalists from 40 candidates, one in eight - and takes the whole
+        finalists that ratio pays for rather than rounding a fraction of one up.
+        That matters because the robustness suite is by far the most expensive
+        thing this agent does: each finalist gets its own six-fold walk-forward
+        over the entire history, and the cost of that is driven by the bars
+        traversed, not by the single strategy traversing them. Measured here, a
+        finalist costs about as much as the whole candidate walk-forward does.
 
-        Both knobs stay overridable from the payload, so a caller that wants
-        the wider pool can simply ask for it.
+        The candidate count is a pragmatic compromise rather than a preserved
+        ratio, and is worth saying plainly - the desk lead screens 40 from
+        4,000, and one in a hundred of a 120-strategy family universe would be
+        a single candidate. A floor of 8 keeps the per-fold selection with
+        something to choose between; the cap keeps a full-size universe
+        behaving exactly as the desk lead's would, at 40 candidates and 5
+        finalists.
+
+        Both knobs stay overridable from the payload, so a caller that wants a
+        wider pool and has the minutes to spend can simply ask for it.
         """
         universe = len(sweep.strategies)
         candidates = max(8, min(DEFAULT_WF_CANDIDATES, universe // 8))
-        finalists = max(2, min(DEFAULT_FINALISTS,
-                               round(candidates * DEFAULT_FINALISTS
-                                     / DEFAULT_WF_CANDIDATES)))
+        finalists = max(1, min(DEFAULT_FINALISTS,
+                               int(candidates * DEFAULT_FINALISTS
+                                   / DEFAULT_WF_CANDIDATES)))
         payload = dict(task.payload)
         payload["symbol"] = sweep.symbol
         payload.setdefault("wf_candidates", candidates)
