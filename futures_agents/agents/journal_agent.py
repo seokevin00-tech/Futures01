@@ -694,7 +694,9 @@ finding with a small sample must read as provisional.
 
         exit_price = _fo(payload.get("exit_price"))
         exit_reason = str(payload.get("exit_reason") or "").upper()
-        exit_ts = _parse_et(payload.get("exit_time_et"))
+        supplied_ts = _parse_et(payload.get("exit_time_et"))
+        exit_ts = supplied_ts
+        exit_index = walk["exit_index"]
         if exit_price is None:
             exit_price = walk["exit_price"]
             exit_reason = exit_reason or walk["exit_reason"]
@@ -706,6 +708,16 @@ finding with a small sample must read as provisional.
 
         mfe_points = max(walk["mfe_points"], 0.0)
         mae_points = max(walk["mae_points"], 0.0)
+        measured_to = "the exit the bars imply"
+        if supplied_ts is not None:
+            # A real fill time was reported, so the excursions are measured over
+            # the period the position was actually held rather than over the one
+            # the bar walk inferred.
+            held = [b for b in horizon_bars if to_et(b.ts) <= to_et(supplied_ts)]
+            if held:
+                mfe_points, mae_points = _excursions(held, entry_px, sign)
+                exit_index = len(held) - 1
+                measured_to = "the reported fill time"
         gross_r = sign * (exit_price - entry_px) / risk_points
         cost_r = costs.cost_in_r(risk_points)
         realised_r = _f(payload.get("realised_r"), gross_r - cost_r)
@@ -723,7 +735,7 @@ finding with a small sample must read as provisional.
         # conflated or the analysts get blamed for the exit rules.
         thesis_correct = bool(realised_r > 0 or mfe_r >= 1.0)
 
-        after = _after_window(bars, walk["exit_index"], exit_price, sign,
+        after = _after_window(bars, exit_index, exit_price, sign,
                               after_minutes, risk_points)
         what_invalidated = ""
         if realised_r <= 0:
@@ -762,6 +774,10 @@ finding with a small sample must read as provisional.
             "measurement": {**measurement, "risk_points": round(risk_points, 4),
                             "gross_r": round(gross_r, 4), "cost_r": round(cost_r, 4),
                             "bars_in_horizon": len(horizon_bars),
+                            "excursions_measured_to": measured_to,
+                            "exit_supplied_by_caller": _fo(payload.get("exit_price")) is not None,
+                            "exit_the_bars_imply": _round(walk["exit_price"]),
+                            "exit_reason_the_bars_imply": walk["exit_reason"],
                             "after": after["detail"]},
         }
 
@@ -1345,6 +1361,15 @@ def _walk(bars: Sequence[Bar], *, entry: float, stop: Optional[float],
     return {"mfe_points": mfe, "mae_points": mae, "exit_price": bars[-1].close,
             "exit_reason": "TIME", "exit_index": len(bars) - 1,
             "exit_ts": bars[-1].end_ts}
+
+
+def _excursions(bars: Sequence[Bar], entry: float, sign: int) -> Tuple[float, float]:
+    """Best and worst unrealised excursion over a known holding period."""
+    mfe = mae = 0.0
+    for bar in bars:
+        mfe = max(mfe, (bar.high - entry) if sign > 0 else (entry - bar.low))
+        mae = max(mae, (entry - bar.low) if sign > 0 else (bar.high - entry))
+    return mfe, mae
 
 
 def _after_window(bars: Sequence[Bar], exit_index: int, exit_price: float,

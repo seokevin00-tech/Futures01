@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import math
 from bisect import bisect_left, bisect_right
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
 

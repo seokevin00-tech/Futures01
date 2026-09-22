@@ -1371,7 +1371,13 @@ class DecisionAgent(DomainAgent):
             abs(assessment.conviction) >= _MIN_CONVICTION,
             f"weighted conviction {assessment.conviction:+.2f} against a "
             f"{_MIN_CONVICTION:.2f} floor", hard=False)
-        material_disagreement = opposing > _MAX_OPPOSING_SHARE * lead if lead > 0 else True
+        # ">=" not ">": a dissenter carrying half the leading mass is a genuine
+        # split, and a 2-against-1 of equally unproven analysts lands exactly
+        # there. Mixed evidence rarely justifies risking capital, so that case
+        # stands aside on the disagreement itself rather than on some other
+        # threshold it happens to miss by a hundredth.
+        material_disagreement = (opposing >= _MAX_OPPOSING_SHARE * lead
+                                 if lead > 0 else True)
         assessment.gate(
             "analysts_not_opposed", not material_disagreement,
             f"opposing weighted mass {opposing:.2f} against {lead:.2f} for the "

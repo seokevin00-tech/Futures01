@@ -19,7 +19,7 @@ yet formed.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
@@ -338,8 +338,19 @@ class TimeframeFrame:
             return []
         k = self._fvg_ptr[min(index, len(self._fvg_ptr) - 1)]
         start = max(0, k - self.FVG_SCAN_WINDOW)
-        out = [g for g in self._fvgs_by_visible[start:k]
-               if g.filled_index is None or g.filled_index > index]
+        out: List[FVG] = []
+        for g in self._fvgs_by_visible[start:k]:
+            if g.filled_index is None:
+                out.append(g)
+            elif g.filled_index > index:
+                # The gap is unfilled AS OF THIS BAR, but the stored object
+                # knows which future bar eventually fills it. Handing that
+                # object out verbatim leaks the future: FVG.filled and
+                # FVG.to_dict() report filled=True at a bar where the fill has
+                # not happened, and that value reaches the feature snapshot and
+                # every agent reading it. Mask it to what is knowable now.
+                out.append(replace(g, filled_index=None))
+            # else: already filled at or before this bar - not active.
         return out[-limit:][::-1]
 
     def snapshot(self, index: int) -> Optional[TFSnapshot]:

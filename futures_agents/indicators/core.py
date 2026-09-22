@@ -292,7 +292,13 @@ def adx(highs: Sequence[float], lows: Sequence[float], closes: Sequence[float],
     out_adx: List[Num] = [None] * n
     out_pdi: List[Num] = [None] * n
     out_mdi: List[Num] = [None] * n
-    if n < period * 2 + 1:
+    # Guard only against having too little data to compute ANYTHING. A blanket
+    # 2*period+1 floor here suppressed +DI/-DI that are computable from
+    # period+1 bars, so appending a bar turned historical Nones into numbers -
+    # a value changing because of future data, which is precisely the
+    # look-ahead property every indicator in this module must not have.
+    # Warm-up is left to rma(), which is prefix-stable by construction.
+    if n < period + 1:
         return out_adx, out_pdi, out_mdi
 
     plus_dm, minus_dm, trs = [], [], []
