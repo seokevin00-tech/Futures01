@@ -1155,6 +1155,17 @@ class ResearchReversionAgent(StrategyResearchAgent):
         }
         return handlers[kind](frame, row, finding, challenger, sid)
 
+    @staticmethod
+    def _measurement_of(row: Dict[str, Any]) -> Dict[str, Any]:
+        """A challenger's numbers, read through the protocol's own parser.
+
+        ``Challenge.from_dict`` preserves an empty measurement as empty, which
+        matters: empty is exactly what makes a challenge unsubstantiated, and a
+        parser that invented a placeholder would promote an opinion into
+        evidence this desk then felt obliged to answer.
+        """
+        return Challenge.from_dict(row).measurement
+
     def _unanswered(self, challenger: str, sid: str, why: str) -> Rebuttal:
         """No measurement was possible, and saying so beats asserting."""
         return Rebuttal(
@@ -1176,7 +1187,7 @@ class ResearchReversionAgent(StrategyResearchAgent):
                 "doubled-slippage test")
         stress = cost_stress(frame, strategy)
         prior = finding.get("cost_stress") or {}
-        theirs = row.get("measurement") if isinstance(row.get("measurement"), dict) else {}
+        theirs = self._measurement_of(row)
         measurement = {
             "independent_rerun": stress,
             "pre_publication_cost_stress": prior,
@@ -1236,7 +1247,7 @@ class ResearchReversionAgent(StrategyResearchAgent):
             return self._unanswered(
                 challenger, sid,
                 "the strategy object could not be resolved to re-run the split")
-        theirs = row.get("measurement") if isinstance(row.get("measurement"), dict) else {}
+        theirs = self._measurement_of(row)
         their_fraction = self._their_split(theirs, len(frame.base))
         at_theirs = adversarial_retest(frame, strategy, skip_fraction=their_fraction)
         second_fraction = 0.35 if abs(their_fraction - 0.35) > 0.05 else 0.65
@@ -1369,7 +1380,7 @@ class ResearchReversionAgent(StrategyResearchAgent):
     def _rebut_regime(self, frame: SymbolFrame, row: Dict[str, Any],
                       finding: Dict[str, Any], challenger: str, sid: str) -> Rebuttal:
         """Answer the objection actually raised - concentration or one-sidedness."""
-        theirs = row.get("measurement") if isinstance(row.get("measurement"), dict) else {}
+        theirs = self._measurement_of(row)
         if "profitable_side" in theirs:
             return self._rebut_one_sided(frame, theirs, finding, challenger, sid)
         strategy = self._resolve_strategy(frame.symbol, sid, self.role, finding)
@@ -1443,7 +1454,7 @@ class ResearchReversionAgent(StrategyResearchAgent):
                          finding: Dict[str, Any], challenger: str,
                          sid: str) -> Rebuttal:
         """Recompute the overlap against the counterpart they named."""
-        theirs = row.get("measurement") if isinstance(row.get("measurement"), dict) else {}
+        theirs = self._measurement_of(row)
         ours = self._row_fingerprint(finding)
         if not ours:
             return self._unanswered(
