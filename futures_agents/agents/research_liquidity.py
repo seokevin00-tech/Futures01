@@ -1257,6 +1257,34 @@ class ResearchLiquidityAgent(StrategyResearchAgent):
             "re_measurement": measured,
         }
 
+        # No dominant bucket was determined. Both regime_concentration and
+        # _slice_profile omit it when total R is not positive, because a
+        # contribution share against a negative total is arithmetic rather than
+        # evidence. Answering anyway would produce the sentence "the largest
+        # bucket 'None' holds 0% of total R on 0 trades", which asserts a
+        # measurement that was never taken - exactly the move this protocol
+        # exists to stop. Concede instead: there is no profit here for a bucket
+        # to be carrying.
+        if dominant is None:
+            overall = compute_metrics(trades)
+            measurement.update({
+                "total_r": round(overall.total_r, 4),
+                "trades": overall.trades,
+                "expectancy_r": round(overall.expectancy_r, 4),
+                "shares_computable": False,
+            })
+            return rebut(Verdict.CONCEDED,
+                         f"Conceded, though not on the mechanism the challenge "
+                         f"names. Over the {overall.trades} trades in the window "
+                         f"this finding was published on, {sid} totals "
+                         f"{overall.total_r:+.2f}R ({overall.expectancy_r:+.4f}R per "
+                         f"trade), so there is no positive edge for any {axis} "
+                         f"bucket to be carrying and contribution shares are "
+                         f"undefined against a non-positive total. The "
+                         f"concentration claim cannot be tested as stated, and the "
+                         f"finding does not survive on its own numbers regardless.",
+                         measurement)
+
         if not concentrated:
             return rebut(Verdict.REBUTTED,
                          f"Re-measured, {sid} is not concentrated on {axis}: the "

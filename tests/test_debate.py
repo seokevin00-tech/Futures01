@@ -203,3 +203,77 @@ def test_a_graded_challenge_penalises_without_disqualifying():
 def test_the_debate_log_renders_without_a_ranking():
     assert "nothing survived cross-examination" in render_debate_log(
         PooledRanking(symbol="MNQ"), [], [])
+
+
+# ---------------------------------------------------------------------------
+# Regression: an unreadable challenge kind must not become a scored objection
+# ---------------------------------------------------------------------------
+
+def test_an_unreadable_challenge_kind_penalises_nobody():
+    """Challenge.from_dict previously defaulted an unknown kind to REDUNDANT,
+    which carries a 0.60 penalty. A garbled record therefore became a real
+    penalty against a rival that nobody filed and nobody measured - the same
+    class of bug as defaulting an empty measurement.
+    """
+    c = Challenge.from_dict({
+        "challenger": "research_trend", "target_owner": "research_reversion",
+        "target_strategy_id": "S-A", "symbol": "MNQ",
+        "kind": "VIBES_OFF", "claim": "something is off",
+        "measurement": {"looks_wrong": True}})
+    assert c.kind is ChallengeKind.UNRECOGNISED
+    assert not c.is_substantiated, "an unreadable objection must not be scored"
+    assert not c.stands
+    assert c.penalty == pytest.approx(1.0), "it must cost the target nothing"
+    assert not c.kind.is_fatal
+
+
+def test_an_unreadable_kind_is_discarded_by_the_pooler():
+    a = _finding("research_trend", "S-A")
+    result = pool_findings("MNQ", [a], [Challenge.from_dict({
+        "challenger": "research_reversion", "target_owner": "research_trend",
+        "target_strategy_id": "S-A", "symbol": "MNQ", "kind": "NONSENSE",
+        "claim": "x", "measurement": {"n": 1}})])
+    assert result.challenges_discarded == 1
+    assert result.ranked[0]["penalty_applied"] == pytest.approx(1.0)
+
+
+# ---------------------------------------------------------------------------
+# Regression: the log must show resolved verdicts, not filed ones
+# ---------------------------------------------------------------------------
+
+def test_the_debate_log_shows_resolved_verdicts_not_filed_ones():
+    """pool_findings resolves verdicts on copies so it does not mutate its
+    inputs. That left the resolved verdicts unreachable, so a log rendered from
+    the caller's originals showed a challenge as UPHELD while the finding beside
+    it was ranked at penalty x1.00 because a measured rebuttal had answered it.
+    The log contradicted the ranking it was explaining.
+    """
+    a = _finding("research_trend", "S-A")
+    challenge = Challenge("research_reversion", "research_trend", "S-A", "MNQ",
+                          ChallengeKind.OUT_OF_SAMPLE_FAILURE,
+                          "collapses on the other split",
+                          measurement={"consistency_ratio": 0.08})
+    rebuttal = Rebuttal("research_trend", "research_reversion", "S-A",
+                        Verdict.REBUTTED, "holds across three splits",
+                        measurement={"splits_tested": 3, "min_expectancy_r": 0.18})
+
+    result = pool_findings("MNQ", [a], [challenge], [rebuttal])
+    assert result.ranked[0]["penalty_applied"] == pytest.approx(1.0)
+
+    log = render_debate_log(result, [challenge], [rebuttal])
+    line = next(l for l in log.splitlines() if "OUT_OF_SAMPLE_FAILURE" in l)
+    assert "DROPPED" in line, f"log still shows the filed verdict: {line}"
+    assert "UPHELD" not in line
+
+
+def test_resolved_challenges_are_exposed_without_mutating_the_originals():
+    a = _finding("research_trend", "S-A")
+    challenge = Challenge("research_reversion", "research_trend", "S-A", "MNQ",
+                          ChallengeKind.COST_FRAGILE, "dies at 2x slippage",
+                          measurement={"retained_fraction": 0.2})
+    conceded = Rebuttal("research_trend", "research_reversion", "S-A",
+                        Verdict.CONCEDED, "confirmed",
+                        measurement={"retained_fraction": 0.2})
+    result = pool_findings("MNQ", [a], [challenge], [conceded])
+    assert challenge.verdict is Verdict.UNANSWERED, "the caller's object was mutated"
+    assert [c.verdict for c in result.resolved_challenges] == [Verdict.CONCEDED]

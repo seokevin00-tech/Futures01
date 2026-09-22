@@ -71,6 +71,10 @@ class ChallengeKind(str, Enum):
     COST_FRAGILE = "COST_FRAGILE"
     #: Too few trades to distinguish from noise at all.
     SAMPLE_TOO_SMALL = "SAMPLE_TOO_SMALL"
+    #: A record whose kind could not be read. Deliberately inert: it scores
+    #: nothing and stands against nobody. Parsing an unknown kind into a real
+    #: objection would apply a penalty nobody filed and nobody measured.
+    UNRECOGNISED = "UNRECOGNISED"
 
     @property
     def is_fatal(self) -> bool:
@@ -78,6 +82,11 @@ class ChallengeKind(str, Enum):
         return self in (ChallengeKind.OUT_OF_SAMPLE_FAILURE,
                         ChallengeKind.DATA_MINING,
                         ChallengeKind.SAMPLE_TOO_SMALL)
+
+    @property
+    def is_readable(self) -> bool:
+        """False only for a kind that could not be parsed."""
+        return self is not ChallengeKind.UNRECOGNISED
 
 
 class Verdict(str, Enum):
@@ -97,6 +106,8 @@ CHALLENGE_PENALTY: Dict[ChallengeKind, float] = {
     ChallengeKind.REGIME_ARTEFACT: 0.45,
     ChallengeKind.COST_FRAGILE: 0.35,
     ChallengeKind.REDUNDANT: 0.60,
+    # Inert by construction - an unreadable objection cannot cost anyone score.
+    ChallengeKind.UNRECOGNISED: 1.0,
 }
 
 
@@ -208,8 +219,11 @@ class Challenge:
     @property
     def is_substantiated(self) -> bool:
         """A challenge without numbers is an opinion, and opinions do not move
-        a ranking."""
-        return bool(self.measurement) and self.challenger != self.target_owner
+        a ranking. Nor does one whose objection could not be read: scoring it
+        would mean this desk filing a penalty nobody measured."""
+        return (bool(self.measurement)
+                and self.challenger != self.target_owner
+                and self.kind.is_readable)
 
     @property
     def stands(self) -> bool:
@@ -253,11 +267,15 @@ class Challenge:
         the challenge discarded. Defaulting it to a placeholder would silently
         promote an unsubstantiated objection into a real one.
         """
-        kind = data.get("kind")
+        # An unreadable kind becomes UNRECOGNISED, never a scored objection.
+        # Falling back to a real kind (this previously defaulted to REDUNDANT,
+        # which carries a 0.60 penalty) silently turns a garbled record into a
+        # penalty against a rival that nobody filed and nobody measured - the
+        # same class of bug as defaulting an empty measurement.
         try:
-            kind = ChallengeKind(kind)
+            kind = ChallengeKind(data.get("kind"))
         except ValueError:
-            kind = ChallengeKind.REDUNDANT
+            kind = ChallengeKind.UNRECOGNISED
         try:
             verdict = Verdict(data.get("verdict", Verdict.UNANSWERED.value))
         except ValueError:
@@ -472,6 +490,13 @@ class PooledRanking:
     disqualified: List[Dict[str, Any]] = field(default_factory=list)
     redundant_clusters: List[Dict[str, Any]] = field(default_factory=list)
     by_specialist: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    #: The challenge copies with their verdicts RESOLVED against the rebuttals.
+    #: pool_findings resolves on copies so it does not mutate its inputs, which
+    #: meant the resolved verdicts were unreachable: a log rendered from the
+    #: originals showed a challenge as UPHELD while the finding beside it was
+    #: ranked at penalty x1.00 because a measured rebuttal had answered it. The
+    #: log contradicted the ranking it was explaining.
+    resolved_challenges: List[Challenge] = field(default_factory=list)
     challenges_filed: int = 0
     challenges_upheld: int = 0
     challenges_rebutted: int = 0
@@ -557,6 +582,7 @@ def pool_findings(symbol: str, findings: Sequence[Finding],
         live_challenges.append(ch)
         by_target.setdefault(ch.target_strategy_id, []).append(ch)
 
+    result.resolved_challenges = list(live_challenges)
     for ch in live_challenges:
         if ch.stands:
             result.challenges_upheld += 1
@@ -672,9 +698,13 @@ def render_debate_log(ranking: PooledRanking,
     lines = [f"RESEARCH DEBATE - {ranking.symbol}  [{et_stamp()}]", ""]
     lines.append(f"  {ranking.summary()}")
     lines.append("")
-    if challenges:
-        lines.append("  CHALLENGES")
-        for c in challenges:
+    # Prefer the resolved copies the pooler produced. The caller's originals
+    # still carry the verdict as FILED, so rendering those would show a
+    # challenge as upheld that a measured rebuttal has since answered.
+    shown = list(ranking.resolved_challenges) or list(challenges)
+    if shown:
+        lines.append("  CHALLENGES  (verdicts as resolved against rebuttals)")
+        for c in shown:
             mark = "UPHELD " if c.stands else ("DROPPED" if c.is_substantiated
                                                else "NO DATA")
             lines.append(f"    [{mark}] {c.render()}")
