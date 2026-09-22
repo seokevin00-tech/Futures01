@@ -153,7 +153,16 @@ class StrategyResearchAgent(DomainAgent):
             return self._optimise_task(task)
         if task.kind == "rank_strategies":
             return self._rank_task(task)
-        raise ValueError(f"{self.id} does not implement task kind {task.kind!r}")
+        # Raised, not swallowed. RoleSpec.accepts is owned elsewhere, so a kind
+        # can be added to it after this file was written; failing loudly names
+        # the gap instead of returning a success that produced no research.
+        raise ValueError(
+            f"{self.id} does not implement task kind {task.kind!r}. "
+            f"Implemented here: research_strategies, backtest, walk_forward, "
+            f"optimise, rank_strategies, robustness. If "
+            f"{task.kind!r} is a new responsibility for this role, its contract "
+            f"(payload, artefact shape and which agents feed it) has to be "
+            f"agreed before research.py can serve it.")
 
     # ==================================================================
     # research_strategies / backtest

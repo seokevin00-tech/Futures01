@@ -505,3 +505,73 @@ def test_resolve_journal_reports_a_missing_entry_rather_than_silently_passing():
         "does-not-exist", result="WIN", exit_price=1.0, exit_reason="TARGET",
         profit_loss=1.0, realised_r=1.0) is False
     store.close()
+
+
+# ---------------------------------------------------------------------------
+# Regression: top_strategies must not interleave slices with parent rows
+# ---------------------------------------------------------------------------
+
+def _seeded_store():
+    from futures_agents.storage import Storage
+    from futures_agents.backtest.metrics import Metrics
+    store = Storage(":memory:")
+    parent = Metrics(trades=100, expectancy_r=0.20, win_rate=0.55, profit_factor=1.4)
+    slice_m = Metrics(trades=12, expectancy_r=0.90, win_rate=0.75, profit_factor=3.0)
+    for sid in ("MNQ-5m-aaa", "MNQ-5m-bbb"):
+        store.upsert_strategy_performance(
+            strategy_id=sid, symbol="MNQ", timeframe=5, metrics=parent,
+            live_eligible=True)
+        store.upsert_strategy_performance(
+            strategy_id=sid, symbol="MNQ", timeframe=5, metrics=slice_m,
+            regime="TREND_UP", live_eligible=True)
+        store.upsert_strategy_performance(
+            strategy_id=sid, symbol="MNQ", timeframe=5, metrics=slice_m,
+            session="RTH_OPEN", live_eligible=True)
+    return store
+
+
+def test_top_strategies_returns_each_strategy_exactly_once():
+    """The table holds a parent row plus regime and session slices sharing a
+    strategy_id. Returning them interleaved makes a consumer double-count the
+    strategy and risks quoting a twelve-trade slice as its whole record.
+    """
+    store = _seeded_store()
+    rows = store.top_strategies("MNQ", regime="TREND_UP")
+    ids = [r["strategy_id"] for r in rows]
+    assert len(ids) == len(set(ids)) == 2, f"expected 2 distinct strategies, got {ids}"
+    store.close()
+
+
+def test_top_strategies_prefers_the_matching_regime_slice():
+    store = _seeded_store()
+    row = next(r for r in store.top_strategies("MNQ", regime="TREND_UP")
+               if r["strategy_id"] == "MNQ-5m-aaa")
+    assert row["regime"] == "TREND_UP" and row["trades"] == 12
+    assert row["is_slice"] is True
+    store.close()
+
+
+def test_top_strategies_falls_back_to_the_overall_row():
+    store = _seeded_store()
+    row = next(r for r in store.top_strategies("MNQ", regime="COMPRESSION")
+               if r["strategy_id"] == "MNQ-5m-aaa")
+    assert row["regime"] == "ALL" and row["trades"] == 100
+    assert row["is_slice"] is False and row["matched_scope"] == "overall"
+    store.close()
+
+
+def test_top_strategies_excludes_session_slices_when_not_asked_for():
+    """A session slice carries regime='ALL', so a naive regime filter matched it."""
+    store = _seeded_store()
+    rows = store.top_strategies("MNQ", regime="TREND_UP")
+    assert all(r["session"] == "ALL" for r in rows), (
+        "a session slice leaked into a regime query")
+    store.close()
+
+
+def test_top_strategies_can_still_return_the_full_breakdown():
+    store = _seeded_store()
+    rows = store.top_strategies("MNQ", regime="TREND_UP", include_slices=True)
+    assert len(rows) > 2, "include_slices should expose the per-slice rows"
+    assert any(r["is_slice"] for r in rows)
+    store.close()

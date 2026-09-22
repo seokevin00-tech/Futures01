@@ -462,19 +462,67 @@ class Storage:
     def top_strategies(self, symbol: str, *, limit: int = 10,
                        live_eligible_only: bool = True,
                        regime: Optional[str] = None,
-                       scope: str = "backtest") -> List[Dict[str, Any]]:
-        """Best strategies for a symbol, ranked by robustness then expectancy."""
-        sql = "SELECT * FROM strategy_performance WHERE symbol=? AND scope=?"
-        args: List[Any] = [symbol.upper(), scope]
+                       session: Optional[str] = None,
+                       scope: str = "backtest",
+                       include_slices: bool = False) -> List[Dict[str, Any]]:
+        """Best strategies for a symbol, ranked by robustness then expectancy.
+
+        Returns **one row per strategy**, at the most context-specific slice
+        available: an exact regime/session match if one was stored, otherwise
+        the strategy's overall row.
+
+        The table holds a parent row per strategy plus regime and session
+        slices of it, all sharing a ``strategy_id``. Filtering on regime alone
+        returned all three interleaved, because a session slice carries
+        ``regime='ALL'`` and so matched the ``IN (?, 'ALL')`` clause. A consumer
+        treating each row as a strategy therefore double-counted it, and could
+        quote a twelve-trade slice as if it were the strategy's whole record -
+        which is exactly the sample-size error the rest of the system works to
+        prevent.
+
+        ``include_slices=True`` returns the raw rows for callers that genuinely
+        want the per-slice breakdown; each row is tagged ``matched_scope`` so
+        the caller can tell a slice from a parent.
+        """
+        want_regime = regime or "ALL"
+        want_session = session or "ALL"
+
+        sql = ("SELECT * FROM strategy_performance WHERE symbol=? AND scope=? "
+               "AND regime IN (?, 'ALL') AND session IN (?, 'ALL')")
+        args: List[Any] = [symbol.upper(), scope, want_regime, want_session]
         if live_eligible_only:
             sql += " AND live_eligible=1"
-        if regime:
-            sql += " AND regime IN (?, 'ALL')"
-            args.append(regime)
-        sql += " ORDER BY robustness_score DESC, expectancy_r DESC LIMIT ?"
-        args.append(limit)
+        sql += " ORDER BY robustness_score DESC, expectancy_r DESC"
         with self._cursor() as cur:
-            return [dict(r) for r in cur.execute(sql, args).fetchall()]
+            rows = [dict(r) for r in cur.execute(sql, args).fetchall()]
+
+        def specificity(row: Dict[str, Any]) -> int:
+            """How well a row matches what was asked for. Higher wins."""
+            score = 0
+            if want_regime != "ALL" and row.get("regime") == want_regime:
+                score += 2
+            if want_session != "ALL" and row.get("session") == want_session:
+                score += 1
+            return score
+
+        for row in rows:
+            row["matched_scope"] = (
+                "overall" if row.get("regime") == "ALL" and row.get("session") == "ALL"
+                else f"regime={row.get('regime')},session={row.get('session')}")
+            row["is_slice"] = row["matched_scope"] != "overall"
+
+        if not include_slices:
+            best: Dict[str, Dict[str, Any]] = {}
+            for row in rows:
+                sid = row["strategy_id"]
+                incumbent = best.get(sid)
+                if incumbent is None or specificity(row) > specificity(incumbent):
+                    best[sid] = row
+            rows = sorted(best.values(),
+                          key=lambda r: (-(r.get("robustness_score") or 0.0),
+                                         -(r.get("expectancy_r") or 0.0),
+                                         r["strategy_id"]))
+        return rows[:limit]
 
     def strategy_performance(self, strategy_id: str, *, regime: str = "ALL",
                              session: str = "ALL", scope: str = "backtest"
