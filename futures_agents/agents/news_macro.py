@@ -410,7 +410,15 @@ def assess_risk(events: Sequence[NewsEvent], now: datetime, *,
     inside the same window raises risk but does not block entry outright.
     """
     verdict = _RiskVerdict()
+    nearest_high: Optional[Tuple[float, NewsEvent]] = None
     for event in events:
+        if not event.scheduled:
+            # A breaking development has no release time to build a window
+            # around, and its ``timestamp_et`` is merely when it was noticed.
+            # Treating that as a release instant would let any scraped headline
+            # open a full entry blackout at the moment it was read. Unscheduled
+            # news raises the level through its own explicit ratchet instead.
+            continue
         when = _release_dt(event)
         if when is None:
             continue
@@ -420,6 +428,12 @@ def assess_risk(events: Sequence[NewsEvent], now: datetime, *,
         near = abs(minutes)
         impact = (event.impact or "LOW").upper()
         label = f"{event.title} at {et_stamp(when, with_seconds=False)}"
+        # Tracked for the NONE explanation only, and forward-looking: the risk
+        # bands care that a release was an hour ago, but "the nearest release"
+        # in a quiet-tape summary means the next one, not the last one.
+        if (impact == "HIGH" and minutes >= 0
+                and (nearest_high is None or minutes < nearest_high[0])):
+            nearest_high = (minutes, event)
         if impact == "HIGH":
             if inside:
                 verdict.apply(NewsRisk.BLACKOUT, event, minutes,
@@ -444,6 +458,14 @@ def assess_risk(events: Sequence[NewsEvent], now: datetime, *,
             elif near <= _MODERATE_BAND_MIN:
                 verdict.apply(NewsRisk.LOW, event, minutes,
                               f"{near:.0f} min from medium-impact {label}")
+    if verdict.risk is NewsRisk.NONE and nearest_high is not None:
+        # "No event in the horizon" and "the nearest event is three days out"
+        # are different statements, and only one of them is true here.
+        near, event = nearest_high
+        verdict.reason = (
+            f"nearest high-impact release is {event.title}, {near / 60.0:.1f} "
+            f"hours away - beyond the {_LOW_BAND_MIN / 60.0:.0f}-hour "
+            "proximity band")
     return verdict
 
 
@@ -722,11 +744,15 @@ class NewsMacroAgent(DomainAgent):
     """Projects the macro calendar, measures real reactions, grades news risk."""
 
     #: How far ahead and behind the calendar is projected for a context build.
-    DEFAULT_HORIZON_HOURS = 96
-    DEFAULT_HISTORY_HOURS = 72
+    #: Two weeks forward, because a horizon short enough to miss the next
+    #: high-impact release reports "no catalyst" - which reads as safety rather
+    #: than as the absence of a lookup.
+    DEFAULT_HORIZON_HOURS = 336
+    DEFAULT_HISTORY_HOURS = 168
     #: Releases that completed within this many hours are measured on a routine
-    #: research pass, so evidence accumulates cycle by cycle.
-    DEFAULT_MEASURE_HOURS = 36
+    #: research pass, so evidence accumulates cycle by cycle. Re-measuring a
+    #: release already stored is harmless: the row is keyed on (event, symbol).
+    DEFAULT_MEASURE_HOURS = 168
     #: Cap on stored analogue rows carried inside a NewsContext.
     MAX_ANALOGUES = 24
 
@@ -904,11 +930,14 @@ class NewsMacroAgent(DomainAgent):
                 detail=detail, supports=supports, weight=weight,
                 source="storage:news_reactions"))
 
+            # Share the analogue budget across symbols rather than letting the
+            # first symbol's history fill it and crowd the others out.
+            per_symbol = max(4, self.MAX_ANALOGUES // max(1, len(symbols)))
             for row in ctx.storage.historical_reactions(
-                    symbol, category, surprise, limit=self.MAX_ANALOGUES):
+                    symbol, category, surprise, limit=per_symbol):
                 analogues.append(_reaction_from_row(row))
 
-        return analogues[:self.MAX_ANALOGUES], profiles, evidence
+        return analogues, profiles, evidence
 
     # ---- measurement ---------------------------------------------------
     def _measure_and_store(self, events: Sequence[NewsEvent],

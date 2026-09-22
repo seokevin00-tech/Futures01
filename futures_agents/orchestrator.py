@@ -50,6 +50,7 @@ from .storage import Storage
 from .strategies.registry import StrategyRegistry, build_registry
 from .team.agent import AgentResult
 from .team.board import Task, TaskBoard, TaskStatus
+from .team.bus import MessageKind
 from .team.manager import RunReport
 from .team.roles import Role, ROLES
 from .team.team import Team, build_team
@@ -360,12 +361,17 @@ _CALLOUT_FIELDS: Tuple[Tuple[str, str], ...] = (
 _NOT_REPORTED = "not reported"
 
 
-def _callout_values(callout: TradeCallout, *,
-                    vetoed: bool = False) -> Dict[str, str]:
+def _callout_values(callout: TradeCallout, *, vetoed: bool = False,
+                    unauthorised: bool = False,
+                    observation_only: bool = False) -> Dict[str, str]:
     risk = callout.risk_assessment
     direction = callout.decision.value
     if vetoed:
         direction += "  [VETOED BY RISK - DO NOT TRADE]"
+    elif unauthorised:
+        direction += "  [NOT AUTHORISED - no risk assessment - DO NOT TRADE]"
+    elif observation_only and callout.decision.is_actionable:
+        direction += "  [OBSERVATION ONLY - the account may not trade - DO NOT TRADE]"
     elif not callout.decision.is_actionable:
         direction += "  [stand down]"
 
@@ -429,9 +435,11 @@ def render_callout(callout: TradeCallout, *,
     on a bad day.
     """
     risk = callout.risk_assessment
-    vetoed = bool(risk is not None and not risk.approved
-                  and callout.decision.is_actionable)
-    values = _callout_values(callout, vetoed=vetoed)
+    directional = callout.decision.is_actionable
+    vetoed = bool(risk is not None and not risk.approved and directional)
+    unauthorised = bool(risk is None and directional)
+    values = _callout_values(callout, vetoed=vetoed, unauthorised=unauthorised,
+                             observation_only=observation_only)
 
     width = max(len(label) for label, _ in _CALLOUT_FIELDS)
     lines: List[str] = []
@@ -443,8 +451,10 @@ def render_callout(callout: TradeCallout, *,
     buffer_after = max(0.0, buffer_before - callout.dollar_risk)
     equity = callout.account_equity or (account.equity if account else 0.0)
     if callout.contracts and callout.dollar_risk:
+        label = ("WOULD BE AT RISK (not authorised - observation only)"
+                 if observation_only else "AT RISK")
         lines.append(
-            f"  AT RISK: ${callout.dollar_risk:,.2f} on {callout.contracts} "
+            f"  {label}: ${callout.dollar_risk:,.2f} on {callout.contracts} "
             f"contract(s) - {callout.account_risk_pct * 100:.3f}% of "
             f"${equity:,.2f} of equity.")
         lines.append(
@@ -587,7 +597,9 @@ class CycleReport:
             bits.append(self.run.summary())
         if self.unstaffed:
             bits.append(f"unstaffed: {', '.join(self.unstaffed)}")
-        if self.halted:
+        # RunReport.summary() already states the halt; saying it twice reads as
+        # two separate halts.
+        if self.halted and not (self.run and self.run.halted):
             bits.append(f"HALTED: {self.halt_reason}")
         return " | ".join(bits)
 
@@ -644,6 +656,9 @@ class Orchestrator:
         self._outcomes: Dict[str, SymbolOutcome] = {}
         self._failures: List[Dict[str, str]] = []
         self._observation_only = False
+        #: Where this cycle's messages start in the bus journal, so a halt
+        #: announced last cycle cannot halt the next one.
+        self._bus_mark = 0
 
     # ---- shorthand ----------------------------------------------------
     @property
@@ -737,6 +752,7 @@ class Orchestrator:
         syms = [s.upper() for s in (symbols or self.config.symbols)]
         self._outcomes = {s: SymbolOutcome(symbol=s) for s in syms}
         self._failures = []
+        self._bus_mark = len(self.team.bus.journal)
 
         # A fresh board per cycle: task ids and counts describe this cycle, not
         # the accumulated history of the process.
@@ -834,6 +850,25 @@ class Orchestrator:
             elif result.ok:
                 outcome.notes.append(
                     "the risk agent returned no assessment in a recognised shape")
+
+            # The risk layer's copy of the callout is the authoritative one. The
+            # decision layer's copy carries *pre-risk* sizing and still states a
+            # direction even when the trade was refused; rendering that would
+            # flash an unapproved BUY, with a contract count nobody authorised,
+            # as though it were executable. The decision copy is a fallback for
+            # the case where risk never ran - and that case is rendered as
+            # NOT AUTHORISED, never as actionable.
+            final = _find_callout(result.payload)
+            if final is None:
+                final = _find_callout(self.team.fs.read_artefact(Role.RISK, "callout"))
+            if final is not None:
+                if not final.symbol:
+                    final.symbol = symbol
+                if outcome.callout is not None and outcome.callout is not final:
+                    outcome.notes.append(
+                        "callout taken from the risk layer's post-veto copy")
+                outcome.callout = final
+
             # The risk verdict is the last word on a symbol, so this is where
             # the callout is issued.
             self._emit_outcome(outcome)
@@ -850,17 +885,29 @@ class Orchestrator:
         if task.kind not in _RISK_KINDS:
             return None
         reported = _find_mode(result.payload)
+        announced, announced_reasons = self._risk_announcement()
         actual, reasons = self.risk.mode(self.context.now())
         mode = actual
-        if reported in (TradingMode.HALTED, TradingMode.OBSERVATION_ONLY) and actual.can_trade:
+        if not actual.can_trade:
+            pass
+        elif announced is not None and not announced.can_trade:
+            # The risk agent raised an ALERT on the bus. It is the layer that
+            # holds the veto, so its announcement stands even when the account
+            # arithmetic alone would still permit trading.
+            mode, reasons = announced, announced_reasons
+        elif reported in (TradingMode.HALTED, TradingMode.OBSERVATION_ONLY):
             mode = reported
             reasons = [f"risk agent reported {reported.value}"]
         if mode.can_trade:
             return None
 
         self._observation_only = True
-        reason = (f"{mode.value}: " + ("; ".join(reasons) if reasons
-                                       else "the risk layer withdrew permission to trade"))
+        # The manager already prefixes its report with "HALTED:", so the reason
+        # carries the cause, not the word again.
+        detail = ("; ".join(reasons) if reasons
+                  else "the risk layer withdrew permission to trade")
+        reason = (detail if mode is TradingMode.HALTED
+                  else f"{mode.value} - {detail}")
         remaining = [t for t in self.board.all() if not t.status.is_terminal]
         body = "\n".join([
             f"  Trading mode:  {mode.value}",
@@ -875,6 +922,32 @@ class Orchestrator:
         self._alert(Priority.HALT, f"TRADING HALTED - {mode.value}", body,
                     subline=reason)
         return reason
+
+    def _risk_announcement(self) -> Tuple[Optional[TradingMode], List[str]]:
+        """Read anything the risk agent broadcast on the bus during this cycle.
+
+        The risk agent raises an ALERT carrying ``halt`` and ``can_trade`` flags
+        when it moves the account to OBSERVATION_ONLY or HALTED. Keying off the
+        announcement - rather than only off its task payload - means the cycle
+        stops even if the announcement arrived from a task the orchestrator was
+        not watching.
+        """
+        found: Optional[TradingMode] = None
+        reasons: List[str] = []
+        for msg in self.team.bus.journal[self._bus_mark:]:
+            if msg.sender is not Role.RISK or msg.kind is not MessageKind.ALERT:
+                continue
+            payload = msg.payload if isinstance(msg.payload, dict) else {}
+            halted = bool(payload.get("halt"))
+            can_trade = payload.get("can_trade")
+            if not halted and can_trade is not False:
+                continue
+            mode = _find_mode(payload) or _find_mode(msg.subject) or TradingMode.HALTED
+            found = mode
+            reason = _as_text(payload.get("reason") or payload.get("reasons")
+                              or msg.subject)
+            reasons = [reason] if reason else [f"risk agent announced {mode.value}"]
+        return found, reasons
 
     # ---- emission ------------------------------------------------------
     def _emit_outcome(self, outcome: Optional[SymbolOutcome]) -> None:
@@ -898,17 +971,24 @@ class Orchestrator:
             callout.analyst_agreement = outcome.agreement_text()
 
         risk = callout.risk_assessment
-        vetoed = bool(risk is not None and not risk.approved
-                      and callout.decision.is_actionable)
-        actionable = bool(callout.decision.is_actionable and not vetoed
+        directional = callout.decision.is_actionable
+        vetoed = bool(risk is not None and not risk.approved and directional)
+        # No risk pass, no execution. A direction the risk layer never saw is
+        # analysis, and it is never painted green or red.
+        unauthorised = bool(risk is None and directional)
+        actionable = bool(directional and risk is not None and risk.approved
                           and callout.contracts > 0 and not self._observation_only)
 
-        if self._observation_only and callout.decision.is_actionable:
+        if self._observation_only and directional:
             priority = Priority.HALT
             label = f"{callout.symbol}  {callout.decision.value} - OBSERVATION ONLY"
         elif vetoed:
             priority = Priority.RISK
             label = f"{callout.symbol}  {callout.decision.value} VETOED BY RISK"
+        elif unauthorised:
+            priority = Priority.RISK
+            label = (f"{callout.symbol}  {callout.decision.value} NOT AUTHORISED "
+                     "- no risk assessment")
         elif actionable:
             priority = (Priority.LONG if callout.decision is Decision.LONG
                         else Priority.SHORT)
@@ -988,6 +1068,13 @@ class Orchestrator:
                 callout.contracts = 0
                 callout.dollar_risk = 0.0
                 callout.account_risk_pct = 0.0
+        else:
+            # Size that no risk assessment stands behind is not size. The
+            # decision layer's pre-risk contract count must never survive into
+            # a rendered callout.
+            callout.contracts = 0
+            callout.dollar_risk = 0.0
+            callout.account_risk_pct = 0.0
         if not callout.decision.is_actionable:
             callout.contracts = 0
             callout.dollar_risk = 0.0

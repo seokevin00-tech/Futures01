@@ -286,6 +286,77 @@ def _prediction_from(raw: Any, letter: str) -> Optional[AnalystPrediction]:
     return pred
 
 
+def _hp_from_row(row: Dict[str, Any], min_trades: int) -> HistoricalPerformance:
+    """Turn a ``strategy_performance`` row into the schema's record.
+
+    ``sample_is_sufficient`` is recomputed from the configured floor rather
+    than trusted from the row, so that a strategy flagged eligible under a
+    looser setting cannot smuggle itself into a live decision.
+    """
+    trades = int(row.get("trades") or 0)
+    return HistoricalPerformance(
+        strategy_id=str(row.get("strategy_id") or ""),
+        symbol=str(row.get("symbol") or ""),
+        timeframe=int(row["timeframe"]) if row.get("timeframe") else None,
+        regime=str(row.get("regime") or ""),
+        session=str(row.get("session") or ""),
+        trades=trades,
+        win_rate=_num(row.get("win_rate")) or 0.0,
+        profit_factor=_num(row.get("profit_factor")) or 0.0,
+        expectancy_r=_num(row.get("expectancy_r")) or 0.0,
+        max_drawdown_r=_num(row.get("max_drawdown_r")) or 0.0,
+        sharpe=_num(row.get("sharpe")) or 0.0,
+        sortino=_num(row.get("sortino")) or 0.0,
+        out_of_sample_trades=int(row.get("oos_trades") or 0),
+        out_of_sample_expectancy_r=_num(row.get("oos_expectancy_r")) or 0.0,
+        walk_forward_efficiency=_num(row.get("walk_forward_efficiency")) or 0.0,
+        robustness_score=_num(row.get("robustness_score")) or 0.0,
+        sample_is_sufficient=trades >= max(1, int(min_trades)),
+    )
+
+
+def _weight_for(record: Dict[str, Any]) -> Tuple[float, str, bool]:
+    """How much one analyst's opinion is worth, from its measured record.
+
+    Returns ``(weight, basis, measured)``. Below the sufficiency threshold the
+    weight is exactly 1.0 - equal with every other analyst - and ``measured``
+    is False so that every report can say plainly that no track record exists.
+    Claiming a record from 3 scored predictions would be worse than claiming
+    none.
+
+    Above it, the accuracy is shrunk toward a coin flip before it is used
+    (a 12-from-20 analyst is not a 60% analyst), then adjusted for realised R
+    and for how often the seat has produced false signals.
+    """
+    n = int(record.get("predictions") or 0)
+    if not record.get("sufficient") or n <= 0:
+        return 1.0, (f"equal weight - {n} scored prediction(s), fewer than the "
+                     f"{_SUFFICIENT_N} needed for a measured record"), False
+
+    correct = float(record.get("correct") or 0.0)
+    shrunk = (correct + 0.5 * _ACCURACY_PRIOR) / (n + _ACCURACY_PRIOR)
+    weight = _clamp(1.0 + 4.0 * (shrunk - 0.5), 0.15, 2.0)
+    basis = [f"{correct:.0f}/{n} correct in this regime "
+             f"({record.get('accuracy', 0.0) * 100:.0f}%, shrunk to "
+             f"{shrunk * 100:.0f}%)"]
+
+    avg_r = float(record.get("avg_r") or 0.0)
+    if avg_r < 0:
+        weight *= 0.6
+        basis.append(f"negative measured expectancy {avg_r:+.2f}R x0.60")
+    elif avg_r >= 0.15:
+        weight *= 1.15
+        basis.append(f"measured expectancy {avg_r:+.2f}R x1.15")
+
+    false_rate = float(record.get("false_signals") or 0.0) / n
+    if false_rate > 0.35:
+        weight *= 0.8
+        basis.append(f"{false_rate:.0%} false signals x0.80")
+
+    weight = _clamp(weight, 0.10, 2.50)
+    return weight, "; ".join(basis), True
+
+
 # --------------------------------------------------------------------------
 # Internal working structures
 # --------------------------------------------------------------------------
@@ -385,12 +456,14 @@ class _Setup:
     cost_per_contract: float
     risk_per_contract: float
     rr_after_costs: float
+    entry_zone: Optional[Tuple[float, float]] = None
     contributors: List[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
             "direction": self.direction.value,
             "entry": self.entry, "stop": self.stop, "targets": list(self.targets),
+            "entry_zone": list(self.entry_zone) if self.entry_zone else None,
             "risk_points": round(self.risk_points, 6),
             "stop_ticks": round(self.stop_ticks, 2),
             "reward_risk": round(self.reward_risk, 3),
@@ -441,6 +514,8 @@ class _Assessment:
     notes: List[str] = field(default_factory=list)
     families: List[str] = field(default_factory=list)
     restatement: float = 0.0
+    #: Weighted mass for the leading direction, against it, and abstaining.
+    masses: Dict[str, float] = field(default_factory=dict)
     conviction: float = 0.0
     agreement_score: float = 0.0
     agreement_text: str = "no analyst predictions available"
@@ -690,6 +765,9 @@ class DecisionAgent(DomainAgent):
             agreement = (lead - 1.5 * opposing - 0.5 * neutral_mass) / mass
         else:
             agreement = 0.0
+        assessment.masses = {"lead": round(lead, 4), "opposing": round(opposing, 4),
+                             "abstaining": round(neutral_mass, 4),
+                             "total": round(mass, 4)}
         present = len(assessment.present_views)
         if agreement > 0:
             # One analyst agreeing with itself is not unanimity.
@@ -818,7 +896,11 @@ class DecisionAgent(DomainAgent):
         risk_per_contract = risk_points * spec.point_value
         cost = spec.round_turn_cost
         first_reward = abs(targets[0] - entry) * spec.point_value
+        lows = [v.prediction.entry_zone[0] for v in supporters if v.prediction.entry_zone]
+        highs = [v.prediction.entry_zone[1] for v in supporters if v.prediction.entry_zone]
+        zone = (spec.round_to_tick(min(lows)), spec.round_to_tick(max(highs)))
         setup = _Setup(
+            entry_zone=zone,
             direction=direction, entry=entry, stop=stop, targets=targets,
             risk_points=risk_points,
             stop_ticks=spec.ticks_between(entry, stop),
@@ -1217,3 +1299,683 @@ class DecisionAgent(DomainAgent):
             f"${acct.min_dollar_risk:,.0f} minimum meaningful risk")
         if reasons:
             assessment.conflicts.extend(reasons)
+
+    # ==================================================================
+    # Confidence and conclusion
+    # ==================================================================
+    def _confidence(self, assessment: _Assessment) -> float:
+        """Confidence in the *directional* case, if one exists.
+
+        Honest calibration per house rule 5: the ceiling is only lifted when
+        several independent kinds of evidence agree over a large measured
+        sample.
+        """
+        if assessment.setup is None or assessment.lean is Decision.NO_TRADE:
+            return 0.0
+        hp = assessment.historical
+        score = 0.50 + 0.35 * abs(assessment.conviction)
+
+        if hp is not None:
+            score += min(0.10, 0.06 * hp.robustness_score
+                         + 0.20 * max(0.0, hp.out_of_sample_expectancy_r))
+        families = len(assessment.families)
+        score += 0.06 if families >= 3 else (0.02 if families == 2 else -0.08)
+        if assessment.restatement >= 0.5:
+            score -= 0.05
+        score -= 0.06 * (len(_ANALYSTS) - len(assessment.present_views))
+        if assessment.news_risk is NewsRisk.HIGH:
+            score -= 0.08
+        elif assessment.news_risk is NewsRisk.MODERATE:
+            score -= 0.03
+        if not assessment.news_known:
+            score -= 0.04
+        if assessment.equal_weighted:
+            # Not knowing which analyst to trust is itself a reason for caution.
+            score -= 0.05
+        score -= min(0.12, 0.03 * len(assessment.conflicts))
+        if assessment.volatility == "HIGH":
+            score -= 0.04
+        if assessment.volume in ("THIN", "BELOW_AVERAGE"):
+            score -= 0.05
+        if assessment.setup.rr_after_costs < 1.3:
+            score -= 0.04
+
+        deep = (families >= 3 and hp is not None and hp.trades >= 100
+                and hp.out_of_sample_trades >= 30
+                and len(assessment.present_views) == len(_ANALYSTS))
+        return Confidence(min(score, 1.0 if deep else _CONFIDENCE_CAP))
+
+    @staticmethod
+    def _standaside_confidence(assessment: _Assessment) -> float:
+        """How sure the layer is that standing aside is the right call.
+
+        A NO TRADE carries its own confidence: several failed gates and a pile
+        of conflicts make abstaining an easy call, while a marginal miss on one
+        soft threshold does not.
+        """
+        score = 0.55 + 0.08 * len(assessment.failed_hard_gates) \
+            + 0.03 * len(assessment.conflicts)
+        if not assessment.present_views:
+            score = max(score, 0.85)        # no evidence at all is unambiguous
+        return Confidence(min(0.95, score))
+
+    def _finalise(self, assessment: _Assessment) -> None:
+        """Soft gates, confidence and the deterministic conclusion."""
+        acct = assessment.account
+        masses = assessment.masses
+        lead = masses.get("lead", 0.0)
+        opposing = masses.get("opposing", 0.0)
+
+        assessment.gate(
+            "directional_conviction",
+            abs(assessment.conviction) >= _MIN_CONVICTION,
+            f"weighted conviction {assessment.conviction:+.2f} against a "
+            f"{_MIN_CONVICTION:.2f} floor", hard=False)
+        material_disagreement = opposing > _MAX_OPPOSING_SHARE * lead if lead > 0 else True
+        assessment.gate(
+            "analysts_not_opposed", not material_disagreement,
+            f"opposing weighted mass {opposing:.2f} against {lead:.2f} for the "
+            "lean - mixed evidence rarely justifies risking capital"
+            if material_disagreement else
+            f"opposing weighted mass {opposing:.2f} of {lead:.2f} for the lean",
+            hard=False)
+        if material_disagreement and opposing > 0:
+            assessment.conflicts.append(
+                "analysts genuinely disagree on direction")
+
+        assessment.confidence = self._confidence(assessment)
+        assessment.gate(
+            "confidence_floor", assessment.confidence >= acct.min_confidence,
+            f"confidence {assessment.confidence:.2f} against the "
+            f"{acct.min_confidence:.2f} floor", hard=False)
+
+        if assessment.failed_gates:
+            assessment.lean = Decision.NO_TRADE
+
+    # ==================================================================
+    # The reasoning model, on top of the measured evidence
+    # ==================================================================
+    def _llm_evidence(self, assessment: _Assessment) -> Dict[str, Any]:
+        hp = assessment.historical
+        return {
+            "as_of_et": assessment.stamp,
+            "symbol": assessment.symbol,
+            "market": {
+                "price": assessment.price,
+                "regime": assessment.regime.value,
+                "volatility_regime": assessment.volatility,
+                "volume_regime": assessment.volume,
+                "session": assessment.session,
+                "time_bucket": assessment.time_bucket,
+                "is_rth": assessment.is_rth,
+                "atr": assessment.atr,
+                "atr_median": assessment.atr_median,
+                "multi_timeframe_alignment": assessment.alignment,
+            },
+            "analysts": [v.to_dict() for v in assessment.views],
+            "analyst_weighting_basis": (
+                "equal weights - no analyst has >= 20 scored predictions in this "
+                "regime" if assessment.equal_weighted else
+                "weights derived from measured accuracy in this regime"),
+            "weighted_conviction": round(assessment.conviction, 4),
+            "weighted_agreement": assessment.agreement_score,
+            "evidence_families_supporting_lean": assessment.families,
+            "peak_reason_overlap_between_supporters": assessment.restatement,
+            "news": {
+                "known": assessment.news_known,
+                "risk": assessment.news_risk.value,
+                "macro_bias": assessment.news_bias.value,
+                "minutes_to_next_high_impact": assessment.minutes_to_news,
+                "summary": assessment.news_summary,
+            },
+            "strategy": {
+                "selected": assessment.strategy,
+                "historical_performance": hp.to_dict() if hp else None,
+                "candidates_considered": len(assessment.strategy_rows),
+            },
+            "priced_setup": assessment.setup.to_dict() if assessment.setup else None,
+            "account": {
+                "trading_mode": assessment.trading_mode,
+                "mode_reasons": assessment.mode_reasons,
+                "equity": self.require_context().account.equity,
+                "remaining_daily_loss_budget":
+                    self.require_context().account.remaining_daily_loss_budget,
+                "usable_risk_buffer": self.require_context().account.usable_buffer,
+            },
+            "deterministic_lean": assessment.lean.value,
+            "deterministic_confidence": round(assessment.confidence, 3),
+            "conflicts": assessment.conflicts,
+            "notes": assessment.notes,
+            "gates": [g.to_dict() for g in assessment.gates],
+            "failed_hard_gates": [g.name for g in assessment.failed_hard_gates],
+            "evidence_chain": [e.to_dict() for e in assessment.evidence],
+        }
+
+    def _apply_llm(self, assessment: _Assessment
+                   ) -> Tuple[Decision, float, str, Optional[Dict[str, Any]]]:
+        """Let the model weigh the same evidence. It cannot open a hard gate."""
+        deterministic = (assessment.lean,
+                         assessment.confidence if assessment.lean.is_actionable
+                         else self._standaside_confidence(assessment),
+                         "deterministic", None)
+        if not self.llm_available:
+            return deterministic
+
+        response = self.reason(
+            system=self.system_prompt(_ROLE_PROMPT),
+            evidence=self._llm_evidence(assessment),
+            question=_LLM_QUESTION,
+            schema=_LLM_SCHEMA,
+        )
+        if response is None or not response.ok or not isinstance(response.parsed, dict):
+            reason = (response.error if response is not None
+                      else "no client") or "no structured output"
+            assessment.notes.append(f"model review unavailable ({reason}) - "
+                                    "deterministic result stands")
+            return deterministic
+
+        parsed: Dict[str, Any] = response.parsed
+        model_decision = Decision.coerce(parsed.get("decision"))
+        model_confidence = Confidence(parsed.get("confidence"))
+        for conflict in parsed.get("key_conflicts") or []:
+            text = str(conflict).strip()
+            if text:
+                assessment.conflicts.append(f"{text} [model]")
+
+        hard_failed = [g.name for g in assessment.failed_hard_gates]
+        if model_decision.is_actionable:
+            if hard_failed:
+                assessment.notes.append(
+                    f"the model argued for {model_decision.value}; hard gates "
+                    f"({', '.join(hard_failed)}) failed and are not negotiable")
+                return Decision.NO_TRADE, self._standaside_confidence(assessment), \
+                    "hybrid", parsed
+            if assessment.setup is None:
+                assessment.notes.append(
+                    f"the model argued for {model_decision.value} but no priced "
+                    "setup exists and this layer does not originate levels")
+                return Decision.NO_TRADE, self._standaside_confidence(assessment), \
+                    "hybrid", parsed
+            if assessment.setup.direction is not model_decision.as_direction:
+                assessment.notes.append(
+                    f"the model argued for {model_decision.value} against a priced "
+                    f"{assessment.setup.direction.value} setup; the opposite "
+                    "direction has no levels from any analyst, so the call is "
+                    "NO TRADE rather than an invented one")
+                return Decision.NO_TRADE, self._standaside_confidence(assessment), \
+                    "hybrid", parsed
+            if assessment.lean is Decision.NO_TRADE:
+                assessment.notes.append(
+                    "the model overrode the deterministic abstention; every hard "
+                    "gate had passed, so the soft thresholds were judgement calls")
+            confidence = _clamp(model_confidence,
+                                max(0.0, assessment.confidence - _LLM_CONFIDENCE_LATITUDE),
+                                min(1.0, assessment.confidence + _LLM_CONFIDENCE_LATITUDE)) \
+                if assessment.confidence > 0 else model_confidence
+            if confidence < assessment.account.min_confidence:
+                assessment.notes.append(
+                    f"model confidence {confidence:.2f} sits below the "
+                    f"{assessment.account.min_confidence:.2f} floor")
+                return Decision.NO_TRADE, self._standaside_confidence(assessment), \
+                    "hybrid", parsed
+            return model_decision, confidence, "hybrid", parsed
+
+        if assessment.lean.is_actionable:
+            assessment.notes.append(
+                "the model rejected the deterministic lean and called NO TRADE")
+        stand_aside = self._standaside_confidence(assessment)
+        confidence = max(model_confidence, stand_aside) if model_confidence else stand_aside
+        return Decision.NO_TRADE, confidence, "hybrid", parsed
+
+    # ==================================================================
+    # Assembly
+    # ==================================================================
+    def _assess(self, symbol: str, stamp: str) -> _Assessment:
+        """The deterministic pass. Always runs, always produces a usable result."""
+        ctx = self.require_context()
+        spec = get_contract(symbol)
+        account_cfg = getattr(ctx.config, "account", None) or AccountConfig()
+        assessment = _Assessment(symbol=symbol, stamp=stamp, spec=spec,
+                                 account=account_cfg)
+
+        snap = ctx.snapshot(symbol)
+        if snap is not None:
+            assessment.regime_name = snap.regime.regime
+            assessment.regime = _coerce_enum(MarketRegime, snap.regime.regime,
+                                             MarketRegime.UNKNOWN)
+            assessment.volatility = snap.regime.volatility
+            assessment.volume = snap.regime.volume
+            assessment.session = snap.session
+            assessment.time_bucket = snap.time_bucket
+            assessment.is_rth = snap.is_rth
+            assessment.price = snap.price
+            assessment.atr = snap.regime.atr
+            assessment.atr_median = snap.regime.atr_median
+            assessment.alignment = round(snap.alignment(), 3)
+        assessment.gate(
+            "market_snapshot", snap is not None,
+            (f"snapshot at {fmt_price(assessment.price)}, {assessment.regime_name}, "
+             f"{assessment.session} session" if snap is not None else
+             "no feature snapshot for this symbol - insufficient history to "
+             "assess anything"))
+
+        assessment.views = self._gather_views(symbol, assessment.regime_name)
+        self._read_news(assessment)
+        self._load_strategies(assessment)
+        self._score(assessment)
+
+        if assessment.lean.is_actionable:
+            setup, problems = self._build_setup(assessment, assessment.lean.as_direction)
+            assessment.setup = setup
+            if setup is None:
+                assessment.soft_blocks = problems
+            else:
+                assessment.conflicts.extend(problems)
+        else:
+            assessment.soft_blocks = ["no directional lean to price"]
+
+        self._evaluate(assessment)
+        self._finalise(assessment)
+        return assessment
+
+    def _proposal(self, assessment: _Assessment,
+                  confidence: float) -> Optional[TradeProposal]:
+        setup = assessment.setup
+        if setup is None:
+            return None
+        return TradeProposal(
+            symbol=assessment.symbol,
+            direction=setup.direction,
+            entry=setup.entry,
+            stop=setup.stop,
+            targets=list(setup.targets),
+            confidence=confidence,
+            strategy_id=str((assessment.strategy or {}).get("strategy_id") or ""),
+            strategy_name=assessment.strategy_name,
+            timeframe=int(assessment.strategy_timeframe or 0),
+            regime=assessment.regime.value,
+            volatility=assessment.volatility,
+            session=assessment.session,
+            news_risk=assessment.news_risk,
+            minutes_to_high_impact=assessment.minutes_to_news,
+            historical=assessment.historical,
+            atr=assessment.atr,
+            atr_median=assessment.atr_median,
+            analyst_agreement=assessment.agreement_score,
+        )
+
+    @staticmethod
+    def _proposal_dict(proposal: Optional[TradeProposal]) -> Optional[Dict[str, Any]]:
+        """Exactly the fields ``TradeProposal(**d)`` takes - nothing else.
+
+        Derived figures live beside it under ``setup``; adding them here would
+        make the dict un-constructable, which is the one thing it is for.
+        """
+        if proposal is None:
+            return None
+        return {f.name: _jsonable(getattr(proposal, f.name))
+                for f in dataclass_fields(TradeProposal)}
+
+    def _build_callout(self, assessment: _Assessment, decision: Decision,
+                       confidence: float, source: str,
+                       model: Optional[Dict[str, Any]]) -> TradeCallout:
+        ctx = self.require_context()
+        state = ctx.account
+        hp = assessment.historical
+        setup = assessment.setup if decision.is_actionable else None
+
+        timeframe = (f"{assessment.strategy_timeframe}m"
+                     if assessment.strategy_timeframe else "")
+        if not timeframe:
+            horizons = [v.prediction.time_horizon for v in assessment.present_views
+                        if v.prediction.time_horizon]
+            timeframe = "; ".join(sorted(set(horizons))) or "-"
+
+        supporters = [v for v in assessment.present_views
+                      if setup is not None and v.direction is setup.direction]
+        reasons = [v.prediction.primary_reason for v in supporters
+                   if v.prediction.primary_reason]
+        if hp is not None and assessment.strategy:
+            reasons.append(f"strategy {assessment.strategy_name or assessment.strategy.get('strategy_id')}: "
+                           f"{hp.summary()}")
+        invalidations: List[str] = []
+        for v in supporters:
+            invalidations.extend(v.prediction.invalidation_conditions)
+        invalidation_text = ""
+        if setup is not None:
+            invalidation_text = f"stop {fmt_price(setup.stop)}"
+            extra = [i for i in dict.fromkeys(invalidations) if i][:3]
+            if extra:
+                invalidation_text += "; " + "; ".join(extra)
+
+        avoid = list(dict.fromkeys(assessment.conflicts))
+        for gate in assessment.failed_gates:
+            avoid.append(f"gate {gate.name}: {gate.detail}")
+        if model and str(model.get("reason_to_avoid") or "").strip():
+            avoid.append(f"{str(model['reason_to_avoid']).strip()} [model]")
+
+        callout = TradeCallout(
+            timestamp_et=ctx.now().isoformat(),
+            symbol=assessment.symbol,
+            decision=decision,
+            entry=setup.entry if setup else None,
+            entry_zone=setup.entry_zone if setup else None,
+            stop_loss=setup.stop if setup else None,
+            targets=list(setup.targets) if setup else [],
+            expected_reward_risk=round(setup.reward_risk, 3) if setup else None,
+            # contracts, dollar_risk, account_risk_pct and risk_assessment are
+            # deliberately left at their defaults: the risk agent sizes this
+            # proposal and may veto it outright.
+            strategy=assessment.strategy_name or str(
+                (assessment.strategy or {}).get("strategy_id") or ""),
+            strategy_group=assessment.strategy_group,
+            timeframe=timeframe,
+            market_regime=assessment.regime,
+            news_risk=assessment.news_risk,
+            historical_win_rate=hp.win_rate if hp else 0.0,
+            historical_expectancy_r=hp.expectancy_r if hp else 0.0,
+            max_historical_drawdown_r=hp.max_drawdown_r if hp else 0.0,
+            analyst_agreement=assessment.agreement_text,
+            confidence=confidence,
+            trade_invalidation=invalidation_text,
+            reason_for_entry="; ".join(dict.fromkeys(reasons))[:1200],
+            reason_to_avoid="; ".join(avoid)[:1500],
+            remaining_drawdown_buffer=state.usable_buffer,
+            remaining_daily_loss_budget=state.remaining_daily_loss_budget,
+            account_equity=state.equity,
+            evidence_chain=list(assessment.evidence),
+            analyst_predictions=[v.prediction for v in assessment.present_views],
+            decision_rationale=self._rationale(assessment, decision, confidence,
+                                               source, model),
+        )
+        return callout
+
+    def _rationale(self, assessment: _Assessment, decision: Decision,
+                   confidence: float, source: str,
+                   model: Optional[Dict[str, Any]]) -> str:
+        """The traceable chain: what was read, how it was weighed, what decided it."""
+        a = assessment
+        hp = a.historical
+        lines = [f"[{a.stamp}] {a.symbol} - {decision.value} "
+                 f"(confidence {confidence:.2f}, {source})"]
+
+        read = [f"analyst {v.letter}: "
+                + (f"{v.direction.value} @ conf {v.confidence:.2f}" if v.present
+                   else "no prediction published")
+                for v in a.views]
+        read.append("news_context: " + (a.news_summary if a.news_known
+                                        else "not published"))
+        read.append(f"strategy rankings: {len(a.strategy_rows)} row(s) for "
+                    f"{a.regime_name}")
+        lines.append("1. Evidence read - " + "; ".join(read) + ".")
+
+        weighting = "; ".join(f"{v.letter} weight {v.weight:.2f} ({v.weight_basis})"
+                              for v in a.views)
+        lines.append(
+            "2. Analyst weighting (never a head count) - " + weighting
+            + (". No analyst has the ~20 scored predictions needed for a measured "
+               "record in this regime, so weights fall back to equal and no track "
+               "record is claimed." if a.equal_weighted else
+               ". Weights come from measured accuracy in this regime, so an "
+               "analyst agreeing with the others adds nothing if it has been "
+               "wrong here."))
+
+        lines.append(
+            f"3. Confluence - {a.agreement_text}. Independent evidence families "
+            f"behind the lean: {', '.join(a.families) or 'none'}"
+            + (f"; peak reason overlap between supporters "
+               f"{a.restatement:.0%}." if a.restatement else "."))
+
+        if hp is not None and a.strategy:
+            lines.append(
+                f"4. Strategy edge - {a.strategy_name or a.strategy.get('strategy_id')} "
+                f"[{a.strategy.get('regime')}/{a.strategy.get('session')}]: "
+                f"{hp.summary()}.")
+        else:
+            lines.append("4. Strategy edge - none: no strategy with a demonstrated "
+                         "out-of-sample edge covers this setup.")
+
+        if a.setup is not None:
+            s = a.setup
+            lines.append(
+                f"5. Reward against risk - entry {fmt_price(s.entry)}, stop "
+                f"{fmt_price(s.stop)} ({s.stop_ticks:.0f} ticks, "
+                f"${s.risk_per_contract:,.2f}/contract), targets "
+                f"{', '.join(fmt_price(t) for t in s.targets)}; first target "
+                f"{s.rr_after_costs:.2f}R after ${s.cost_per_contract:,.2f} costs, "
+                f"final {s.reward_risk:.2f}R. Levels come from analyst(s) "
+                f"{', '.join(s.contributors)} - this layer prices nothing itself, "
+                "and combines the widest stop with the nearest first target so the "
+                "figure cannot flatter the trade.")
+        else:
+            lines.append("5. Reward against risk - unpriced: "
+                         + ("; ".join(a.soft_blocks) or "no setup"))
+
+        lines.append(
+            f"6. Context - {a.regime.value} regime, volatility {a.volatility}, "
+            f"volume {a.volume}, {a.session or 'unknown'} session"
+            f"{'' if a.is_rth else ' (outside RTH)'}; news risk "
+            f"{a.news_risk.value}"
+            + ("" if a.news_known else " (unknown - nothing published)")
+            + f"; account {a.trading_mode}, "
+            f"${self.require_context().account.remaining_daily_loss_budget:,.2f} of "
+            "today's loss budget left.")
+
+        passed = [g.name for g in a.gates if g.passed]
+        failed = [f"{g.name} ({'hard' if g.hard else 'soft'}): {g.detail}"
+                  for g in a.failed_gates]
+        lines.append(f"7. Gates - passed: {', '.join(passed) or 'none'}. "
+                     f"Failed: {'; '.join(failed) or 'none'}.")
+
+        if a.conflicts:
+            lines.append("8. Conflicting signals - " + "; ".join(
+                dict.fromkeys(a.conflicts)) + ".")
+        if a.notes:
+            lines.append("9. Notes - " + "; ".join(a.notes) + ".")
+        if model:
+            lines.append("10. Model review - " + str(model.get("rationale") or "")[:1500])
+
+        if decision.is_actionable:
+            lines.append(
+                f"Conclusion: {decision.value}. Sizing, dollar risk and the effect "
+                "on the remaining drawdown buffer are the risk agent's to set, and "
+                "its veto stands over this call.")
+        else:
+            lead = (failed[0] if failed else "the evidence does not justify risking capital")
+            lines.append(
+                f"Conclusion: NO TRADE - {lead}. A missed opportunity costs "
+                "nothing; a low-quality trade costs capital.")
+        return "\n".join(lines)
+
+    # ==================================================================
+    # Task: decide
+    # ==================================================================
+    def _decide(self, task: Task) -> AgentResult:
+        """LONG, SHORT or NO TRADE for one symbol.
+
+        A NO TRADE conclusion is a completed task, not a failed one: this
+        method returns ``ok=True`` whichever of the three it reaches, and only
+        raises when it genuinely cannot do the work (no context, unknown
+        symbol).
+        """
+        ctx = self.require_context()
+        symbol = self._symbol_for(task)
+        stamp = et_stamp(ctx.now())
+        self.log(f"[{stamp}] deciding {symbol}")
+
+        assessment = self._assess(symbol, stamp)
+        decision, confidence, source, model = self._apply_llm(assessment)
+        callout = self._build_callout(assessment, decision, confidence, source, model)
+        ctx.storage.record_callout(callout)
+
+        proposal = self._proposal(assessment, confidence) if decision.is_actionable else None
+        headline = self._headline(assessment, decision, callout)
+        summary = (f"[{stamp}] {symbol} {decision.value} "
+                   f"(confidence {confidence:.2f}) - {headline}")
+
+        payload: Dict[str, Any] = {
+            "timestamp_et": stamp,
+            "symbol": symbol,
+            "decision": decision.value,
+            "actionable": decision.is_actionable,
+            "confidence": round(confidence, 4),
+            "source": source,
+            "callout_id": callout.callout_id,
+            "headline": headline,
+            "analyst_agreement": assessment.agreement_text,
+            "agreement_score": assessment.agreement_score,
+            "weighted_conviction": round(assessment.conviction, 4),
+            "equal_weighted": assessment.equal_weighted,
+            "analysts": [v.to_dict() for v in assessment.views],
+            "market": {
+                "price": assessment.price, "regime": assessment.regime.value,
+                "volatility": assessment.volatility, "volume": assessment.volume,
+                "session": assessment.session, "is_rth": assessment.is_rth,
+                "atr": assessment.atr, "atr_median": assessment.atr_median,
+            },
+            "news_risk": assessment.news_risk.value,
+            "news_known": assessment.news_known,
+            "strategy": assessment.strategy,
+            "historical_performance": (assessment.historical.to_dict()
+                                       if assessment.historical else None),
+            "setup": assessment.setup.to_dict() if assessment.setup else None,
+            "trade_proposal": self._proposal_dict(proposal),
+            "trade_proposal_shape": (
+                "keyword arguments for futures_agents.risk.manager.TradeProposal; "
+                "coerce direction with Direction.coerce, news_risk with "
+                "NewsRisk(...) and historical with HistoricalPerformance(**d)"),
+            "gates": [g.to_dict() for g in assessment.gates],
+            "failed_hard_gates": [g.name for g in assessment.failed_hard_gates],
+            "conflicts": list(dict.fromkeys(assessment.conflicts)),
+            "notes": assessment.notes,
+            "evidence_chain": [e.to_dict() for e in assessment.evidence],
+            "model_review": model,
+            "decision_rationale": callout.decision_rationale,
+            "callout": callout.to_dict(),
+        }
+
+        artefacts = [
+            self.publish("decision", payload, summary),
+            self.publish("callout", callout.to_dict(), summary),
+        ]
+        self.log(callout.decision_rationale)
+        return AgentResult(ok=True, summary=summary, payload=payload,
+                           artefacts=artefacts)
+
+    @staticmethod
+    def _headline(assessment: _Assessment, decision: Decision,
+                  callout: TradeCallout) -> str:
+        if decision.is_actionable and assessment.setup is not None:
+            s = assessment.setup
+            return (f"entry {fmt_price(s.entry)}, stop {fmt_price(s.stop)}, "
+                    f"targets {', '.join(fmt_price(t) for t in s.targets)}, "
+                    f"{s.rr_after_costs:.2f}R after costs; awaiting risk sizing")
+        failed = assessment.failed_gates
+        if failed:
+            return failed[0].detail
+        if not assessment.present_views:
+            return "no analyst predictions published"
+        return "the evidence does not justify risking capital"
+
+    # ==================================================================
+    # Task: review_setup
+    # ==================================================================
+    def _review_setup(self, task: Task) -> AgentResult:
+        """Re-test a setup that already exists against the current evidence.
+
+        Publishes ``decision`` in review mode and deliberately does *not*
+        republish ``callout``: a review is an opinion about an existing call,
+        and overwriting the live callout with it would lose the thing being
+        reviewed.
+        """
+        ctx = self.require_context()
+        symbol = self._symbol_for(task)
+        stamp = et_stamp(ctx.now())
+        assessment = self._assess(symbol, stamp)
+        reviewed, origin = self._setup_under_review(task, symbol)
+        verdict, reasons = self._verdict(assessment, reviewed)
+
+        summary = (f"[{stamp}] {symbol} setup review: {verdict} "
+                   f"({origin}) - {reasons[0] if reasons else 'no change'}")
+        payload = {
+            "timestamp_et": stamp,
+            "symbol": symbol,
+            "mode": "review",
+            "verdict": verdict,
+            "reviewed_setup": reviewed,
+            "reviewed_from": origin,
+            "reasons": reasons,
+            "current_lean": assessment.lean.value,
+            "current_confidence": round(assessment.confidence, 4),
+            "analyst_agreement": assessment.agreement_text,
+            "agreement_score": assessment.agreement_score,
+            "gates": [g.to_dict() for g in assessment.gates],
+            "failed_hard_gates": [g.name for g in assessment.failed_hard_gates],
+            "conflicts": list(dict.fromkeys(assessment.conflicts)),
+            "evidence_chain": [e.to_dict() for e in assessment.evidence],
+            "setup": assessment.setup.to_dict() if assessment.setup else None,
+        }
+        artefacts = [self.publish("decision", payload, summary)]
+        self.log(summary)
+        return AgentResult(ok=True, summary=summary, payload=payload,
+                           artefacts=artefacts)
+
+    def _setup_under_review(self, task: Task,
+                            symbol: str) -> Tuple[Optional[Dict[str, Any]], str]:
+        """The setup being reviewed: from the task, our last callout, or storage."""
+        for key in ("setup", "callout", "proposal", "trade_proposal", "decision"):
+            found = _find_payload(task.payload.get(key), "direction", depth=3)
+            if found is not None:
+                return found, f"task payload ({key})"
+        own = self.workspace.read_json("out/callout.json")
+        found = _find_payload(own, "decision", depth=2)
+        if found is not None and str(found.get("symbol") or "").upper() == symbol:
+            return found, "our own last published callout"
+        recent = self.require_context().storage.recent_callouts(symbol=symbol, limit=1)
+        if recent:
+            return recent[0].get("payload") or None, "the callout database"
+        return None, "nothing on record"
+
+    def _verdict(self, assessment: _Assessment,
+                 reviewed: Optional[Dict[str, Any]]) -> Tuple[str, List[str]]:
+        if not reviewed:
+            return "NO SETUP ON RECORD", [
+                f"no prior setup could be found for {assessment.symbol}"]
+
+        direction = Direction.coerce(reviewed.get("direction")
+                                     or reviewed.get("decision"))
+        reasons: List[str] = []
+        if direction is Direction.NEUTRAL:
+            return "NOT A TRADE", ["the setup under review is itself a NO TRADE"]
+
+        stop = _num(reviewed.get("stop") or reviewed.get("stop_loss"))
+        price = assessment.price
+        if stop is not None and price is not None:
+            if (direction is Direction.LONG and price <= stop) or \
+                    (direction is Direction.SHORT and price >= stop):
+                reasons.append(f"price {fmt_price(price)} has traded through the "
+                               f"stop at {fmt_price(stop)}")
+                return "INVALIDATED", reasons
+
+        hard_failed = assessment.failed_hard_gates
+        if hard_failed:
+            reasons.extend(f"{g.name}: {g.detail}" for g in hard_failed)
+            return "INVALIDATED", reasons
+
+        if assessment.lean.is_actionable and assessment.lean.as_direction is not direction:
+            reasons.append(
+                f"the current weighted evidence leans {assessment.lean.value} "
+                f"against a {direction.value} setup ({assessment.agreement_text})")
+            return "INVALIDATED", reasons
+
+        soft_failed = [g for g in assessment.failed_gates if not g.hard]
+        if soft_failed:
+            reasons.extend(f"{g.name}: {g.detail}" for g in soft_failed)
+            return "DOWNGRADED", reasons
+
+        reasons.append(f"the evidence still supports {direction.value}: "
+                       f"{assessment.agreement_text}")
+        if assessment.conflicts:
+            reasons.append("open conflicts: " + "; ".join(
+                dict.fromkeys(assessment.conflicts)))
+        return "CONFIRMED", reasons

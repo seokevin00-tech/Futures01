@@ -786,16 +786,27 @@ class StrategyResearchAgent(DomainAgent):
 
     def _rankings_from_storage(self, symbol: str, *, trials: int,
                                top_n: int) -> Dict[str, Any]:
-        """Rebuild a symbol's ranking block from the performance database."""
-        rows = self._stored_rows(symbol, max(top_n * 4, 200))
+        """Rebuild a symbol's ranking block from the performance database.
+
+        The sweep's own block is kept and updated rather than replaced. The
+        database holds the verdicts (eligibility, out-of-sample columns,
+        robustness score) while the published block holds the context the sweep
+        measured - the window, the regime and session slices, the survivorship
+        counts - and both matter to the decision layer.
+        """
+        previous = self._rankings_previous(symbol)
+        prior = {r.get("strategy_id"): r for r in (previous.get("top") or [])}
+        rows = self._stored_rows(symbol, max(top_n * 20, 500))
         eligible = [r["strategy_id"] for r in rows if r.get("live_eligible")]
         top: List[Dict[str, Any]] = []
         for row in rows[:top_n]:
             payload = self._row_json(row)
-            top.append({
+            entry = dict(prior.get(row["strategy_id"], {}))
+            entry.update({
                 "strategy_id": row["strategy_id"],
-                "strategy": payload.get("strategy"),
-                "ranking_score": payload.get("ranking_score"),
+                "strategy": payload.get("strategy") or entry.get("strategy"),
+                "ranking_score": payload.get("ranking_score",
+                                             entry.get("ranking_score")),
                 "robustness_score": row.get("robustness_score"),
                 "live_eligible": bool(row.get("live_eligible")),
                 "live_eligible_reason": (
@@ -816,22 +827,53 @@ class StrategyResearchAgent(DomainAgent):
                     "expectancy_r": row.get("oos_expectancy_r"),
                     "walk_forward_efficiency": row.get("walk_forward_efficiency"),
                 },
+                "historical_performance": self._historical_from_row(row).to_dict(),
                 "updated_et": row.get("updated_et"),
             })
-        return {
+            top.append(entry)
+
+        section = dict(previous)
+        section.update({
             "generated_et": et_stamp(),
             "symbol": symbol,
             "source": "deterministic",
             "scope": "backtest",
             "ranking_criterion": (
-                "robustness_score then expectancy_r, as stored by the sweep and "
-                "overwritten by RobustnessReport.score for assessed finalists"),
+                "robustness_score then expectancy_r: the sweep stores "
+                "robust_score, and RobustnessReport.score overwrites it for any "
+                "strategy that has been through the full suite"),
             "trials_searched": trials,
             "rows_in_database": len(rows),
             "top": top,
             "live_eligible": eligible,
             "live_eligibility_note": self._storage_eligibility_note(symbol, eligible),
-        }
+        })
+        return section
+
+    def _rankings_previous(self, symbol: str) -> Dict[str, Any]:
+        doc = self._artefact("strategy_rankings")
+        section = (doc.get("symbols", {}) or {}).get(symbol)
+        return dict(section) if isinstance(section, dict) else {}
+
+    def _historical_from_row(self, row: Dict[str, Any]) -> HistoricalPerformance:
+        """The stored row as the schema object the decision layer consumes."""
+        trades = int(row.get("trades") or 0)
+        return HistoricalPerformance(
+            strategy_id=row.get("strategy_id", ""), symbol=row.get("symbol", ""),
+            timeframe=row.get("timeframe"),
+            regime=None if row.get("regime") == "ALL" else row.get("regime"),
+            session=None if row.get("session") == "ALL" else row.get("session"),
+            trades=trades, win_rate=float(row.get("win_rate") or 0.0),
+            profit_factor=float(row.get("profit_factor") or 0.0),
+            expectancy_r=float(row.get("expectancy_r") or 0.0),
+            max_drawdown_r=float(row.get("max_drawdown_r") or 0.0),
+            sharpe=float(row.get("sharpe") or 0.0),
+            sortino=float(row.get("sortino") or 0.0),
+            out_of_sample_trades=int(row.get("oos_trades") or 0),
+            out_of_sample_expectancy_r=float(row.get("oos_expectancy_r") or 0.0),
+            walk_forward_efficiency=float(row.get("walk_forward_efficiency") or 0.0),
+            robustness_score=float(row.get("robustness_score") or 0.0),
+            sample_is_sufficient=trades >= MIN_TRADES_FOR_RANK)
 
     def _robustness_section(self, symbol: str) -> Dict[str, Any]:
         """The existing robustness block for a symbol, or a fresh empty one."""

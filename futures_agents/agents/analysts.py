@@ -57,7 +57,9 @@ from ..schema import (AnalystPrediction, Confidence, Direction, Evidence,
                       HistoricalPerformance)
 from ..team.agent import AgentResult
 from ..team.board import Task
+from ..team.bus import MessageBus
 from ..team.roles import Role
+from ..team.workspace import TeamFilesystem
 from ..timeutil import et_stamp_short, time_bucket
 from .base import DomainAgent
 
@@ -198,6 +200,9 @@ class _AnalystBase(DomainAgent):
     :meth:`_form_view`, and that is the only place a direction is decided.
     """
 
+    #: Set by each subclass; there is no sensible default, and a base class
+    #: that quietly staffed itself as one of the analysts would be a bug.
+    ROLE: Optional[Role] = None
     ANALYST_ID: str = ""
     ANALYST_NAME: str = ""
     SPECIALISATION: str = ""
@@ -208,6 +213,12 @@ class _AnalystBase(DomainAgent):
     HORIZON: str = ""
     LLM_ROLE_PROMPT: str = ""
     LLM_QUESTION: str = ""
+
+    def __init__(self, fs: TeamFilesystem, bus: MessageBus, *,
+                 context: Any = None, config: Any = None, llm: Any = None):
+        if self.ROLE is None:
+            raise TypeError(f"{type(self).__name__} does not declare a Role")
+        super().__init__(self.ROLE, fs, bus, context=context, config=config, llm=llm)
 
     # ---- task entry point ---------------------------------------------
     def handle(self, task: Task) -> AgentResult:
@@ -503,7 +514,8 @@ class _AnalystBase(DomainAgent):
 
         note = (f"previous {old.value} at {old_conf:.2f} -> "
                 f"{new.value} at {current.confidence:.2f} ({status.lower()}). "
-                f"Previous falsifier was: {previous.get('would_change_mind_if') or 'none stated'}")
+                f"Previous falsifier was: "
+                f"{previous.get('would_change_mind_if') or 'none stated'}")
         return {"status": status, "previous_direction": old.value,
                 "previous_confidence": _r(old_conf, 3),
                 "changed": old is not new, "note": note}
@@ -616,6 +628,7 @@ def _null_snapshot(symbol: str) -> FeatureSnapshot:
 class AnalystAAgent(_AnalystBase):
     """Reads structure, liquidity and order flow, and votes on the evidence."""
 
+    ROLE = Role.ANALYST_A
     ANALYST_ID = "A"
     ANALYST_NAME = "Analyst A"
     SPECIALISATION = "Technical analysis and market structure"
@@ -679,6 +692,11 @@ How you think:
             evidence.append(ev)
 
         # ---- 1. structure on every timeframe the frame carries ----
+        # Which of these read as confluences and which as conflicts is not
+        # known until the vote resolves, so they are held and split afterwards.
+        # A "supporting confluence" that argues the other way is worse than no
+        # confluence at all: the decision layer reads that field as agreement.
+        tf_notes: List[Tuple[float, str]] = []
         for other_tf in snap.timeframes:
             other = snap.tf(other_tf)
             if other is None:
@@ -695,8 +713,8 @@ How you think:
                           supports=_dir_of(vote), weight=round(weight, 3),
                           source=self.id))
             if vote and other_tf != tf:
-                (confluences if vote > 0 else confluences).append(
-                    f"{other_tf}m structure is {other.structure_trend.lower()}")
+                tf_notes.append(
+                    (vote, f"{other_tf}m structure is {other.structure_trend.lower()}"))
 
         # ---- 2. cross-timeframe alignment ----
         alignment = snap.alignment()
@@ -823,6 +841,11 @@ How you think:
                     f"{direction.value.lower()} signal - standing aside")
                 direction = Direction.NEUTRAL
 
+        # Split the per-timeframe structure notes now that a side is known.
+        reference = direction.sign or (1 if score > 0 else -1 if score < 0 else 0)
+        for vote, note in tf_notes:
+            (conflicts if vote * reference < 0 else confluences).append(note)
+
         confidence = self._calibrate(score, alignment, conflicts, direction, vetoed)
         view = self._dress(snap, tf_snap, direction, score, alignment, atr,
                            confidence, evidence, confluences, conflicts, vetoed)
@@ -944,8 +967,11 @@ How you think:
         if direction is Direction.NEUTRAL:
             # Confidence that standing aside is right: highest when the
             # structure is flatly contradictory, lower when it is merely quiet.
-            base = 0.42 + 0.18 * min(1.0, abs(alignment)) if vetoed else \
-                0.38 + 0.10 * (1.0 - min(1.0, abs(score) / self.DECISION_THRESHOLD))
+            if vetoed:
+                base = 0.42 + 0.18 * min(1.0, abs(alignment))
+            else:
+                quietness = 1.0 - min(1.0, abs(score) / self.DECISION_THRESHOLD)
+                base = 0.38 + 0.10 * quietness
             return _clamp(base + 0.03 * min(len(conflicts), 3), 0.30, 0.62)
         base = 0.50 + 0.32 * min(1.0, abs(score) / 0.55)
         if direction.sign * alignment >= 0.5:
@@ -999,7 +1025,7 @@ How you think:
             midpoint = (price + swing_stop) / 2.0
             view.entry_anchor = midpoint
             view.entry_band_atr = 0.4
-            conflicts.append(
+            view.conflicts.append(
                 f"price is {extension:.1f} ATR from the {tf}m swing - entry is set "
                 "back for a retest rather than at market")
 
@@ -1017,8 +1043,9 @@ How you think:
         ]
         view.change_mind = (
             f"A confirmed {tf}m break of structure in the opposite direction, or a "
-            f"{'sweep of the session high that fails to hold' if long else 'sweep of the session low that reclaims'}"
-            " - either would say the liquidity has changed hands.")
+            + ("sweep of the session high that fails to hold" if long else
+               "sweep of the session low that reclaims")
+            + " - either would say the liquidity has changed hands.")
         view.reasoning = (
             f"Weighted vote over {len(evidence)} structural observations returned "
             f"{score:+.2f} against a +/-{self.DECISION_THRESHOLD:.2f} decision band; "
@@ -1063,6 +1090,7 @@ class AnalystBAgent(_AnalystBase):
     says so instead of estimating it.
     """
 
+    ROLE = Role.ANALYST_B
     ANALYST_ID = "B"
     ANALYST_NAME = "Analyst B"
     SPECIALISATION = "Quantitative and statistical evidence"
@@ -1257,8 +1285,9 @@ those, and they are forming their views independently of you right now.
             view.invalidations = [f"Net expected value at or below {EDGE_FLOOR_R:.2f}R "
                                   "is not worth the execution risk."]
             view.change_mind = (
-                f"Measured drift in this slice exceeding {(cost_r + EDGE_FLOOR_R) * stop_mult:+.3f} "
-                "ATR, which is where the expectancy would clear costs and the floor.")
+                "Measured drift in this slice exceeding "
+                f"{(cost_r + EDGE_FLOOR_R) * stop_mult:+.3f} ATR, which is where "
+                "the expectancy would clear costs and the floor.")
             view.reasoning = (
                 f"Governing slice: {sample_note}. Mean forward move {mean_atr:+.3f} ATR, "
                 f"median {slice_['median']:+.3f}, up-fraction {slice_['up_fraction']:.1%}, "
@@ -1425,7 +1454,9 @@ those, and they are forming their views independently of you right now.
         pct = snap.regime.atr_percentile
         if pct is None:
             return 1.1
-        return 1.35 if pct >= 0.80 else 1.20 if pct >= 0.55 else 1.00 if pct >= 0.20 else 0.85
+        if pct >= 0.80:
+            return 1.35
+        return 1.20 if pct >= 0.55 else 1.00 if pct >= 0.20 else 0.85
 
     @staticmethod
     def _measured_targets(snap: FeatureSnapshot, slice_: Dict[str, Any],
@@ -1486,6 +1517,7 @@ class AnalystCAgent(_AnalystBase):
     silence, because the decision layer would weigh it.
     """
 
+    ROLE = Role.ANALYST_C
     ANALYST_ID = "C"
     ANALYST_NAME = "Analyst C"
     SPECIALISATION = "Macro, news and cross-market context"
@@ -1625,8 +1657,12 @@ How you judge:
             detail=cross_detail, supports=_dir_of(cross_vote),
             weight=0.8 if cross_mapped else 0.0, source=self.id))
 
-        macro_total = _clamp(macro_bias.sign * macro_conf
-                             + (cross_vote * 0.5 if cross_mapped else 0.0))
+        # A weighted mean, not a sum: the combined figure is quoted verbatim in
+        # the primary reason, so it has to stay readable as "how strong is the
+        # backdrop" rather than saturating at 1.00 whenever two inputs agree.
+        macro_total = _clamp(
+            (macro_bias.sign * macro_conf + cross_vote * 0.5) / 1.5 if cross_mapped
+            else macro_bias.sign * macro_conf)
 
         # ---- the consistency verdict ----
         if abs(macro_total) < 0.15:
@@ -1778,8 +1814,9 @@ How you judge:
         if horizon:
             note = (f"measured {category} reaction for {symbol}: mean "
                     f"{horizon.get('mean', 0):+.2f} points at 60 minutes over "
-                    f"n={horizon.get('n', 0)}, up {float(horizon.get('up_fraction', 0)):.0%}, "
-                    f"reverted within the hour {float(profile.get('reverted_fraction') or 0):.0%} "
+                    f"n={horizon.get('n', 0)}, up "
+                    f"{float(horizon.get('up_fraction', 0)):.0%}, reverted within "
+                    f"the hour {float(profile.get('reverted_fraction') or 0):.0%} "
                     f"of the time")
         else:
             note = (f"no measured reaction history for {category} on {symbol} "
@@ -1866,8 +1903,9 @@ How you judge:
                         "disagree with - the call here rests on the backdrop alone, "
                         "which is why the confidence is modest.")
             return (Direction.NEUTRAL, 0.42,
-                    f"Price has no clear posture and the macro reading ({macro_total:+.2f}) "
-                    "is not strong enough to supply one on its own.")
+                    "Price has no clear posture and the macro reading "
+                    f"({macro_total:+.2f}) is not strong enough to supply one "
+                    "on its own.")
         if verdict == "SUPPORTS":
             confidence = _clamp(0.48 + 0.18 * abs(macro_total)
                                 + 0.08 * min(1.0, abs(strength))
@@ -1993,6 +2031,7 @@ def _direction_of_text(value: str) -> int:
         if s.startswith(token) or f" {token}" in f" {s}":
             return sign
     try:
-        return 1 if float(s.rstrip("%bp ")) > 0 else -1 if float(s.rstrip("%bp ")) < 0 else 0
+        value = float(s.rstrip("%bp "))
     except ValueError:
         return 0
+    return 1 if value > 0 else -1 if value < 0 else 0
