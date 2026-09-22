@@ -667,11 +667,13 @@ class ResearchLiquidityAgent(StrategyResearchAgent):
                           timings: Dict[str, float]) -> Dict[str, Any]:
         """The published ``findings`` artefact.
 
-        ``trade_fingerprint`` is written out explicitly alongside
-        ``Finding.to_dict()``, which does not carry it. Without the fingerprint
-        in the JSON, no rival can measure trade overlap and the desk lead's
-        redundancy pass has nothing to work with - two specialists finding the
-        same edge would read as corroboration.
+        Findings are serialised with ``Finding.to_dict()`` alone. It carries
+        ``trade_fingerprint`` and ``r_series`` since the fix in ``debate.py``,
+        so re-adding them here would be a second, drifting copy of the
+        protocol's own serialisation - and the fingerprint is precisely the
+        field that must not be allowed to drift: without it in the JSON the
+        desk lead's redundancy pass returns nothing, which reads exactly like
+        "these edges are independent".
         """
         return {
             "generated_et": et_stamp(),
@@ -700,10 +702,10 @@ class ResearchLiquidityAgent(StrategyResearchAgent):
             "family_time_bucket_profile": bucket,
             "finalist_detail": list(reports),
             "findings": [
-                {**f.to_dict(),
-                 # Published explicitly: Finding.to_dict() omits both.
-                 "trade_fingerprint": [list(p) for p in f.trade_fingerprint],
-                 "r_series": f.r_series}
+                # Plus the window each finding was measured on, so a rival's
+                # rebuttal can re-run it over the same bars rather than
+                # arguing about a different sample.
+                {**f.to_dict(), "window_start_index": window_start}
                 for f in findings],
             "withheld": list(withheld),
             "withheld_note": (
@@ -1107,13 +1109,20 @@ class ResearchLiquidityAgent(StrategyResearchAgent):
                 by_id: Dict[str, Dict[str, Any]]
                 ) -> Tuple[Optional[Rebuttal], Optional[Dict[str, Any]]]:
         """One measured answer to one challenge, or a stated inability to measure."""
-        sid = str(row.get("target_strategy_id") or "")
-        challenger = str(row.get("challenger") or "")
+        parsed = Challenge.from_dict(row)
+        sid, challenger = parsed.target_strategy_id, parsed.challenger
+        # The one place the shared parser is not taken at its word. Its
+        # from_dict coerces an unrecognised kind to REDUNDANT, which is a safe
+        # default for pooling but not for answering: it would have this agent
+        # rebut an objection nobody raised. An unknown kind is reported and
+        # left UNANSWERED instead.
         try:
             kind = ChallengeKind(str(row.get("kind")))
         except ValueError:
             return None, {"strategy_id": sid, "challenger": challenger,
-                          "reason": f"unknown challenge kind {row.get('kind')!r}"}
+                          "reason": f"unknown challenge kind {row.get('kind')!r}; "
+                                    "left UNANSWERED rather than answered as "
+                                    "something else"}
 
         strategy = ctx.registry.get(sid)
         if strategy is None:
@@ -1426,24 +1435,20 @@ class ResearchLiquidityAgent(StrategyResearchAgent):
 
     @staticmethod
     def _prints(row: Dict[str, Any]) -> List[Tuple[int, int]]:
-        """A published finding's trade fingerprint, defensively parsed.
+        """A published finding's trade fingerprint, via the shared parser.
 
-        JSON turns the tuples into lists and there is no guarantee another
-        specialist wrote the field at all, so anything malformed is dropped
-        rather than raised - a missing fingerprint means "cannot measure
-        overlap", which is reported, not a crash.
+        ``Finding.from_dict`` is deliberately used rather than reading the key
+        directly. Three specialists each writing their own tolerant parser is
+        how one of them quietly drops the fingerprint again - and a dropped
+        fingerprint does not raise, it makes ``find_redundancy`` return nothing,
+        which reads exactly like "these edges are independent".
         """
-        raw = row.get("trade_fingerprint") or []
-        out: List[Tuple[int, int]] = []
-        if not isinstance(raw, list):
-            return out
-        for item in raw:
-            if isinstance(item, (list, tuple)) and len(item) == 2:
-                try:
-                    out.append((int(item[0]), int(item[1])))
-                except (TypeError, ValueError):
-                    continue
-        return out
+        try:
+            return list(Finding.from_dict(row).trade_fingerprint)
+        except Exception:                                   # noqa: BLE001
+            # A malformed rival artefact means "cannot measure overlap", which
+            # is reported by the caller, not a crash in the middle of a debate.
+            return []
 
     # ==================================================================
     # Shared helpers

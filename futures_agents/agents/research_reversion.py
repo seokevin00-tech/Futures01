@@ -524,10 +524,9 @@ class ResearchReversionAgent(StrategyResearchAgent):
             },
             "near_misses": list(rejected),
             "findings": [
+                # to_dict() carries trade_fingerprint and r_series, which is
+                # what cross-specialist redundancy detection is defined on.
                 {**f.to_dict(),
-                 # Finding.to_dict() omits the fingerprint; redundancy detection
-                 # across specialists needs it, so it is published explicitly.
-                 "trade_fingerprint": [[i, d] for i, d in f.trade_fingerprint],
                  "cost_stress": next(r["cost_stress"] for r in audit
                                      if r["strategy_id"] == f.strategy_id),
                  "robustness_score_source": (
@@ -803,16 +802,15 @@ class ResearchReversionAgent(StrategyResearchAgent):
         is the long/short expectancy split set against the sample's own net
         move, which is what separates the two readings.
         """
-        m = row.get("metrics")
-        if not isinstance(m, dict):
+        m = self._as_finding(row).metrics
+        if m is None:
             record["not_measured"].append(
                 "directional beta: the finding publishes no metrics block, so "
                 "the long/short split could not be read")
             return []
-        longs, shorts = int(m.get("long_trades") or 0), int(m.get("short_trades") or 0)
-        le = float(m.get("long_expectancy_r") or 0.0)
-        se = float(m.get("short_expectancy_r") or 0.0)
-        total = int(m.get("trades") or (longs + shorts))
+        longs, shorts = int(m.long_trades), int(m.short_trades)
+        le, se = float(m.long_expectancy_r), float(m.short_expectancy_r)
+        total = int(m.trades or (longs + shorts))
         drift = self._sample_drift(frame)
         measurement = {
             "long_trades": longs, "short_trades": shorts,
@@ -1307,13 +1305,13 @@ class ResearchReversionAgent(StrategyResearchAgent):
     def _rebut_sample(self, frame: SymbolFrame, row: Dict[str, Any],
                       finding: Dict[str, Any], challenger: str, sid: str) -> Rebuttal:
         """Sample size is a fact about the artefact, not a matter of opinion."""
-        m = finding.get("metrics") if isinstance(finding.get("metrics"), dict) else {}
-        trades = int(m.get("trades") or 0)
+        m = self._as_finding(finding).metrics or Metrics()
+        trades = int(m.trades)
         measurement = {
             "trades": trades, "floor": MIN_TRADES_FOR_RANK,
-            "t_statistic": m.get("t_statistic"),
-            "trades_per_day": m.get("trades_per_day"),
-            "window": (finding.get("metrics") or {}).get("trading_days"),
+            "t_statistic": round(m.t_statistic, 4),
+            "trades_per_day": round(m.trades_per_day, 4),
+            "trading_days": m.trading_days,
         }
         if trades < MIN_TRADES_FOR_RANK:
             return Rebuttal(
@@ -1329,7 +1327,7 @@ class ResearchReversionAgent(StrategyResearchAgent):
             verdict=Verdict.REBUTTED,
             argument=(f"The sample is {trades} trades, at or above the "
                       f"{MIN_TRADES_FOR_RANK}-trade floor, with a t-statistic of "
-                      f"{float(m.get('t_statistic') or 0.0):.2f}. That is not a "
+                      f"{m.t_statistic:.2f}. That is not a "
                       f"large sample, but it is not the thin one the challenge "
                       f"describes."),
             measurement=measurement)
@@ -1338,18 +1336,16 @@ class ResearchReversionAgent(StrategyResearchAgent):
                            finding: Dict[str, Any], challenger: str,
                            sid: str) -> Rebuttal:
         """Recompute the deflation against this desk's true search count."""
-        m = finding.get("metrics") if isinstance(finding.get("metrics"), dict) else {}
-        trials = int(finding.get("trials_searched") or 1)
-        metrics = Metrics(trades=int(m.get("trades") or 0),
-                          std_r=float(m.get("std_r") or 0.0),
-                          t_statistic=float(m.get("t_statistic") or 0.0))
+        parsed = self._as_finding(finding)
+        metrics = parsed.metrics or Metrics()
+        trials = parsed.trials_searched
         deflated = deflated_expectancy(metrics, trials)
         measurement = {
             "trials_searched": trials, "trades": metrics.trades,
             "t_statistic": round(metrics.t_statistic, 4),
             "std_r": round(metrics.std_r, 4),
             "deflated_expectancy_r": round(deflated, 6),
-            "raw_expectancy_r": m.get("expectancy_r"),
+            "raw_expectancy_r": round(metrics.expectancy_r, 5),
         }
         if deflated <= 0:
             return Rebuttal(
@@ -1413,10 +1409,9 @@ class ResearchReversionAgent(StrategyResearchAgent):
                          finding: Dict[str, Any], challenger: str,
                          sid: str) -> Rebuttal:
         """A directional-beta objection is answered on the long/short split."""
-        m = finding.get("metrics") if isinstance(finding.get("metrics"), dict) else {}
-        le = float(m.get("long_expectancy_r") or 0.0)
-        se = float(m.get("short_expectancy_r") or 0.0)
-        longs, shorts = int(m.get("long_trades") or 0), int(m.get("short_trades") or 0)
+        m = self._as_finding(finding).metrics or Metrics()
+        le, se = float(m.long_expectancy_r), float(m.short_expectancy_r)
+        longs, shorts = int(m.long_trades), int(m.short_trades)
         measurement = {
             "long_trades": longs, "short_trades": shorts,
             "long_expectancy_r": round(le, 4), "short_expectancy_r": round(se, 4),
@@ -1647,31 +1642,31 @@ class ResearchReversionAgent(StrategyResearchAgent):
         return []
 
     @staticmethod
-    def _row_fingerprint(row: Dict[str, Any]) -> List[Tuple[int, int]]:
-        """``trade_fingerprint`` out of a JSON row, as pairs.
+    def _as_finding(row: Dict[str, Any]) -> Finding:
+        """A published row read back through the protocol's own parser.
 
-        ``Finding.to_dict()`` does not carry the fingerprint, so a rival that
-        published only ``to_dict()`` output has none to read. That is handled by
-        returning nothing and re-running the strategy instead - never by
-        fabricating one, which would make redundancy detection agree with itself
-        about trades that were never taken.
+        ``Finding.from_dict`` exists so that all three specialists and the desk
+        lead interpret an artefact identically - each agent hand-rolling its own
+        field reader is how one of them quietly drops the fingerprint and makes
+        two copies of one edge look like two independent edges. Locating the
+        rows in an arbitrary document shape is this agent's problem; reading a
+        located row is the protocol's.
         """
-        raw = row.get("trade_fingerprint")
-        if not isinstance(raw, list):
-            return []
-        out: List[Tuple[int, int]] = []
-        for item in raw:
-            if isinstance(item, (list, tuple)) and len(item) >= 2:
-                try:
-                    out.append((int(item[0]), int(item[1])))
-                except (TypeError, ValueError):
-                    continue
-        return out
+        return Finding.from_dict(row)
+
+    def _row_fingerprint(self, row: Dict[str, Any]) -> List[Tuple[int, int]]:
+        """``trade_fingerprint`` out of a published row, as pairs.
+
+        An owner that published before the fingerprint was serialised has none
+        to read. That is handled by returning nothing and re-running the
+        strategy instead - never by fabricating one, which would make redundancy
+        detection agree with itself about trades that were never taken.
+        """
+        return self._as_finding(row).trade_fingerprint
 
     def _published_fingerprint(self, row: Dict[str, Any]
                                ) -> Optional[List[Tuple[int, int]]]:
-        fingerprint = self._row_fingerprint(row)
-        return fingerprint or None
+        return self._row_fingerprint(row) or None
 
     def _resolve_strategy(self, symbol: str, strategy_id: str, owner: Role,
                           row: Optional[Dict[str, Any]] = None
