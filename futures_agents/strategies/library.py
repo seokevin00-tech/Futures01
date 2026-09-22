@@ -69,6 +69,24 @@ def _s(snap: FeatureSnapshot, tf: int) -> Optional[TFSnapshot]:
     return snap.tf(tf)
 
 
+def _deadband(s: TFSnapshot, diff: float, frac: float = 0.10) -> bool:
+    """Is ``diff`` a real separation, or the coin-flip zone around zero?
+
+    Six conditions guarded themselves with ``if diff == 0: return no()``, which
+    on floating-point price data is never true - ``cvd_directional`` declined on
+    0 of 24,960 bars. They are *bias* conditions by nature and that is fine:
+    measured, they split 42/58 to 50/50 by direction, so inside a confluence
+    that requires agreement they genuinely gate. What was wrong is that a
+    close one tick from its own EMA counted as "above" it with full
+    confidence. A tenth of an ATR removes the ambiguous middle without
+    pretending these are selective conditions.
+    """
+    atr_v = s.get("atr")
+    if not atr_v:
+        return False
+    return abs(diff) >= atr_v * frac
+
+
 def _px(snap: FeatureSnapshot, price: Optional[float]) -> str:
     """Format a price at the contract's own tick resolution.
 
@@ -109,7 +127,7 @@ def _ema_fast(snap, tf):
     if not s or not s.has("ema9", "ema21"):
         return ConditionResult.no()
     d = s["ema9"] - s["ema21"]
-    if d == 0:
+    if not _deadband(s, d):
         return ConditionResult.no()
     return ConditionResult.yes(LONG if d > 0 else SHORT, f"EMA9-EMA21={d:+.2f}", round(d, 4))
 
@@ -120,7 +138,7 @@ def _px_ema50(snap, tf):
     if not s or not s.has("ema50"):
         return ConditionResult.no()
     d = s.close - s["ema50"]
-    if d == 0:
+    if not _deadband(s, d):
         return ConditionResult.no()
     return ConditionResult.yes(LONG if d > 0 else SHORT, f"close-EMA50={d:+.2f}", round(d, 4))
 
@@ -131,7 +149,7 @@ def _px_ema200(snap, tf):
     if not s or not s.has("ema200"):
         return ConditionResult.no()
     d = s.close - s["ema200"]
-    if d == 0:
+    if not _deadband(s, d):
         return ConditionResult.no()
     return ConditionResult.yes(LONG if d > 0 else SHORT, f"close-EMA200={d:+.2f}", round(d, 4))
 
@@ -224,7 +242,7 @@ def _macd_dir(snap, tf):
     if not s or not s.has("macd", "macd_signal"):
         return ConditionResult.no()
     d = s["macd"] - s["macd_signal"]
-    if d == 0:
+    if not _deadband(s, d, 0.05):
         return ConditionResult.no()
     return ConditionResult.yes(LONG if d > 0 else SHORT, f"MACD-signal={d:+.3f}",
                                round(d, 5))
@@ -236,7 +254,7 @@ def _macd_hist(snap, tf):
     if not s or not s.has("macd_hist"):
         return ConditionResult.no()
     h = s["macd_hist"]
-    if h == 0:
+    if not _deadband(s, h, 0.05):
         return ConditionResult.no()
     return ConditionResult.yes(LONG if h > 0 else SHORT, f"hist={h:+.3f}", round(h, 5))
 
@@ -270,16 +288,40 @@ def _stoch_ext(snap, tf):
 # VWAP
 # ==========================================================================
 
-@condition("above_vwap", "vwap", description="Price on one side of session VWAP")
+@condition("above_vwap", "vwap",
+           description="Price holding beyond the first VWAP band")
 def _above_vwap(snap, tf):
+    """Holding a side of value, not merely on one side of the line.
+
+    As "close != vwap" this fired on 99.99% of bars at every timeframe - it
+    returned no signal only when the close landed exactly on VWAP to the tick.
+    A condition true of essentially every bar assigns a direction and adds no
+    selectivity, and the damage is not cosmetic: the 30-trade floor exists to
+    reject strategies with too little evidence, and an anchor that fires every
+    bar clears that floor on any data whatever. Measured, it produced the
+    largest trade counts in the VWAP family - a median 643 over 120 days
+    against 28 for vwap_band1_bounce - while its rule sets averaged a negative
+    expectancy.
+
+    The boundary is the first VWAP band rather than an ATR multiple, because a
+    fixed ATR threshold is not comparable across timeframes: the median
+    distance from session VWAP is 2.22 ATR at 5m and 0.56 ATR at 60m, so one
+    number would mean "barely off VWAP" on one chart and "stretched" on
+    another. The band is one standard deviation of the session's own
+    distribution and adapts by construction.
+    """
     s = _s(snap, tf)
-    if not s or not s.has("vwap"):
+    if not s or not s.has("vwap", "vwap_u1", "vwap_l1"):
         return ConditionResult.no()
-    d = s.close - s["vwap"]
-    if d == 0:
-        return ConditionResult.no()
-    return ConditionResult.yes(LONG if d > 0 else SHORT, f"close-VWAP={d:+.2f}",
-                               round(d, 4))
+    px = s.close
+    if px > s["vwap_u1"]:
+        return ConditionResult.yes(LONG, "holding above the first VWAP band",
+                                   round(px - s["vwap"], 4))
+    if px < s["vwap_l1"]:
+        return ConditionResult.yes(SHORT, "holding below the first VWAP band",
+                                   round(px - s["vwap"], 4))
+    return ConditionResult.no()
+
 
 
 @condition("vwap_proximity", "vwap", kind=ConditionKind.FILTER,
@@ -344,15 +386,29 @@ def _vwap_reclaim(snap, tf):
 # ==========================================================================
 
 @condition("relative_volume_high", "volume", kind=ConditionKind.FILTER,
-           description="Volume >= 1.3x the same clock-minute average")
+           description="Participation above the recent norm")
 def _relvol(snap, tf):
+    """Above-average participation.
+
+    The threshold was high enough to be a veto rather than a filter: it passed
+    0.68% of 15-minute bars, so any template offering it as an *optional*
+    filter was offering a treatment arm that takes no trades at all - which is
+    not a control, it is an empty set. Two templates were doing exactly that.
+    1.10x keeps the condition meaningful while leaving enough sample for the
+    paired comparison to mean something. Calibrated against this data's own
+    distribution - rel_volume has a median of 0.99 and a maximum of 1.60 at
+    15m, so 1.30 sat near the very top of the range. Real futures volume has a
+    much fatter right tail than the generator's, so this threshold is one to
+    re-check on real bars rather than inherit.
+    """
     s = _s(snap, tf)
     if not s or not s.has("rel_volume"):
         return ConditionResult.no()
     rv = s["rel_volume"]
-    return (ConditionResult.yes(FLAT, f"RVOL={rv:.2f}", round(rv, 2),
-                                min(1.0, (rv - 1.0) / 1.5))
-            if rv >= 1.3 else ConditionResult.no())
+    if rv < 1.10:
+        return ConditionResult.no()
+    return ConditionResult.yes(FLAT, f"relative volume {rv:.2f}x", round(rv, 2))
+
 
 
 @condition("volume_surge", "volume", kind=ConditionKind.FILTER,
@@ -386,7 +442,11 @@ def _cvd(snap, tf):
     if not s or not s.has("cvd"):
         return ConditionResult.no()
     c = s["cvd"]
-    if c == 0:
+    vol = s.get("volume") or 0.0
+    # Net session delta smaller than a quarter of one bar's volume is not
+    # "buyers in control", it is noise with a sign. As "cvd != 0" this
+    # declined on 0 of 24,960 bars.
+    if abs(c) < vol * 0.25:
         return ConditionResult.no()
     return ConditionResult.yes(LONG if c > 0 else SHORT, f"CVD={c:+.0f}", round(c, 1))
 

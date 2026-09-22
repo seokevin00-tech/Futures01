@@ -525,8 +525,9 @@ def test_every_condition_appears_in_a_generated_strategy():
     all_groups = [t.group for t in TEMPLATES]
     strategies = generate_strategies("MNQ", list(TIMEFRAMES), groups=all_groups,
                                      max_total=4000, seed=1)
+    from futures_agents.strategies.coverage import NOT_GENERATED
     used = {c.name for s in strategies for c in s.conditions}
-    missing = sorted(set(CONDITIONS) - used)
+    missing = sorted(set(CONDITIONS) - used - set(NOT_GENERATED))
     assert not missing, f"conditions that reach no generated strategy: {missing}"
 
 
@@ -686,3 +687,101 @@ def test_oi_confirmation_pairs_the_same_window(snapshots):
         assert res.direction.value == expected, (
             f"OI condition said {res.direction.value} on a {move:+.3f}% move")
     assert fired > 0, "condition never fired - the assertion proved nothing"
+
+
+def test_no_signal_condition_is_vacuously_true(snapshots):
+    """A guard that never fires is not a guard.
+
+    Six conditions declined only when a floating-point difference was exactly
+    zero - `cvd_directional` declined on 0 of 24,960 bars. They are *bias*
+    conditions by nature and that is legitimate: measured, they split 42/58 to
+    50/50 by direction, so inside a confluence requiring agreement they do
+    gate. What was wrong is that a close one tick from its own EMA counted as
+    "above" it. This asserts the deadband exists, not that the condition is
+    selective - a firing rate alone would have condemned conditions that are
+    working as designed.
+    """
+    offenders = []
+    for name, cond in sorted(CONDITIONS.items()):
+        if cond.kind is not ConditionKind.SIGNAL:
+            continue
+        fired = sum(1 for s in snapshots if cond.evaluate(s, PRIMARY_TF).triggered)
+        rate = fired / len(snapshots)
+        if rate > 0.97:
+            offenders.append((name, round(rate, 4)))
+    assert not offenders, (
+        f"signal conditions with no effective deadband: {offenders}")
+
+
+def test_no_signal_condition_is_directionally_stuck(snapshots):
+    """The brokenness that a firing rate cannot see: a condition that fires
+    constantly but almost always the same way is a bias with no information,
+    whatever its trigger rate looks like."""
+    offenders = []
+    for name, cond in sorted(CONDITIONS.items()):
+        if cond.kind is not ConditionKind.SIGNAL:
+            continue
+        longs = shorts = 0
+        for snap in snapshots:
+            res = cond.evaluate(snap, PRIMARY_TF)
+            if not res.triggered:
+                continue
+            if res.direction.value == "LONG":
+                longs += 1
+            elif res.direction.value == "SHORT":
+                shorts += 1
+        total = longs + shorts
+        if total < 50:
+            continue
+        skew = max(longs, shorts) / total
+        if skew > 0.90:
+            offenders.append((name, round(skew, 3)))
+    assert not offenders, f"signal conditions stuck in one direction: {offenders}"
+
+
+def test_no_optional_filter_is_a_total_veto(snapshots):
+    """An optional filter exists so the desk can measure "with it" against
+    "without it". A filter that passes under 2% of bars makes the treatment arm
+    an empty set, which is not a control. `relative_volume_high` passed 0.68%
+    of 15-minute bars while two templates offered it as an optional filter."""
+    from futures_agents.strategies.combinator import TEMPLATES
+    optional = {n for t in TEMPLATES for n in t.optional_filters}
+    offenders = []
+    for name in sorted(optional):
+        cond = CONDITIONS.get(name)
+        if cond is None or cond.kind is not ConditionKind.FILTER:
+            continue
+        passed = sum(1 for s in snapshots if cond.evaluate(s, PRIMARY_TF).triggered)
+        rate = passed / len(snapshots)
+        if rate < 0.02:
+            offenders.append((name, round(rate, 4)))
+    assert not offenders, f"optional filters that veto almost everything: {offenders}"
+
+
+def test_declared_exclusions_are_enforced_including_filters():
+    """`exclusive` was checked against signal names only, then filter sets were
+    appended with no further check - so any declared pair naming a FILTER was
+    decoration. VWAP declared above_vwap and vwap_proximity mutually exclusive
+    and 25 of 400 generated strategies held both."""
+    from futures_agents.strategies.combinator import (TEMPLATES_BY_GROUP,
+                                                      generate_combinations)
+    offenders = []
+    for group, template in TEMPLATES_BY_GROUP.items():
+        if not template.exclusive:
+            continue
+        for spec in generate_combinations("MNQ", [5, 15, 60], groups=[group],
+                                          max_total=400, seed=1):
+            names = set(spec.signal_conditions) | set(spec.filter_conditions)
+            for pair in template.exclusive:
+                if len(names & set(pair)) > 1:
+                    offenders.append((group, pair))
+    assert not offenders, f"declared exclusions not enforced: {sorted(set(offenders))}"
+
+
+def test_every_non_generated_exemption_is_justified():
+    """An exemption without a reason is indistinguishable from an oversight,
+    which is precisely the blind spot the reachability check exists to close."""
+    from futures_agents.strategies.coverage import NOT_GENERATED
+    for name, reason in NOT_GENERATED.items():
+        assert name in CONDITIONS, f"{name} is exempted but not registered"
+        assert len(reason) > 40, f"{name}'s exemption has no real reason"

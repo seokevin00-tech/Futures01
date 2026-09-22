@@ -86,8 +86,18 @@ class Metrics:
     short_expectancy_r: float = 0.0
 
     exit_reasons: Dict[str, int] = field(default_factory=dict)
+    #: Trades divided by the number of days on which the strategy traded at
+    #: all. Answers "how busy is it when it is working".
     trades_per_day: float = 0.0
+    #: Trades divided by the CALENDAR trading days its activity spans. This is
+    #: the one to use when the question is "does it trade constantly", and the
+    #: one annualisation needs - a strategy taking sixty trades clustered onto
+    #: twenty days out of a hundred and twenty is not trading three times a
+    #: day, it is trading half a time a day in bursts.
+    trades_per_calendar_day: float = 0.0
     trading_days: int = 0
+    #: Calendar trading days spanned, first trade to last.
+    calendar_days_spanned: int = 0
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -184,11 +194,24 @@ def compute_metrics(trades: Sequence[Trade], *,
     days = {t.trading_day for t in trades}
     m.trading_days = len(days)
     m.trades_per_day = m.trades / max(1, m.trading_days)
+
+    # Span, first trade to last, in business days. Using ACTIVE days here
+    # overstated the annualised trade count by the clustering factor and the
+    # annualised Sharpe by its square root - 2.45x for a strategy that traded
+    # on twenty days out of a hundred and twenty.
+    real_days = sorted(d for d in days if d is not None)
+    if len(real_days) >= 2:
+        span = (real_days[-1] - real_days[0]).days
+        m.calendar_days_spanned = max(1, int(round(span * 5.0 / 7.0)) + 1)
+    else:
+        m.calendar_days_spanned = max(1, m.trading_days)
+    m.trades_per_calendar_day = m.trades / float(m.calendar_days_spanned)
+
     if m.trading_days > 0 and m.std_r > 0:
         # Annualise using the observed trade frequency rather than assuming one
         # trade per day - an intraday system trading 4x a day has a very
         # different annualised profile from one trading weekly.
-        per_year = m.trades_per_day * TRADING_DAYS_PER_YEAR
+        per_year = m.trades_per_calendar_day * TRADING_DAYS_PER_YEAR
         m.sharpe_annualised = m.sharpe * math.sqrt(max(1.0, per_year))
 
     streak = best_w = best_l = 0

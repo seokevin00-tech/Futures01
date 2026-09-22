@@ -94,6 +94,22 @@ SPEC_CONFLUENCES: Dict[str, Tuple[str, ...]] = {
 }
 
 
+#: Conditions deliberately kept out of the generated universe, with the
+#: reason. An exemption has to be written down: the whole point of the
+#: reachability check is that a condition nothing can draw is invisible, and
+#: an unexplained exemption recreates exactly that blind spot.
+NOT_GENERATED: Dict[str, str] = {
+    "post_news_window": (
+        "passes 0.66% of bars, so as an optional filter its treatment arm "
+        "takes almost no trades - 0 of 50 MOMENTUM strategies cleared the "
+        "30-trade floor with it against 22 of 50 without. An arm that cannot "
+        "produce a sample is not a control. It stays registered because the "
+        "question it asks - is the post-release reaction tradeable - is a "
+        "real one, answered as a slice over realised trades where every "
+        "trade contributes, rather than as a filter that leaves five."),
+}
+
+
 def reachable_conditions() -> Set[str]:
     """Conditions a generated strategy can actually contain.
 
@@ -114,6 +130,9 @@ def reachable_conditions() -> Set[str]:
         for name in tuple(template.base_filters) + tuple(template.optional_filters):
             if name in CONDITIONS:
                 out.add(name)
+    # Documented exemptions count as reachable for coverage purposes; they are
+    # usable, just not generated into strategies.
+    out.update(n for n in NOT_GENERATED if n in CONDITIONS)
     return out
 
 

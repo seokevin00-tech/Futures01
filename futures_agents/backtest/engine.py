@@ -103,6 +103,9 @@ class Trade:
     mfe_points: float = 0.0
     mae_points: float = 0.0
     bars_held: int = 0
+    #: Bars held counted on the strategy's own timeframe, which is the unit
+    #: ``ExitModel.time_stop_bars`` is written in.
+    primary_bars_held: int = 0
     minutes_held: float = 0.0
     primary_tf: int = 0
     regime: str = "UNKNOWN"
@@ -173,6 +176,9 @@ class _OpenPosition:
     mae_points: float = 0.0
     extreme_favourable: float = 0.0
     bars_held: int = 0
+    #: Bars held counted on the strategy's own timeframe, which is the unit
+    #: ``ExitModel.time_stop_bars`` is written in.
+    primary_bars_held: int = 0
     breakeven_moved: bool = False
     atr_at_entry: Optional[float] = None
 
@@ -227,6 +233,9 @@ class BacktestEngine:
                  allow_overnight: bool = False):
         self.frame = frame
         self.spec: ContractSpec = frame.spec
+        #: Duration of one base bar, so a time stop expressed in the
+        #: strategy's own bars can be converted to base bars.
+        self.base_minutes: int = max(1, int(frame.base.minutes))
         self.costs = cost_model or CostModel(self.spec)
         self.max_concurrent = max(1, max_concurrent_per_strategy)
         self.allow_overnight = allow_overnight
@@ -371,7 +380,17 @@ class BacktestEngine:
         sign = pos.sign
         spec = self.spec
         exit_model = pos.strategy.exit
+        # bars_held is in BASE bars, which is what MFE/MAE and reporting want.
         pos.bars_held = i - pos.entry_index + 1
+        # The time stop is expressed in the STRATEGY's own bars. Counting it in
+        # base bars made "hold for up to 60 bars" mean sixty MINUTES on a
+        # 4-hour strategy - a quarter of a single primary bar. Measured
+        # consequence before this fix: 100% of 4-hour exits and 55-71% of
+        # 1-hour exits were TIME exits, so every higher-timeframe result in
+        # this repository was measuring a strategy that was stopped by the
+        # clock before its thesis had a bar to work with.
+        step = max(1, int(pos.strategy.primary_tf) // max(1, self.base_minutes))
+        pos.primary_bars_held = (i - pos.entry_index) // step + 1
 
         # --- excursions ---
         fav = (bar.high - pos.entry_price) if sign > 0 else (pos.entry_price - bar.low)
@@ -443,7 +462,8 @@ class BacktestEngine:
                 pos.stop = max(pos.stop, trail) if sign > 0 else min(pos.stop, trail)
 
         # --- 4. time stop ---
-        if exit_model.time_stop_bars and pos.bars_held >= exit_model.time_stop_bars:
+        if (exit_model.time_stop_bars
+                and pos.primary_bars_held >= exit_model.time_stop_bars):
             return self._close(pos, i, bar, bar.close, ExitReason.TIME)
 
         # --- 5. session close ---

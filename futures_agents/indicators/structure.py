@@ -621,7 +621,7 @@ class SDZone:
 
 def supply_demand_zones(bars: Sequence[Bar], *, window: int = 20,
                         departure_mult: float = 2.0, base_max_mult: float = 1.0,
-                        base_vs_departure: float = 0.5,
+                        base_vs_departure: float = 0.35,
                         max_base_bars: int = 3, body_frac: float = 0.55,
                         max_age: int = 400,
                         as_of: Optional[int] = None) -> List[SDZone]:
@@ -635,9 +635,17 @@ def supply_demand_zones(bars: Sequence[Bar], *, window: int = 20,
 
     A base is qualified two ways, and it needs both. It must not be *wider than
     the recent norm* (``base_max_mult``), and it must be *small against the
-    move that left it* (``base_vs_departure``). The second test is what carries
-    the idea: balance is defined by contrast with the impulse, not by being
-    quieter than its own neighbourhood.
+    move that left it* (``base_vs_departure``).
+
+    An earlier version of this docstring claimed the second test was what
+    carried the idea. That was wrong, and the algebra says so: the departure
+    gate already guarantees ``rng >= 2.0 * avg``, so at a 0.5 coefficient
+    ``0.5 * rng >= 1.0 * avg`` and the ``min()`` returned the norm term every
+    single time - measured, 811 of 812 accepted bases were bound by the norm
+    and one was an exact tie. The whole improvement came from relaxing
+    ``base_max_mult`` from 0.8 to 1.0. The coefficient is now 0.35, below the
+    ``base_max_mult / departure_mult`` ratio, so the departure test actually
+    binds on the narrower impulses instead of being decoration.
 
     The first test alone used to be ``<= 0.8 x`` an average computed over a
     window that contained the base bars, which is self-referential - in a

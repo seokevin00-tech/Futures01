@@ -175,7 +175,15 @@ TEMPLATES: Tuple[StrategyTemplate, ...] = (
         max_optional=3,
         base_filters=("volatility_normal",),
         exits=tuple(expand_exit_models()[:3]),
-        optional_filters=("outside_news_blackout", "post_news_window", "relative_volume_high", "volume_surge", "oi_expanding"),
+        # post_news_window is NOT offered here. It passes 0.66% of bars, so
+        # the "with the filter" arm takes almost no trades - measured, 0 of 50
+        # MOMENTUM strategies cleared the 30-trade floor with it, against 22 of
+        # 50 without. An arm that cannot produce a sample is not a control, and
+        # it costs a hypothesis to learn nothing. The question it was meant to
+        # answer - is the post-release reaction tradeable - is better asked as
+        # a slice over realised trades, where every trade contributes.
+        optional_filters=("outside_news_blackout", "relative_volume_high",
+                          "volume_surge", "oi_expanding"),
     ),
     StrategyTemplate(
         group="OPENING_RANGE",
@@ -472,6 +480,9 @@ def generate_combinations(
                             continue
                         if _violates_exclusive(names, template.exclusive):
                             continue
+                        # Exclusions are checked again per filter set below,
+                        # because a declared pair can name a FILTER and the
+                        # signal-only check above cannot see one.
                         for tf in tfs:
                             for ei in range(len(template.exits) or 1):
                                 rule_sets.append((tuple(sorted(names)), tf, ei))
@@ -486,6 +497,14 @@ def generate_combinations(
 
         for names, tf, ei in rule_sets:
             for filt in filter_sets:
+                # The signal-only check ran before filters were attached, so a
+                # pair naming a filter was silently inert: VWAP declared
+                # above_vwap and vwap_proximity mutually exclusive and 25 of
+                # 400 generated strategies held both. Any exclusion involving
+                # a filter was decoration.
+                if _violates_exclusive(tuple(names) + tuple(filt),
+                                       template.exclusive):
+                    continue
                 out.append(CombinationSpec(
                     symbol=symbol.upper(), group=group, primary_tf=tf,
                     confirm_tfs=confirm_map.get(tf, ()),

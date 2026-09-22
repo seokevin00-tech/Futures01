@@ -123,3 +123,39 @@ def test_no_profile_starves_its_contract():
             per_family[s.group] = per_family.get(s.group, 0) + 1
         thin = {g: n for g, n in per_family.items() if n < 10}
         assert not thin, f"{symbol} families with almost no strategies: {thin}"
+
+
+def test_annualisation_uses_calendar_days_not_active_days():
+    """`trades_per_day` counts days the strategy traded at all, which is the
+    right answer to "how busy is it when working" and the wrong denominator
+    for annualising. A strategy taking 60 trades clustered onto 20 days out of
+    120 annualised as 756 trades a year instead of 126, overstating the
+    annualised Sharpe by sqrt(6) = 2.45x."""
+    from datetime import date, datetime, timedelta
+
+    from futures_agents.backtest.engine import Trade
+    from futures_agents.backtest.metrics import (TRADING_DAYS_PER_YEAR,
+                                                 compute_metrics)
+    from futures_agents.schema import Direction
+    from futures_agents.timeutil import ET
+
+    start = datetime(2026, 1, 5, 10, 0, tzinfo=ET)
+    trades = []
+    # 60 trades, three per day, on 20 days spread across ~24 calendar weeks.
+    for d in range(20):
+        day = start + timedelta(days=d * 8)
+        for k in range(3):
+            trades.append(Trade(
+                strategy_id="s", strategy_name="s", group="g", symbol="MNQ",
+                direction=Direction.LONG, signal_ts=day, signal_index=0,
+                entry_ts=day, entry_index=0, entry_price=100.0,
+                initial_stop=99.0, targets=[102.0], exit_ts=day + timedelta(hours=1),
+                exit_index=1, exit_price=101.0, net_r=0.5 if k else -0.5,
+                gross_r=0.5 if k else -0.5, risk_points=1.0))
+    m = compute_metrics(trades)
+    assert m.trading_days == 20
+    assert m.trades_per_day == pytest.approx(3.0)
+    assert m.calendar_days_spanned > 100, m.calendar_days_spanned
+    assert m.trades_per_calendar_day < 1.0
+    implied = m.trades_per_calendar_day * TRADING_DAYS_PER_YEAR
+    assert implied < 200, f"annualised trade count {implied:.0f} is still inflated"
