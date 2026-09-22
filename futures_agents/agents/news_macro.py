@@ -187,6 +187,11 @@ class CalendarRule:
 
 _EQUITY = ("MNQ", "MES", "M2K", "MYM")
 
+#: Percentage move below which a cross-market reading is called flat.
+#: Drift is not conviction, and a consumer reading the sign of a 0.05%
+#: overnight move would be voting on noise.
+_FLAT_PCT = 0.10
+
 #: The recurring US macro calendar. Impact grades follow the conventional
 #: "red folder" set: a HIGH-impact release is one that reprices the front end
 #: of the curve and the index futures within seconds of the print, and is the
@@ -874,9 +879,15 @@ class NewsMacroAgent(DomainAgent):
             # equity complex is measured here, so only the overnight tape is
             # claimed - not the dollar, yields or global cash markets, which no
             # data source in this system covers.
+            # Below the deadband the reading is deliberately written without a
+            # sign: a 0.05% overnight drift is not a risk-on tape, and a
+            # consumer that reads the sign would turn noise into a vote.
+            scale = ", ".join(sorted(per_symbol))
             readings["OVERNIGHT"] = (
-                f"{average:+.2f}% average across "
-                f"{', '.join(sorted(per_symbol))} over the overnight session")
+                f"{average:+.2f}% average across {scale} over the overnight "
+                "session" if abs(average) >= _FLAT_PCT else
+                f"flat, {abs(average):.2f}% average across {scale} over the "
+                "overnight session")
             evidence.append(Evidence(
                 kind="statistic", name="overnight_index_move",
                 value=round(average, 4),

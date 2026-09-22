@@ -1308,8 +1308,21 @@ class Orchestrator:
                          f"at {row['timestamp_et']}")
         lines.append("")
         lines.append("STRATEGIES")
-        lines.append(f"  {self.context.registry.total()} registered across "
-                     f"{len(self.context.registry.symbols())} symbol(s)")
+        total = self.context.registry.total()
+        if total:
+            lines.append(f"  {total} registered across "
+                         f"{len(self.context.registry.symbols())} symbol(s) "
+                         "in this process")
+        else:
+            # `status` deliberately skips the ~2s universe build. Saying "0
+            # strategies" would read as "the research found nothing", which is
+            # a very different statement.
+            lines.append("  not built in this process - the universe is "
+                         "generated on demand by `research`, `backtest` and "
+                         "`demo`")
+        counts = self.storage.counts()
+        lines.append(f"  {counts.get('strategy_performance', 0)} measured "
+                     "strategy result(s) persisted in storage")
         return lines
 
     def journal_lines(self, *, symbol: Optional[str] = None,

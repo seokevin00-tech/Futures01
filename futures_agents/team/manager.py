@@ -151,8 +151,18 @@ class ManagerAgent(TeamAgent):
                 created += [r, w]
                 research_ids.append(w.task_id)
 
+        # Artefact names are per-role, not per-symbol: analyst_a always writes
+        # prediction_a.json. Interleaving two symbols therefore lets the second
+        # one overwrite the first's artefacts before the first has been
+        # journalled, and the journal agent - correctly refusing to record
+        # another symbol's callout as this one's - records nothing at all.
+        # Chaining each symbol's first task to the previous symbol's last one
+        # keeps every symbol's cycle atomic over the shared namespace.
+        previous_symbol_tail: Optional[str] = None
+
         for sym in symbols:
-            deps = tuple([news.task_id] + research_ids)
+            deps = tuple([news.task_id] + research_ids
+                         + ([previous_symbol_tail] if previous_symbol_tail else []))
             analyst_tasks = []
             for role, label in ((Role.ANALYST_A, "technical and market structure"),
                                 (Role.ANALYST_B, "quantitative and statistical"),
@@ -176,10 +186,14 @@ class ManagerAgent(TeamAgent):
                              priority=TaskPriority.CRITICAL,
                              depends_on=(decide.task_id,),
                              payload={"symbol": sym})
+            # HIGH, not NORMAL: journalling is part of this symbol's cycle, not
+            # cleanup to be done once every symbol has finished. At NORMAL it
+            # sorted behind the next symbol's analysts and lost the record.
             rec = board.add("record", f"{sym}: journal the prediction and decision",
-                            depends_on=(risk.task_id,), priority=TaskPriority.NORMAL,
+                            depends_on=(risk.task_id,), priority=TaskPriority.HIGH,
                             payload={"symbol": sym})
             created += [decide, risk, rec]
+            previous_symbol_tail = rec.task_id
 
         self.log(f"planned {len(created)} tasks for {len(symbols)} symbol(s)")
         return created

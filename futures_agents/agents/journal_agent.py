@@ -85,6 +85,8 @@ WEIGHT_CAP = 1.0
 RESOLVED_RESULTS: Tuple[str, ...] = ("WIN", "LOSS", "BREAKEVEN", "SCRATCH")
 
 _NUMBER = re.compile(r"\d+(?:\.\d+)?")
+#: "5m", "15 m" - the house way of naming a timeframe in a rendered block.
+_TIMEFRAME = re.compile(r"(\d+)\s*m", re.IGNORECASE)
 _REGIMES = {r.value for r in MarketRegime}
 _VOLS = {v.value for v in VolatilityRegime}
 _NEWS_LEVELS = ("BLACKOUT", "HIGH", "MODERATE", "LOW", "NONE")
@@ -453,10 +455,15 @@ finding with a small sample must read as provisional.
             regime = measured_regime
         session = classify_session(ts)
 
-        timeframes = [int(t) for t in _NUMBER.findall(str(callout.get("timeframe") or ""))]
+        # The callout's timeframe field is prose ("30-120 minutes (intraday swing
+        # on the 5m structure)"), so only "<n>m" tokens that name a configured
+        # timeframe are taken. Scraping every number out of it yields horizons
+        # and bar counts masquerading as timeframes.
+        configured = {_i(t) for t in (getattr(ctx.config, "timeframes", ()) or ())}
+        quoted = {int(v) for v in _TIMEFRAME.findall(str(callout.get("timeframe") or ""))}
+        timeframes = sorted(quoted & configured if configured else quoted)
         if not timeframes:
-            timeframes = list(getattr(snap, "timeframes", []) or
-                              list(getattr(ctx.config, "timeframes", ()) or ()))
+            timeframes = sorted(getattr(snap, "timeframes", []) or configured)
 
         # Indicators: named indicator evidence first; when the evidence chain is
         # not typed, every evidence name is better than an empty column.
@@ -825,19 +832,41 @@ finding with a small sample must read as provisional.
         down = reference - min(b.low for b in window)
         drift = window[-1].close - reference
 
+        # A NO TRADE callout publishes no levels of its own. Without falling back
+        # to the levels the analysts who wanted the trade published, every
+        # declined setup would be unmeasurable, and "what we wrongly passed on"
+        # would never be answerable - which is half the reason to journal them.
+        levels_from = "callout"
+        shadow_entry, shadow_stop = entry_px, stop
+        if shadow_stop is None and lean.sign:
+            derived = _consensus_levels(row, lean)
+            if derived:
+                # Medians of several analysts' levels land between ticks; every
+                # price this system quotes sits on one.
+                shadow_stop = spec.round_to_tick(derived["stop"])
+                shadow_entry = (shadow_entry if shadow_entry is not None
+                                else spec.round_to_tick(derived["entry"]
+                                                        if derived["entry"] is not None
+                                                        else reference))
+                targets = list(targets) or [spec.round_to_tick(t)
+                                            for t in derived["targets"]]
+                levels_from = "the levels the analysts who wanted it published"
+        if shadow_entry is None:
+            shadow_entry = reference
+
         shadow_r: Optional[float] = None
         shadow_reason = ""
         mfe_r = mae_r = 0.0
         mfe_points = max(up, 0.0) if lean is not Direction.SHORT else max(down, 0.0)
         mae_points = max(down, 0.0) if lean is not Direction.SHORT else max(up, 0.0)
-        if stop is not None and entry_px is not None and lean.sign and entry_px != stop:
+        if shadow_stop is not None and lean.sign and shadow_entry != shadow_stop:
             sign = lean.sign
-            risk_points = abs(entry_px - stop)
-            walk = _walk(window, entry=entry_px, stop=stop, targets=list(targets),
-                         sign=sign)
+            risk_points = abs(shadow_entry - shadow_stop)
+            walk = _walk(window, entry=shadow_entry, stop=shadow_stop,
+                         targets=list(targets), sign=sign)
             exit_price = walk["exit_price"] if walk["exit_price"] is not None else window[-1].close
             shadow_reason = walk["exit_reason"] or "TIME"
-            shadow_r = (sign * (exit_price - entry_px) / risk_points
+            shadow_r = (sign * (exit_price - shadow_entry) / risk_points
                         - costs.cost_in_r(risk_points))
             mfe_points, mae_points = walk["mfe_points"], walk["mae_points"]
             mfe_r, mae_r = mfe_points / risk_points, mae_points / risk_points
@@ -847,13 +876,14 @@ finding with a small sample must read as provisional.
                  f"{max(down, 0.0):.2f} points below {reference:g}, closing "
                  f"{drift:+.2f} points from it."]
         if shadow_r is not None:
-            parts.append(f"Shadow outcome had it been taken: {shadow_r:+.2f}R via "
-                         f"{shadow_reason} (MFE {mfe_r:+.2f}R, MAE {mae_r:+.2f}R).")
+            parts.append(f"Shadow outcome had it been taken, on {levels_from}: "
+                         f"{shadow_r:+.2f}R via {shadow_reason} "
+                         f"(MFE {mfe_r:+.2f}R, MAE {mae_r:+.2f}R).")
             parts.append("Avoiding it was correct." if shadow_r <= 0
                          else "This one was wrongly passed on.")
         else:
-            parts.append("No entry and stop were published, so no shadow R is "
-                         "computable - only the drift above is measured.")
+            parts.append("Neither the callout nor any analyst published a stop, so "
+                         "no shadow R is computable - only the drift above is measured.")
 
         return {
             "result": "NOT_TAKEN",
@@ -875,6 +905,9 @@ finding with a small sample must read as provisional.
                             "reference_price": round(reference, 4),
                             "shadow_r": _round(shadow_r),
                             "shadow_exit_reason": shadow_reason,
+                            "shadow_levels_from": levels_from,
+                            "shadow_entry": _round(shadow_entry),
+                            "shadow_stop": _round(shadow_stop),
                             "bars_in_horizon": len(window)},
         }
 
@@ -1009,10 +1042,11 @@ finding with a small sample must read as provisional.
                      f"{len(analysts)} analyst(s) scored on {artefact['resolved_trades']} "
                      f"resolved {symbol} trade(s)")
 
-        if not analysts:
+        if not analysts or not artefact["resolved_trades"]:
             summary = (f"[{et_stamp_short(ctx.now())}] no analyst predictions have "
                        f"resolved for {symbol} yet - nothing measurable to judge "
-                       f"({len(rows)} journal row(s) on file)")
+                       f"({len(rows)} journal row(s) on file, "
+                       f"{artefact['not_taken']} not taken)")
         else:
             lead = analysts[0]
             summary = (f"[{et_stamp_short(ctx.now())}] scored {len(analysts)} analyst(s) "
@@ -1443,6 +1477,44 @@ def _attribute(view: Dict[str, Any], traded: Direction,
         "false_signal": bool(direction.sign and not correct),
         "directional": bool(direction.sign),
     }
+
+
+def _median(values: Sequence[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if not ordered:
+        return 0.0
+    return (ordered[mid] if len(ordered) % 2
+            else (ordered[mid - 1] + ordered[mid]) / 2.0)
+
+
+def _consensus_levels(row: Dict[str, Any],
+                      lean: Direction) -> Optional[Dict[str, Any]]:
+    """The entry, stop and target published by the analysts who wanted this trade.
+
+    Medians rather than means, so one analyst with a very wide stop cannot set
+    the risk unit the shadow result is measured in.
+    """
+    entries: List[float] = []
+    stops: List[float] = []
+    targets: List[float] = []
+    for view in _list(row.get("analyst_predictions")):
+        if not isinstance(view, dict):
+            continue
+        if Direction.coerce(view.get("direction")) is not lean:
+            continue
+        zone = view.get("entry_zone")
+        if isinstance(zone, (list, tuple)) and len(zone) == 2:
+            entries.append(_mean([_f(zone[0]), _f(zone[1])]))
+        stop = _fo(view.get("stop"))
+        if stop is not None:
+            stops.append(stop)
+        targets.extend(_f(t) for t in _list(view.get("targets")))
+    if not stops:
+        return None
+    return {"entry": _median(entries) if entries else None,
+            "stop": _median(stops),
+            "targets": [_median(targets)] if targets else []}
 
 
 def _finalise(attributions: Sequence[Dict[str, Any]]) -> Dict[str, Any]:

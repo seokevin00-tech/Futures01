@@ -639,7 +639,6 @@ class DecisionAgent(DomainAgent):
 
     def _gather_views(self, symbol: str, regime: str) -> List[_AnalystView]:
         """Read each analyst's artefact and attach its measured track record."""
-        ctx = self.require_context()
         views: List[_AnalystView] = []
         for role, artefact, letter, family in _ANALYSTS:
             view = _AnalystView(role=role, letter=letter, artefact=artefact,
@@ -919,9 +918,6 @@ class DecisionAgent(DomainAgent):
     # ==================================================================
     def _evaluate(self, assessment: _Assessment) -> None:
         """Record every dimension as Evidence, then apply the gates."""
-        ctx = self.require_context()
-        acct = assessment.account
-        symbol = assessment.symbol
         lean_dir = assessment.lean.as_direction
 
         # ---- 1. is there any evidence at all ---------------------------
@@ -1672,8 +1668,14 @@ class DecisionAgent(DomainAgent):
             # contracts, dollar_risk, account_risk_pct and risk_assessment are
             # deliberately left at their defaults: the risk agent sizes this
             # proposal and may veto it outright.
-            strategy=assessment.strategy_name or str(
-                (assessment.strategy or {}).get("strategy_id") or ""),
+            # The strategy *id*, not the display name. This field is the join
+            # key every downstream lookup uses - the performance rows, the
+            # journal's conditional slices, the risk layer's history check - and
+            # a pretty name that resolves to nothing turns a measured edge into
+            # "no history for this strategy". The readable name is in the
+            # rationale and in the published decision payload.
+            strategy=(str((assessment.strategy or {}).get("strategy_id") or "")
+                      or assessment.strategy_name),
             strategy_group=assessment.strategy_group,
             timeframe=timeframe,
             market_regime=assessment.regime,
@@ -1841,6 +1843,9 @@ class DecisionAgent(DomainAgent):
             },
             "news_risk": assessment.news_risk.value,
             "news_known": assessment.news_known,
+            "strategy_id": str((assessment.strategy or {}).get("strategy_id") or ""),
+            "strategy_name": assessment.strategy_name,
+            "strategy_group": assessment.strategy_group,
             "strategy": assessment.strategy,
             "historical_performance": (assessment.historical.to_dict()
                                        if assessment.historical else None),

@@ -37,7 +37,7 @@ from .alerts import Priority
 from .config import SystemConfig, load_config, tf_label
 from .orchestrator import Orchestrator
 from .team.roles import Role
-from .timeutil import et_stamp, now_et, to_et
+from .timeutil import et_stamp, to_et
 
 __all__ = ["main", "build_parser"]
 
