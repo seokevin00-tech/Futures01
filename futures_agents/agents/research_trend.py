@@ -37,6 +37,7 @@ not evidence of rigour.
 from __future__ import annotations
 
 import inspect
+import json
 import time
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -1473,16 +1474,38 @@ class ResearchTrendAgent(StrategyResearchAgent):
         return doc, ""
 
     @staticmethod
-    def _harvest(doc: Any, required: Sequence[str], *, depth: int = 0
-                 ) -> List[Dict[str, Any]]:
-        """Every dict anywhere in a document that carries all ``required`` keys.
+    def _harvest(doc: Any, required: Sequence[str]) -> List[Dict[str, Any]]:
+        """Every distinct dict in a document that carries all ``required`` keys.
 
         Shape-tolerant on purpose. The three specialists agree on the *names* of
         their artefacts and on the debate dataclasses inside them, but nothing
         forces them to agree on the nesting, and a reader that only understands
         one layout silently reports "no rival findings" when the rival in fact
         published plenty.
+
+        **De-duplicated, which is not optional.** This agent - and any rival
+        copying its layout - publishes each record twice, once under
+        ``symbols.<SYMBOL>`` and once in a flat convenience list. A recursive
+        search finds both copies, so without this every challenge would be
+        answered twice and every rival finding cross-examined twice. Identical
+        records are collapsed; genuinely distinct ones are all kept.
         """
+        seen: Dict[str, None] = {}
+        out: List[Dict[str, Any]] = []
+        for row in ResearchTrendAgent._walk(doc, required, 0):
+            try:
+                key = json.dumps(row, sort_keys=True, default=str)
+            except (TypeError, ValueError):              # pragma: no cover
+                key = repr(sorted(row))
+            if key in seen:
+                continue
+            seen[key] = None
+            out.append(row)
+        return out
+
+    @staticmethod
+    def _walk(doc: Any, required: Sequence[str], depth: int
+              ) -> List[Dict[str, Any]]:
         if depth > 8:
             return []
         out: List[Dict[str, Any]] = []
@@ -1491,12 +1514,10 @@ class ResearchTrendAgent(StrategyResearchAgent):
                 out.append(doc)
             else:
                 for value in doc.values():
-                    out.extend(ResearchTrendAgent._harvest(value, required,
-                                                           depth=depth + 1))
+                    out.extend(ResearchTrendAgent._walk(value, required, depth + 1))
         elif isinstance(doc, (list, tuple)):
             for value in doc:
-                out.extend(ResearchTrendAgent._harvest(value, required,
-                                                       depth=depth + 1))
+                out.extend(ResearchTrendAgent._walk(value, required, depth + 1))
         return out
 
     def _rerun_fingerprint(self, frame: SymbolFrame, offset: int,
