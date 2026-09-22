@@ -511,8 +511,20 @@ def test_every_condition_can_reach_a_strategy():
 
 def test_every_condition_appears_in_a_generated_strategy():
     """The end-to-end version of the same claim, which is the one that counts:
-    reachable in principle is not the same as generated in practice."""
-    strategies = generate_strategies("MNQ", list(TIMEFRAMES), max_total=4000, seed=1)
+    reachable in principle is not the same as generated in practice.
+
+    Asked of the whole template catalogue, not of one contract. Per-symbol
+    profiles narrow generation on purpose - MGC is not tested with an
+    opening-range template calibrated to the equity open - so a condition only
+    that family can draw is legitimately absent from MGC's universe while still
+    being reachable by the system. Passing the full group list keeps this test
+    about the library-to-catalogue invariant it was written for; the per-symbol
+    question is tested in test_symbol_profiles.py.
+    """
+    from futures_agents.strategies.combinator import TEMPLATES
+    all_groups = [t.group for t in TEMPLATES]
+    strategies = generate_strategies("MNQ", list(TIMEFRAMES), groups=all_groups,
+                                     max_total=4000, seed=1)
     used = {c.name for s in strategies for c in s.conditions}
     missing = sorted(set(CONDITIONS) - used)
     assert not missing, f"conditions that reach no generated strategy: {missing}"

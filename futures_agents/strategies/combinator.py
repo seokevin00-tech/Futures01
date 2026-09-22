@@ -419,7 +419,16 @@ def generate_combinations(
     tfs = sorted({int(t) for t in timeframes})
     if not tfs:
         raise ValueError("at least one timeframe is required")
-    wanted = list(groups) if groups else [t.group for t in TEMPLATES]
+    # A caller that names groups gets exactly those. One that does not gets
+    # this contract's profile if it has one, and the full set if it does not -
+    # so an unprofiled symbol is tested broadly rather than silently narrowed
+    # by a prior written for something else.
+    if groups:
+        wanted = list(groups)
+    else:
+        from .profiles import groups_for
+        wanted = list(groups_for(symbol, [t.group for t in TEMPLATES])
+                      or [t.group for t in TEMPLATES])
 
     if confirm_map is None:
         confirm_map = {}
