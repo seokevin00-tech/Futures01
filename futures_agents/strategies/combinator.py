@@ -314,6 +314,68 @@ def _signal_pools(template: StrategyTemplate) -> Tuple[List[List[str]], List[Lis
     return [p for p in required if p], [p for p in optional if p]
 
 
+#: Condition pairs that are the same statement wearing two names, enforced
+#: whatever template draws them.
+#:
+#: The diversity rule assumes different condition *groups* mean different
+#: evidence. Three reviewers measured the first pair independently and found
+#: the same thing: on 20 days of 15-minute bars they co-fire on 3,980 bars and
+#: have **never once disagreed on direction**. Both say "the close is beyond a
+#: prior-session reference level", against two reference levels that mostly
+#: coincide - so a confluence holding both counts one observation twice and
+#: looks better corroborated than it is, which is precisely the failure the
+#: diversity rule exists to prevent. ``exclusive`` is per-template and cannot
+#: express that, because the property belongs to the conditions.
+#:
+#: Deliberately short. Several further pairs measure as near-duplicates on
+#: synthetic data (the trend/momentum block especially), but the generator's
+#: own trend persistence is a plausible cause and a structural explanation is
+#: the bar for entry here. Use :func:`measure_condition_overlap` to rebuild
+#: the candidate list on real data rather than promoting these on a hunch.
+GLOBAL_EXCLUSIVE: Tuple[Tuple[str, str], ...] = (
+    # Same statement, two reference levels that mostly coincide.
+    ("value_area_breakout", "prior_day_breakout"),
+    # Both are "price is stretched to an extreme in volatility units"; the
+    # oscillator and the channel disagree on almost nothing.
+    ("stoch_extreme", "keltner_outside"),
+    ("stoch_extreme", "bollinger_mean_pull"),
+)
+
+
+def measure_condition_overlap(snapshots, timeframe: int, *,
+                              min_cofires: int = 50):
+    """Trigger overlap between every pair of SIGNAL conditions.
+
+    Returns ``(a, b, jaccard, agreement, cofires)`` sorted by agreement then
+    overlap, so a desk can rebuild :data:`GLOBAL_EXCLUSIVE` from its own data
+    instead of inheriting a list measured on someone else's.
+    """
+    fired: Dict[str, Dict[int, str]] = {}
+    for name, cond in CONDITIONS.items():
+        if cond.kind is not ConditionKind.SIGNAL:
+            continue
+        hits: Dict[int, str] = {}
+        for i, snap in enumerate(snapshots):
+            res = cond.evaluate(snap, timeframe)
+            if res.triggered:
+                hits[i] = res.direction.value
+        fired[name] = hits
+
+    out = []
+    names = sorted(fired)
+    for i, a in enumerate(names):
+        for b in names[i + 1:]:
+            A, B = fired[a], fired[b]
+            inter = set(A) & set(B)
+            if len(inter) < min_cofires:
+                continue
+            union = set(A) | set(B)
+            agree = sum(1 for k in inter if A[k] == B[k]) / len(inter)
+            out.append((a, b, len(inter) / len(union), agree, len(inter)))
+    out.sort(key=lambda r: (-r[3], -r[2]))
+    return out
+
+
 def _filter_sets(template: StrategyTemplate) -> List[Tuple[str, ...]]:
     """Every filter set to test: the base filters, plus each subset of the
     optional ones. Index 0 is always the bare base set, so "with the news
@@ -331,7 +393,8 @@ def _filter_sets(template: StrategyTemplate) -> List[Tuple[str, ...]]:
 def _violates_exclusive(names: Sequence[str],
                         exclusive: Sequence[Sequence[str]]) -> bool:
     s = set(names)
-    return any(len(s.intersection(pair)) > 1 for pair in exclusive)
+    return any(len(s.intersection(pair)) > 1
+               for pair in tuple(exclusive) + GLOBAL_EXCLUSIVE)
 
 
 def generate_combinations(

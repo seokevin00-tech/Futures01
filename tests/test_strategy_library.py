@@ -480,3 +480,126 @@ def test_no_condition_in_the_library_raises_through_the_guard(snapshots):
             f"{condition_errors()}")
     finally:
         reset_condition_errors()
+
+
+# --------------------------------------------------------------------------
+# Reachability: the invariant three reviewers found broken
+# --------------------------------------------------------------------------
+
+def test_every_condition_can_reach_a_strategy():
+    """Registration is not reachability.
+
+    The combinator draws SIGNAL conditions from a template's condition groups
+    and FILTER conditions only from its filter lists, so a filter no template
+    lists cannot appear in any strategy however well it is written. Fourteen
+    of seventy-three conditions were in that state and nothing reported it -
+    the coverage report counted them as proof a specification variable was
+    tradeable.
+    """
+    from futures_agents.strategies.coverage import unreachable_conditions
+    dead = unreachable_conditions()
+    assert not dead, f"conditions no template can draw: {dead}"
+
+
+def test_every_condition_appears_in_a_generated_strategy():
+    """The end-to-end version of the same claim, which is the one that counts:
+    reachable in principle is not the same as generated in practice."""
+    strategies = generate_strategies("MNQ", list(TIMEFRAMES), max_total=4000, seed=1)
+    used = {c.name for s in strategies for c in s.conditions}
+    missing = sorted(set(CONDITIONS) - used)
+    assert not missing, f"conditions that reach no generated strategy: {missing}"
+
+
+def test_coverage_entries_do_not_quote_dead_conditions():
+    from futures_agents.strategies.coverage import weakly_covered
+    weak = weakly_covered()
+    assert not weak, ("spec variables quoting a condition the generator will "
+                      f"never build: {weak}")
+
+
+# --------------------------------------------------------------------------
+# Diversity: a confluence must not count one observation twice
+# --------------------------------------------------------------------------
+
+def test_no_strategy_holds_a_globally_exclusive_pair(snapshots):
+    """`value_area_breakout` and `prior_day_breakout` sit in different groups,
+    so the diversity rule let them share a confluence - while co-firing on
+    thousands of bars and never once disagreeing on direction."""
+    from futures_agents.strategies.combinator import GLOBAL_EXCLUSIVE
+    strategies = generate_strategies("MNQ", list(TIMEFRAMES), max_total=4000, seed=1)
+    offenders = []
+    for s in strategies:
+        names = {c.name for c in s.conditions}
+        for pair in GLOBAL_EXCLUSIVE:
+            if len(names & set(pair)) > 1:
+                offenders.append((s.name, pair))
+    assert not offenders, f"confluences double-counting one observation: {offenders[:5]}"
+
+
+def test_globally_exclusive_pairs_really_are_near_duplicates(snapshots):
+    """Guard the list itself. A pair that does NOT duplicate should not be in
+    here - banning genuinely different evidence costs real hypotheses."""
+    from futures_agents.strategies.combinator import GLOBAL_EXCLUSIVE
+    for a, b in GLOBAL_EXCLUSIVE:
+        ca, cb = CONDITIONS[a], CONDITIONS[b]
+        fa, fb = {}, {}
+        for i, snap in enumerate(snapshots):
+            ra, rb = ca.evaluate(snap, PRIMARY_TF), cb.evaluate(snap, PRIMARY_TF)
+            if ra.triggered:
+                fa[i] = ra.direction
+            if rb.triggered:
+                fb[i] = rb.direction
+        inter = set(fa) & set(fb)
+        if len(inter) < 30:
+            continue                     # too few co-fires to judge on this data
+        agree = sum(1 for i in inter if fa[i] == fb[i]) / len(inter)
+        assert agree >= 0.90, (
+            f"{a} / {b} are listed as duplicates but agree only "
+            f"{agree:.2f} of the time over {len(inter)} co-fires")
+
+
+# --------------------------------------------------------------------------
+# The news windows must not contradict each other
+# --------------------------------------------------------------------------
+
+def test_post_news_window_starts_where_the_blackout_ends(sym_frame):
+    """A strategy carrying both filters must not be asking to trade inside a
+    window the risk manager has already closed. The only legitimate overlap is
+    a second event: standing in the reaction window of one release while
+    inside the run-up blackout of the next, which is what FOMC 14:00 and its
+    14:30 press conference produce."""
+    from futures_agents.features import NEWS_BLACKOUT_BEFORE_MIN
+    cond = CONDITIONS["post_news_window"]
+    spurious = []
+    n = len(sym_frame.base)
+    for i in range(0, n, 3):
+        snap = sym_frame.snapshot(i)
+        if (snap.in_news_blackout and cond.evaluate(snap, PRIMARY_TF).triggered
+                and snap.minutes_to_high_impact > NEWS_BLACKOUT_BEFORE_MIN):
+            spurious.append(snap.ts)
+    assert not spurious, (
+        f"{len(spurious)} bars are inside the blackout AND the post-news "
+        f"window with no upcoming event to explain it, e.g. {spurious[:3]}")
+
+
+def test_blackout_is_before_the_event_not_after_it():
+    """The sign convention, pinned. Written the other way round the window
+    blacks out `after_min` AHEAD of the print and `before_min` past it, which
+    leaves the minutes immediately before an 08:30 release open for business -
+    the exact opposite of the point."""
+    from datetime import timedelta
+    from futures_agents.econ_calendar import Impact, event_proximity, project_events
+    from futures_agents.timeutil import ET
+    from datetime import datetime
+    start = datetime(2026, 1, 5, tzinfo=ET)
+    events = [e for e in project_events(start, start + timedelta(days=40))
+              if e.impact.rank >= Impact.HIGH.rank]
+    assert events, "no high-impact events projected - the rest proves nothing"
+    ev = events[0].when
+    # 5 minutes BEFORE the release: must be blacked out at -10/+15.
+    assert event_proximity(ev - timedelta(minutes=5), before_min=10, after_min=15)[1]
+    # 12 minutes after: still inside the post-event half.
+    assert event_proximity(ev + timedelta(minutes=12), before_min=10, after_min=15)[1]
+    # 30 minutes before and 30 after: outside both halves.
+    assert not event_proximity(ev - timedelta(minutes=30), before_min=10, after_min=15)[1]
+    assert not event_proximity(ev + timedelta(minutes=30), before_min=10, after_min=15)[1]

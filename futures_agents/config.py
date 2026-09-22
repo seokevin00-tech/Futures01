@@ -339,8 +339,19 @@ class AccountConfig:
     )
 
     #: News blackout windows in minutes around a high-impact event.
+    #:
+    #: The post-event half was 5 minutes, which is shorter than the adjustment
+    #: it exists to sit out. Ederington & Lee (1993) find the price adjustment
+    #: lands in the first minute but volatility stays above normal for roughly
+    #: fifteen; the standard FOMC event window in the monetary-policy-surprise
+    #: literature is -10/+20. Fifteen is the conservative end of that range.
+    #: This is a citation, not a measurement - there are no real bars in this
+    #: repository to measure reaction decay on, and the synthetic generator
+    #: places its one daily shock at a uniformly random minute, so 08:30 ranks
+    #: 243rd of 1,380 minutes by mean absolute move. Anything measured here
+    #: about news would be measuring a random walk.
     news_blackout_before_min: int = 10
-    news_blackout_after_min: int = 5
+    news_blackout_after_min: int = 15
     high_impact_risk_multiplier: float = 0.5   # size down when a catalyst is near
 
     def failure_equity(self, peak_equity: float) -> float:

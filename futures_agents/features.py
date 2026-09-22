@@ -905,7 +905,14 @@ class SymbolFrame:
         # and PCE all sat outside the projection - an artefact of the horizon
         # that a strategy would have read as a quiet calendar.
         end = bars[-1].ts + timedelta(days=45)
-        events = [e for e in project_events(start, end)
+        # Pass the symbol: the calendar carries symbol-scoped rules, and
+        # without this an MCL frame never sees the EIA inventory report - the
+        # single largest scheduled mover of WTI, and the only high-impact US
+        # release that lands INSIDE the RTH session. Every other HIGH rule
+        # prints at 08:30, before the 09:30 open, so for an rth_only strategy
+        # the news dimension was conditioning on four FOMC days in a hundred
+        # and twenty and nothing else.
+        events = [e for e in project_events(start, end, symbol=self.symbol)
                   if e.impact.rank >= Impact.HIGH.rank]
         out: List[Tuple[float, float, bool]] = []
         if not events:

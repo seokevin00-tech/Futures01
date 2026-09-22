@@ -17,7 +17,8 @@ from __future__ import annotations
 import math
 from typing import Callable, Dict, List, Optional, Sequence
 
-from ..features import FeatureSnapshot, TFSnapshot
+from ..features import (NEWS_BLACKOUT_AFTER_MIN, FeatureSnapshot,
+                        TFSnapshot)
 from ..schema import Direction, fmt_price
 from .base import Condition, ConditionKind, ConditionResult
 
@@ -1190,9 +1191,19 @@ def _news_far(snap, tf):
 
 
 @condition("post_news_window", "news", kind=ConditionKind.FILTER,
-           description="In the 5-60 minute reaction window after a high-impact release")
+           description="In the reaction window after a high-impact release, "
+                       "starting where the blackout ends")
 def _news_after(snap, tf):
+    # The lower bound tracks the blackout rather than restating a number.
+    # At a fixed 5 minutes it overlapped a 15-minute blackout for ten of them,
+    # so a strategy carrying both filters was asking to trade inside a window
+    # the risk manager had already closed - two conditions in one confluence
+    # contradicting each other rather than confirming.
+    #
+    # Strictly greater, not >=: the blackout's own bound is inclusive, so
+    # sharing the endpoint left exactly one bar per event inside both.
     since = snap.minutes_since_high_impact
-    if since == float("inf") or not (5.0 <= since <= 60.0):
+    lo = float(NEWS_BLACKOUT_AFTER_MIN)
+    if since == float("inf") or not (lo < since <= 60.0):
         return ConditionResult.no()
     return ConditionResult.yes(FLAT, f"{since:.0f}m after a high-impact release")
