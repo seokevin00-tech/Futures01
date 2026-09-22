@@ -1243,6 +1243,15 @@ class StrategyResearchAgent(DomainAgent):
             "so the protocol",
             "    tally does not cover it.",
             "",
+            "    The CHALLENGES block above marks each objection as FILED: "
+            "pool_findings resolves",
+            "    verdicts on copies and does not hand them back, so an objection "
+            "that was later",
+            "    met by a measured rebuttal still reads UPHELD there. The "
+            "resolved outcome is the",
+            "    penalty in the POOLED RANKING and the upheld/survived counts "
+            "below.",
+            "",
             f"    {'specialist':<20}{'find':>5}{'surv':>5}{'elig':>5} | "
             f"{'filed':>6}{'meas':>5}{'pad':>4}{'upheld':>7} | "
             f"{'rcvd':>5}{'survd':>6} | {'rebut':>6}{'conc':>5}{'wall':>5}",

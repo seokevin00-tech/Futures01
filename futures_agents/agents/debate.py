@@ -139,7 +139,55 @@ class Finding:
             "base_score": round(self.base_score, 5),
             "trades": len(self.r_series), "claim": self.claim,
             "timestamp_et": self.timestamp_et,
+            # The fingerprint and R series MUST survive publication. Redundancy
+            # detection is defined on the fingerprint, so a Finding serialised
+            # without it cannot be checked against anyone else's - and
+            # find_redundancy then returns an empty list, which reads exactly
+            # like "these edges are independent". Two specialists reporting the
+            # identical edge would pass pooling as corroboration. The failure is
+            # silent, which is why it is worth the extra bytes.
+            "trade_fingerprint": [list(p) for p in self.trade_fingerprint],
+            "r_series": [round(float(r), 6) for r in self.r_series],
         }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Finding":
+        """Rehydrate a published finding.
+
+        Provided so every specialist and the desk lead parse artefacts the same
+        way. Three agents each writing their own tolerant parser is how one of
+        them quietly drops the fingerprint again.
+        """
+        metrics = None
+        raw_metrics = data.get("metrics")
+        if isinstance(raw_metrics, dict):
+            metrics = Metrics()
+            for key, value in raw_metrics.items():
+                if hasattr(metrics, key):
+                    setattr(metrics, key, value)
+        fingerprint = [
+            (int(p[0]), int(p[1]))
+            for p in (data.get("trade_fingerprint") or [])
+            if isinstance(p, (list, tuple)) and len(p) >= 2
+        ]
+        return cls(
+            owner=str(data.get("owner", "")),
+            symbol=str(data.get("symbol", "")),
+            strategy_id=str(data.get("strategy_id", "")),
+            strategy_name=str(data.get("strategy_name", "")),
+            family=str(data.get("family", "")),
+            timeframe=data.get("timeframe"),
+            metrics=metrics,
+            robustness_score=float(data.get("robustness_score") or 0.0),
+            walk_forward_efficiency=float(data.get("walk_forward_efficiency") or 0.0),
+            trials_searched=int(data.get("trials_searched") or 1),
+            live_eligible=bool(data.get("live_eligible")),
+            trade_fingerprint=fingerprint,
+            r_series=[float(r) for r in (data.get("r_series") or [])],
+            claim=str(data.get("claim", "")),
+            timestamp_et=str(data.get("timestamp_et")
+                             or to_et(now_et()).isoformat()),
+        )
 
 
 @dataclass
@@ -196,6 +244,36 @@ class Challenge:
                 f"[{self.kind.value}] {self.target_strategy_id}: {self.claim} "
                 f"({self.verdict.value})")
 
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Challenge":
+        """Rehydrate a published challenge.
+
+        ``measurement`` is preserved exactly - including when it is empty,
+        because an empty one is what makes ``is_substantiated`` False and gets
+        the challenge discarded. Defaulting it to a placeholder would silently
+        promote an unsubstantiated objection into a real one.
+        """
+        kind = data.get("kind")
+        try:
+            kind = ChallengeKind(kind)
+        except ValueError:
+            kind = ChallengeKind.REDUNDANT
+        try:
+            verdict = Verdict(data.get("verdict", Verdict.UNANSWERED.value))
+        except ValueError:
+            verdict = Verdict.UNANSWERED
+        measurement = data.get("measurement")
+        return cls(
+            challenger=str(data.get("challenger", "")),
+            target_owner=str(data.get("target_owner", "")),
+            target_strategy_id=str(data.get("target_strategy_id", "")),
+            symbol=str(data.get("symbol", "")),
+            kind=kind, claim=str(data.get("claim", "")),
+            measurement=dict(measurement) if isinstance(measurement, dict) else {},
+            verdict=verdict,
+            timestamp_et=str(data.get("timestamp_et") or to_et(now_et()).isoformat()),
+        )
+
 
 @dataclass
 class Rebuttal:
@@ -224,6 +302,23 @@ class Rebuttal:
             "substantiated": self.is_substantiated,
             "timestamp_et": self.timestamp_et,
         }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Rebuttal":
+        """Rehydrate a published rebuttal, preserving an empty measurement."""
+        try:
+            verdict = Verdict(data.get("verdict", Verdict.UNANSWERED.value))
+        except ValueError:
+            verdict = Verdict.UNANSWERED
+        measurement = data.get("measurement")
+        return cls(
+            responder=str(data.get("responder", "")),
+            challenger=str(data.get("challenger", "")),
+            target_strategy_id=str(data.get("target_strategy_id", "")),
+            verdict=verdict, argument=str(data.get("argument", "")),
+            measurement=dict(measurement) if isinstance(measurement, dict) else {},
+            timestamp_et=str(data.get("timestamp_et") or to_et(now_et()).isoformat()),
+        )
 
 
 # --------------------------------------------------------------------------
