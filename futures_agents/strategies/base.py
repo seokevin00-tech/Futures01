@@ -346,6 +346,11 @@ class ExitModel:
 # Scope filters
 # --------------------------------------------------------------------------
 
+#: A bar at or above this length spans whole sessions, so intraday scope
+#: filters (RTH, minutes-since-open) cannot meaningfully apply to it.
+_SESSION_MINUTES = 390
+
+
 @dataclass(frozen=True)
 class StrategyFilters:
     """Where and when a strategy is permitted to trade.
@@ -364,8 +369,22 @@ class StrategyFilters:
     max_minutes_since_open: Optional[float] = None
     require_alignment: Optional[float] = None        # |alignment| threshold
 
-    def passes(self, snap: FeatureSnapshot) -> Tuple[bool, str]:
-        if self.rth_only and not snap.is_rth:
+    def passes(self, snap: FeatureSnapshot,
+               timeframe: Optional[int] = None) -> Tuple[bool, str]:
+        """Scope gate for one bar.
+
+        ``timeframe`` is the strategy's own bar length. It matters for exactly
+        one check and that check was silently fatal without it: a session
+        filter cannot be applied to a bar that spans whole sessions. A daily
+        bar is stamped at midnight and ``rth_only`` asks whether the stamp
+        falls between 09:30 and 16:00, so **every** daily bar failed and every
+        daily strategy took zero trades - 149 of 149 over seven years of MNQ,
+        reported as "nothing cleared the sample floor" when nothing had been
+        evaluated at all. The daily bar does not sit inside a session; it
+        contains them.
+        """
+        session_scale = timeframe is not None and timeframe >= _SESSION_MINUTES
+        if self.rth_only and not session_scale and not snap.is_rth:
             return False, "outside RTH"
         if self.sessions and snap.session not in self.sessions:
             return False, f"session {snap.session} not permitted"
@@ -376,10 +395,15 @@ class StrategyFilters:
         if self.days_of_week and snap.day_of_week not in self.days_of_week:
             return False, f"day {snap.day_of_week} not permitted"
         mso = snap.minutes_since_open
-        if self.min_minutes_since_open is not None and mso < self.min_minutes_since_open:
-            return False, "too early in session"
-        if self.max_minutes_since_open is not None and mso > self.max_minutes_since_open:
-            return False, "too late in session"
+        # Time-since-open windows are equally meaningless at session scale: a
+        # daily bar is never "30 minutes into the session".
+        if not session_scale:
+            if (self.min_minutes_since_open is not None
+                    and mso < self.min_minutes_since_open):
+                return False, "too early in session"
+            if (self.max_minutes_since_open is not None
+                    and mso > self.max_minutes_since_open):
+                return False, "too late in session"
         if self.require_alignment is not None:
             if abs(snap.alignment()) < self.require_alignment:
                 return False, "timeframes not aligned"
@@ -571,7 +595,7 @@ class Strategy:
         Uses only ``snap``, which by construction contains no data from after
         its own bar.
         """
-        ok, why = self.filters.passes(snap)
+        ok, why = self.filters.passes(snap, self.primary_tf)
         if not ok:
             return None
 
