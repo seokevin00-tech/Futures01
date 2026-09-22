@@ -62,6 +62,47 @@ CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
 FIELDS = ("timestamp", "open", "high", "low", "close", "volume")
 
 
+def fetch_via_yfinance(ticker: str, interval: str, range_: str) -> List[dict]:
+    """Use yfinance when it is installed. It handles Yahoo's crumb/cookie
+    handshake, which the plain endpoint below does not.
+
+    **It returns an empty frame rather than raising when the host is
+    unreachable.** That is the dangerous failure: an empty result reads like
+    "no data for this period" and would land in ``data/`` as a zero-row CSV
+    that every sweep would then silently treat as a symbol with no bars. So an
+    empty frame is escalated here rather than returned.
+    """
+    import yfinance as yf                       # noqa: PLC0415 - optional dep
+
+    df = yf.download(ticker, period=range_, interval=interval,
+                     progress=False, auto_adjust=False)
+    if df is None or len(df) == 0:
+        raise SystemExit(
+            f"{ticker}: yfinance returned no rows. This is usually a blocked "
+            f"host rather than a missing period - yfinance swallows the "
+            f"network error and hands back an empty frame. Check "
+            f"query1.finance.yahoo.com and query2.finance.yahoo.com are "
+            f"reachable from here.")
+    if hasattr(df.columns, "nlevels") and df.columns.nlevels > 1:
+        df = df.droplevel(1, axis=1)            # single-ticker MultiIndex
+    out: List[dict] = []
+    for ts, row in df.iterrows():
+        vals = [row.get(c) for c in ("Open", "High", "Low", "Close")]
+        if any(v is None or v != v for v in vals):     # NaN check
+            continue
+        stamp = ts.to_pydatetime() if hasattr(ts, "to_pydatetime") else ts
+        if stamp.tzinfo is None:
+            stamp = stamp.replace(tzinfo=timezone.utc)
+        vol = row.get("Volume", 0)
+        out.append({"timestamp": stamp.isoformat(),
+                    "open": float(vals[0]), "high": float(vals[1]),
+                    "low": float(vals[2]), "close": float(vals[3]),
+                    "volume": float(0 if vol != vol else vol)})
+    if not out:
+        raise SystemExit(f"{ticker}: every row yfinance returned was unusable")
+    return out
+
+
 def fetch(ticker: str, interval: str, range_: str, *, retries: int = 3) -> dict:
     url = (CHART_URL.format(ticker=urllib.parse.quote(ticker))
            + f"?interval={interval}&range={range_}&includePrePost=true")
@@ -137,7 +178,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             failed.append(sym)
             continue
         try:
-            rows = to_rows(fetch(ticker, args.interval, range_))
+            try:
+                rows = fetch_via_yfinance(ticker, args.interval, range_)
+            except ImportError:
+                rows = to_rows(fetch(ticker, args.interval, range_))
         except SystemExit as exc:
             print(f"  {sym}: {exc}", file=sys.stderr)
             failed.append(sym)
