@@ -454,3 +454,54 @@ def test_agent_signal_block_carries_the_specified_rows():
     positions = [block.index(row) for row in required]
     assert positions == sorted(positions), "the block rows are out of order"
     assert "EDT" in block or "EST" in block, "the ET label must be on the stamp"
+
+
+# ---------------------------------------------------------------------------
+# Regression: Storage.resolve_journal must write every outcome column
+# ---------------------------------------------------------------------------
+
+def test_resolve_journal_writes_every_outcome_column():
+    """A write that appears to succeed while dropping data is worse than one
+    that fails.
+
+    An earlier version of ``resolve_journal`` omitted ``mfe_points``,
+    ``mae_points`` and ``lessons`` from its UPDATE, so callers passing them got
+    a silent no-op on those fields and had to re-write the whole row through
+    ``record_journal`` to get them stored.
+    """
+    from futures_agents.storage import Storage
+    from futures_agents.schema import JournalEntry, Direction, Decision
+
+    store = Storage(":memory:")
+    entry = JournalEntry(date_et="2026-09-22", time_et="10:00:00", symbol="MNQ",
+                         direction=Direction.LONG, final_decision=Decision.LONG,
+                         entry=21850.25, stop=21820.25)
+    entry_id = store.record_journal(entry)
+
+    assert store.resolve_journal(
+        entry_id, result="LOSS", exit_price=21820.25, exit_reason="STOP",
+        profit_loss=-240.0, realised_r=-1.0, mfe_r=1.65, mae_r=1.94,
+        mfe_points=49.5, mae_points=58.2, thesis_correct=True,
+        what_invalidated="stop traded through",
+        what_happened_after="reversed 40 points higher within the hour",
+        lessons="exit-management loss, not a bad read")
+
+    row = store.journal_entries(symbol="MNQ")[0]
+    assert row["mfe_points"] == pytest.approx(49.5)
+    assert row["mae_points"] == pytest.approx(58.2)
+    assert row["lessons"] == "exit-management loss, not a bad read"
+    # and the columns that already worked must keep working
+    assert row["mfe_r"] == pytest.approx(1.65)
+    assert row["realised_r"] == pytest.approx(-1.0)
+    assert row["result"] == "LOSS"
+    assert row["thesis_correct"] == 1
+    store.close()
+
+
+def test_resolve_journal_reports_a_missing_entry_rather_than_silently_passing():
+    from futures_agents.storage import Storage
+    store = Storage(":memory:")
+    assert store.resolve_journal(
+        "does-not-exist", result="WIN", exit_price=1.0, exit_reason="TARGET",
+        profit_loss=1.0, realised_r=1.0) is False
+    store.close()

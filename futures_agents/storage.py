@@ -264,20 +264,33 @@ class Storage:
     def resolve_journal(self, entry_id: str, *, result: str, exit_price: float,
                         exit_reason: str, profit_loss: float, realised_r: float,
                         mfe_r: float = 0.0, mae_r: float = 0.0,
+                        mfe_points: float = 0.0, mae_points: float = 0.0,
                         thesis_correct: Optional[bool] = None,
                         what_invalidated: str = "",
                         what_happened_after: str = "",
+                        lessons: str = "",
                         exit_time_et: Optional[str] = None) -> bool:
+        """Fill in a journal row's outcome.
+
+        Every outcome column the table defines is writable here. An earlier
+        version omitted ``mfe_points``, ``mae_points`` and ``lessons`` from the
+        UPDATE, so a caller that passed them had them silently discarded and
+        had to re-write the whole row through ``record_journal`` to get them
+        stored - a write that appears to succeed while dropping data is worse
+        than one that fails.
+        """
         with self._cursor() as cur:
             cur.execute("""
                 UPDATE journal SET result=?, exit_price=?, exit_reason=?,
                     profit_loss=?, realised_r=?, mfe_r=?, mae_r=?,
+                    mfe_points=?, mae_points=?,
                     thesis_correct=?, what_invalidated=?, what_happened_after=?,
-                    exit_time_et=?
+                    lessons=?, exit_time_et=?
                 WHERE entry_id=?
             """, (result, exit_price, exit_reason, profit_loss, realised_r, mfe_r,
-                  mae_r, None if thesis_correct is None else int(thesis_correct),
-                  what_invalidated, what_happened_after,
+                  mae_r, mfe_points, mae_points,
+                  None if thesis_correct is None else int(thesis_correct),
+                  what_invalidated, what_happened_after, lessons,
                   exit_time_et or to_et(now_et()).isoformat(), entry_id))
             return cur.rowcount > 0
 
