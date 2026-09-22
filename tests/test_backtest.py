@@ -15,6 +15,7 @@ cannot be relied upon to do.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import timedelta
 from typing import List
 
@@ -343,6 +344,28 @@ def test_cost_in_r_scales_inversely_with_stop_distance():
     tight = costs.cost_in_r(4.0)
     assert tight > wide > 0
     assert tight == pytest.approx(wide * 5.0)
+
+
+def test_a_stop_moved_on_a_bar_is_not_also_tested_on_that_bar():
+    """Ordering invariant. The breakeven trigger on bar 4 must take effect from
+    bar 5 onwards; applying the new stop to the bar that moved it would exit on
+    a level the position was not yet protected by - look-ahead in miniature."""
+    exit_model = simple_exit(targets_r=(3.0,), scale_out=(1.0,))
+    exit_model = replace(exit_model, breakeven_at_r=1.0)
+    rows = LEAD_IN + [
+        # Bar 4 runs to +1.5R (moving the stop to breakeven at 21010) and dips
+        # to 21005 - below the new stop, above the old one.
+        (21_010.0, 21_025.0, 21_005.0, 21_020.0),
+        (21_020.0, 21_022.0, 21_008.0, 21_010.0),   # 5: now the breakeven hits
+        (21_010.0, 21_012.0, 21_008.0, 21_010.0),
+    ]
+    result, _ = run(rows, long_stub(targets=[21_040.0], exit=exit_model))
+    t = result.trades[0]
+
+    assert t.exit_index == 5, "the breakeven stop fired on the bar that set it"
+    assert t.exit_reason is ExitReason.BREAKEVEN
+    assert t.exit_price == pytest.approx(ENTRY_OPEN)
+    assert t.gross_r == pytest.approx(0.0)
 
 
 # --------------------------------------------------------------------------

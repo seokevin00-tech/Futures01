@@ -490,3 +490,48 @@ def test_frame_exposes_only_confirmed_swings():
 def test_find_swings_needs_a_full_window():
     bars = list(_pivot_series())
     assert find_swings(bars[:4], left=2, right=2) == []
+
+
+# --------------------------------------------------------------------------
+# Fair value gaps carry the same one-bar lag
+# --------------------------------------------------------------------------
+
+def _fvg_series() -> BarSeries:
+    """A bullish three-bar gap: bar 2's low (105) is above bar 0's high (100),
+    so the gap's middle bar is index 1 and it is knowable only at index 2."""
+    from datetime import timedelta
+    rows = [
+        (98.0, 100.0, 97.0, 99.0),      # 0
+        (99.0, 106.0, 98.5, 105.5),     # 1  displacement
+        (105.5, 108.0, 105.0, 107.0),   # 2  low 105 > bar 0 high 100
+        (107.0, 109.0, 106.0, 108.0),   # 3
+        (108.0, 110.0, 107.0, 109.0),   # 4
+    ]
+    return BarSeries("MNQ", 1, [
+        Bar(ts=SESSION_OPEN + timedelta(minutes=i), open=o, high=h, low=l,
+            close=c, volume=100.0, minutes=1)
+        for i, (o, h, l, c) in enumerate(rows)])
+
+
+def test_fair_value_gap_is_indexed_on_its_middle_bar():
+    from futures_agents.indicators.structure import fair_value_gaps
+    gaps = fair_value_gaps(list(_fvg_series()), track_fills=True)
+    assert len(gaps) == 1
+    gap = gaps[0]
+    assert gap.direction == "BULLISH"
+    assert gap.index == 1
+    assert gap.bottom == pytest.approx(100.0) and gap.top == pytest.approx(105.0)
+
+
+def test_a_fair_value_gap_is_not_visible_before_its_third_bar():
+    """A three-bar pattern needs its third bar. The frame's visibility pointer
+    must therefore release it at ``index + 1``, not at ``index``."""
+    frame = TimeframeFrame(_fvg_series(), get_contract("MNQ"),
+                           swing_left=1, swing_right=1)
+    assert [g.index for g in frame.active_fvgs(0)] == []
+    assert [g.index for g in frame.active_fvgs(1)] == [], (
+        "the gap leaked on its own middle bar")
+    assert [g.index for g in frame.active_fvgs(2)] == [1]
+    for i in range(len(_fvg_series())):
+        for g in frame.active_fvgs(i):
+            assert g.index + 1 <= i

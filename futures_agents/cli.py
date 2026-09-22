@@ -88,10 +88,10 @@ def build_parser() -> argparse.ArgumentParser:
     d = subs.add_parser("demo", parents=[common],
                         help="end-to-end run on synthetic data - no API key needed")
     d.add_argument("--symbols", default="MNQ,MES", help="comma-separated (default MNQ,MES)")
-    d.add_argument("--days", type=int, default=20,
-                   help="days of synthetic history to generate (default 20)")
-    d.add_argument("--max-strategies", type=int, default=120,
-                   help="cap on the generated strategy universe per symbol (default 120)")
+    d.add_argument("--days", type=int, default=10,
+                   help="days of synthetic history to generate (default 10)")
+    d.add_argument("--max-strategies", type=int, default=60,
+                   help="cap on the generated strategy universe per symbol (default 60)")
     d.add_argument("--live-only", action="store_true",
                    help="skip the research plan and run only the live path")
     d.set_defaults(func=cmd_demo)
@@ -309,12 +309,16 @@ def cmd_live(args: argparse.Namespace) -> int:
         while True:
             report = orc.run_live_cycle(symbols)
             cycles += 1
+            # Refresh the page after the risk agent has republished, so what
+            # it shows is always the post-veto callout.
+            page = _render_dashboard(orc, refresh_seconds=30, quiet=cycles > 1)
             if report.halted:
                 _say(f"halted after {cycles} cycle(s): {report.halt_reason} - "
                      "the loop stops here", Priority.HALT)
                 return 0
-            _say(f"cycle {cycles} complete - sleeping {interval:.0f}s",
-                 Priority.INFO)
+            _say(f"cycle {cycles} complete"
+                 + (f", dashboard {page}" if page else "")
+                 + f" - sleeping {interval:.0f}s", Priority.INFO)
             time.sleep(interval)
     except KeyboardInterrupt:
         _say(f"interrupted after {cycles} cycle(s)", Priority.WARNING)
@@ -398,47 +402,44 @@ def cmd_roster(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_dashboard(args: argparse.Namespace) -> int:
-    """Render the dashboard if its module exists yet.
+def _render_dashboard(orc: Orchestrator, *, path: Optional[str] = None,
+                      refresh_seconds: Optional[int] = None,
+                      quiet: bool = False) -> Optional[str]:
+    """Render the HTML dashboard, or explain why it could not be rendered.
 
-    ``dashboard.py`` is owned by another agent and may not be written. A missing
-    teammate's module is a normal state of this repository, not a crash.
+    ``dashboard.py`` is owned by another agent. The import stays guarded so
+    that a checkout without it - or with a broken copy of it - costs the
+    operator a message rather than the command.
+
+    The callouts come from storage, which holds the copy the orchestrator
+    emitted: that is the risk layer's post-veto callout, so the page can never
+    show a contract count the risk layer refused.
     """
-    cfg = _build_config(args)
-    _configure_alerts(args, cfg)
     try:
         from . import dashboard as dashboard_module      # type: ignore
     except ImportError as exc:
-        if "futures_agents.dashboard" in str(exc) or "No module named" in str(exc):
+        if not quiet:
             _block([
                 f"DASHBOARD UNAVAILABLE  [{et_stamp()}]",
-                "  futures_agents/dashboard.py is not present in this checkout.",
-                "  It is owned by the dashboard agent and is being written "
-                "separately;",
-                "  every other command works without it.",
-                f"  ({type(exc).__name__}: {exc})",
-            ])
-        else:
-            _block([
-                f"DASHBOARD FAILED TO IMPORT  [{et_stamp()}]",
+                "  futures_agents/dashboard.py could not be imported.",
                 f"  {type(exc).__name__}: {exc}",
-                "  The module exists but one of its own imports failed.",
+                "  Every other command works without it.",
             ])
-        return 2
+        return None
     except Exception as exc:                            # noqa: BLE001
-        _block([f"DASHBOARD FAILED TO IMPORT  [{et_stamp()}]",
-                f"  {type(exc).__name__}: {exc}"])
-        return 2
+        if not quiet:
+            _block([f"DASHBOARD FAILED TO IMPORT  [{et_stamp()}]",
+                    f"  {type(exc).__name__}: {exc}"])
+        return None
 
     render = getattr(dashboard_module, "render_dashboard", None)
-    if render is None or not callable(render):
-        _block([f"DASHBOARD UNAVAILABLE  [{et_stamp()}]",
-                "  futures_agents/dashboard.py exists but defines no "
-                "render_dashboard() function.",
-                f"  It defines: {', '.join(sorted(n for n in dir(dashboard_module) if not n.startswith('_')))[:200]}"])
-        return 2
+    if not callable(render):
+        if not quiet:
+            _block([f"DASHBOARD UNAVAILABLE  [{et_stamp()}]",
+                    "  futures_agents/dashboard.py defines no "
+                    "render_dashboard() function."])
+        return None
 
-    orc = _orchestrator(args, cfg, history_days=1, build_strategies=False)
     fs = orc.team.fs
     callouts = [row["payload"] for row in orc.storage.recent_callouts(limit=50)
                 if row.get("payload")]
@@ -447,31 +448,40 @@ def cmd_dashboard(args: argparse.Namespace) -> int:
         (Role.ANALYST_C, "prediction_c"))) if p]
     pool: Dict[str, Any] = {
         "orchestrator": orc, "orc": orc, "context": orc.context, "ctx": orc.context,
-        "config": cfg, "cfg": cfg, "storage": orc.storage, "account": orc.account,
-        "team": orc.team, "fs": fs, "path": args.out, "out": args.out,
-        "out_path": args.out, "output": args.out, "open_browser": args.open_browser,
-        "open": args.open_browser,
+        "config": orc.config, "cfg": orc.config, "storage": orc.storage,
+        "account": orc.account, "team": orc.team, "fs": fs,
+        "path": path, "out": path, "out_path": path, "output": path,
         "callouts": callouts, "predictions": predictions,
         "news": fs.read_artefact(Role.NEWS_MACRO, "news_context"),
-        "task_board": fs.read_shared("task_board"),
+        "task_board": orc.team.manager.board,
         "journal": orc.storage.journal_entries(limit=50),
+        "refresh_seconds": refresh_seconds,
         "now": orc.context.now(),
     }
-    if not callouts:
-        _say("no callouts stored yet - run `demo` or `live` first; the dashboard "
-             "will render empty", Priority.WARNING)
+    if not callouts and not quiet:
+        _say("no callouts stored yet - the dashboard will render empty; run "
+             "`demo` or `live` first", Priority.WARNING)
     try:
         result = render(**_matching_kwargs(render, pool))
     except Exception as exc:                            # noqa: BLE001
-        _block([f"DASHBOARD RENDER FAILED  [{et_stamp()}]",
-                f"  {type(exc).__name__}: {exc}",
-                "  render_dashboard() is owned by the dashboard agent; this is "
-                "its error, reported rather than swallowed."])
-        return 1
+        if not quiet:
+            _block([f"DASHBOARD RENDER FAILED  [{et_stamp()}]",
+                    f"  {type(exc).__name__}: {exc}",
+                    "  render_dashboard() is owned by the dashboard agent; its "
+                    "error is reported here rather than swallowed."])
+        return None
+    return result if isinstance(result, str) else getattr(result, "path", None)
 
-    path = result if isinstance(result, str) else getattr(result, "path", None)
-    _say(f"dashboard rendered: {path or result}", Priority.RESEARCH)
-    if args.open_browser and path and os.path.exists(str(path)):
+
+def cmd_dashboard(args: argparse.Namespace) -> int:
+    cfg = _build_config(args)
+    _configure_alerts(args, cfg)
+    orc = _orchestrator(args, cfg, history_days=1, build_strategies=False)
+    path = _render_dashboard(orc, path=args.out)
+    if path is None:
+        return 2
+    _say(f"dashboard rendered: {path}", Priority.RESEARCH)
+    if args.open_browser and os.path.exists(str(path)):
         import webbrowser
         webbrowser.open(f"file://{os.path.abspath(str(path))}")
     return 0

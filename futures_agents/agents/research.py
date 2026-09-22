@@ -324,6 +324,13 @@ class StrategyResearchAgent(DomainAgent):
             "finalists": [
                 {
                     "strategy": s.to_dict(),
+                    # The score that put this strategy on the shortlist,
+                    # measured on training bars only - recorded so the
+                    # selection can be audited for leakage.
+                    "training_screen_score": round(
+                        screen_scores.get(s.strategy_id, 0.0), 6),
+                    "selected_in_folds": [f.index for f in wf.folds
+                                          if s.strategy_id in f.selected],
                     "robustness": reports[i].to_dict(),
                     "own_walk_forward": own_wfs[s.strategy_id].to_dict(),
                     "sensitivity": sensitivities[s.strategy_id],

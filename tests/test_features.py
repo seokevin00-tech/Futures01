@@ -136,16 +136,80 @@ def test_snapshots_do_not_change_when_more_data_arrives():
     full = SymbolFrame(full_series, TIMEFRAMES)
     short = SymbolFrame(short_series, TIMEFRAMES)
 
+    derived = ("structure_trend", "structure_event", "last_swing_high",
+               "last_swing_low", "prior_swing_high", "prior_swing_low",
+               "divergence", "volume_regime")
+
     for i in (120, 200, 250, 299):
         a, b = short.snapshot(i), full.snapshot(i)
         assert a is not None and b is not None
         assert set(a.tfs) == set(b.tfs), f"timeframe set differs at bar {i}"
         for tf in a.tfs:
-            assert a.tfs[tf].bar.ts == b.tfs[tf].bar.ts
-            assert a.tfs[tf].values == b.tfs[tf].values, (
+            x, y = a.tfs[tf], b.tfs[tf]
+            assert x.bar.ts == y.bar.ts
+            assert x.values == y.values, (
                 f"bar {i}, {tf}m: feature values changed when later bars arrived")
+            for field in derived:
+                assert getattr(x, field) == getattr(y, field), (
+                    f"bar {i}, {tf}m: {field} changed when later bars arrived")
+            assert ([lv.to_dict() for lv in x.sr_levels]
+                    == [lv.to_dict() for lv in y.sr_levels]), (
+                f"bar {i}, {tf}m: S/R levels changed when later bars arrived")
+            # Identity and geometry only: the ``filled`` flag on these objects
+            # IS back-filled from the future - see the xfail test below.
+            assert ([(g.index, g.top, g.bottom, g.direction) for g in x.active_fvgs]
+                    == [(g.index, g.top, g.bottom, g.direction) for g in y.active_fvgs]), (
+                f"bar {i}, {tf}m: active FVGs changed when later bars arrived")
         assert a.session_levels.to_dict() == b.session_levels.to_dict()
         assert a.regime.to_dict() == b.regime.to_dict()
+        assert a.alignment() == pytest.approx(b.alignment())
+
+
+def _fvg_then_fill_series() -> BarSeries:
+    """Five bars: a bullish FVG on bars 0-2 (100.00 to 105.00, mid 102.50)
+    which price does not trade back into until bar 4."""
+    rows = [
+        (98.0, 100.0, 97.0, 99.0),        # 0
+        (99.0, 106.0, 98.5, 105.5),       # 1  middle bar of the gap
+        (105.5, 108.0, 105.0, 107.0),     # 2  low 105 > bar 0 high 100
+        (107.0, 109.0, 106.0, 108.0),     # 3  gap still open
+        (108.0, 109.0, 101.0, 102.0),     # 4  trades back through 102.50
+    ]
+    return BarSeries("MNQ", 1, [
+        Bar(ts=SESSION_OPEN + timedelta(minutes=i), open=o, high=h, low=l,
+            close=c, volume=100.0, minutes=1)
+        for i, (o, h, l, c) in enumerate(rows)])
+
+
+def test_an_fvg_is_dropped_from_active_once_it_has_actually_been_filled():
+    """The half that is correct: the *membership* filter is look-ahead safe."""
+    frame = SymbolFrame(_fvg_then_fill_series(), (1,)).frames[1]
+    assert [g.index for g in frame.active_fvgs(2)] == [1]
+    assert [g.index for g in frame.active_fvgs(3)] == [1]
+    assert [g.index for g in frame.active_fvgs(4)] == [], (
+        "a filled gap must not remain active")
+
+
+@pytest.mark.xfail(strict=False, reason=(
+    "TimeframeFrame.active_fvgs (features.py:341) filters on filled_index but "
+    "does not mask it, so an FVG handed out at bar 2 carries filled_index=4 "
+    "and FVG.to_dict() reports filled=True - fill state from a bar that has "
+    "not happened yet."))
+def test_active_fvg_fill_state_is_not_back_filled_from_the_future():
+    """A gap that is still open at bar *i* must not say it was filled.
+
+    ``fair_value_gaps`` is called once over the whole series with
+    ``track_fills=True`` (``features.py:210``), so every FVG's ``filled_index``
+    is resolved against data the snapshot bar has not seen. The membership
+    filter compensates, but the object itself still carries the future index.
+    """
+    frame = SymbolFrame(_fvg_then_fill_series(), (1,)).frames[1]
+    for i in (2, 3):
+        gap = frame.active_fvgs(i)[0]
+        assert gap.filled_index is None or gap.filled_index <= i, (
+            f"at bar {i} the gap reports filled_index={gap.filled_index}")
+        assert gap.to_dict()["filled"] is False, (
+            f"at bar {i} the gap reports itself filled by a future bar")
 
 
 # --------------------------------------------------------------------------
