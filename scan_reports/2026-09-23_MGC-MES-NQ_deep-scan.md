@@ -171,10 +171,21 @@ rate, with a 7.1R drawdown. Sorting by ratio promotes lottery tickets.
 
 ---
 
-## The finding that matters most: cross-window stability
+## Cross-window stability — and why it is weaker than it first appears
 
-A single top row is a draw from the right tail. The same combination staying positive
-across *different window lengths* is the closest thing here to evidence. Four qualify:
+> **CORRECTION (added after review).** This section originally called cross-window
+> stability "the finding that matters most" and treated it as replication. **It is not
+> replication.** Every window ends on the same final bar, so the windows are *nested*:
+> 90d ⊂ 180d ⊂ 274d. The 90-day result is measured on bars that are also inside the
+> 180-day and 274-day results. Agreement across the three is largely **one observation
+> seen at three scales**, not three independent confirmations, and the longer windows are
+> partly driven by the same bars as the shorter ones. The numbers below stand; the weight
+> originally placed on them does not. Genuine replication requires *disjoint* periods, and
+> that test has not yet been run.
+
+A single top row is a draw from the right tail. The combinations below at least stay
+positive as the measurement window is extended, which is worth something — it rules out an
+edge that exists only in the most recent weeks. Four qualify:
 
 ```
 MES  1h  TREND            274d: +0.21   180d: +0.26   90d: +0.30
@@ -184,8 +195,11 @@ NQ   1h  VWAP             274d: +0.02   180d: +0.07   90d: +0.04
 ```
 
 **MES 1h TREND** is the strongest single result in this scan: 137 strategies, 96.4%
-profitable, positive in all three windows, strengthening as the window shortens. Nothing on
-MGC replicates like this.
+profitable, positive at all three window lengths. Note that "strengthening as the window
+shortens" is *not* evidence of a recent improvement — because the windows are nested, a
+rising figure as the window narrows means the edge is concentrated in the most recent 90
+days, which is the weaker reading, not the stronger one. Nothing on MGC behaves like this
+either way.
 
 ---
 
@@ -212,6 +226,18 @@ reporting floor and exactly where a marginal t-statistic is least trustworthy.
 
 ## Limitations
 
+0. **The windows are nested, not disjoint** (see the correction above). All windows end on
+   the same final bar, so agreement across them is not independent replication.
+0b. **The 20-trade floor selects on exit geometry, not on signal quality.** Measured on NQ
+   `value_area_breakout`: a 0.75-ATR stop yields a median 88 trades and 20 of 20 strategies
+   clear the floor, while the same entry at a 1.5-ATR stop yields 11.5 and 0 of 10 clear.
+   The floor therefore systematically favours tight stops across this entire report, and
+   every table in it. This is library-wide, not specific to any group.
+0c. **VOLUME_PROFILE cannot produce a strategy at 4h or daily at all.** `prior_session_profile`
+   refuses to build unless the prior session has at least 10 bars; a 23-hour CME session is
+   6 bars at 240m, so the profile is None on 0 of 1,148 4-hour bars and all six profile
+   conditions fire on 0.0%. Every "VOLUME_PROFILE absent at 4h/1d" reading in this report is
+   an implementation gate, not a market fact.
 1. **Data span caps what "9 / 6 / 3 / 1 month" can mean.** Only 1h, 4h and 1d support all
    four windows. 30m and 15m have 58 days total; 5m has 25–27 days. Cells are labelled by
    real length (`~2mo`, `1mo`) rather than borrowing a label the data cannot support.
@@ -229,9 +255,10 @@ reporting floor and exactly where a marginal t-statistic is least trustworthy.
 
 ## Recommended next step
 
-Take **MES 1h TREND** through disjoint-period replication and anchored walk-forward. It is
-the only candidate with cross-window support, and those are the tests that decide whether
-it is an edge or a survivor of search. Leave MGC alone on this evidence — not because it
+Take **MES 1h TREND** through disjoint-period replication and anchored walk-forward. Given
+the nesting correction above, this is now the *only* test that can establish replication at
+all — the cross-window agreement reported here cannot. Those are the tests that decide
+whether it is an edge or a survivor of search. Leave MGC alone on this evidence — not because it
 cannot be traded, but because 554,441 tested strategies found no way to.
 
 ---
