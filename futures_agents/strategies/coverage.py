@@ -39,7 +39,12 @@ __all__ = ["SPEC_CONFLUENCES", "coverage_report", "uncovered",
 #: Specification variable -> the conditions that let a strategy trade it.
 #: Order follows the brief, so the two can be diffed by eye.
 SPEC_CONFLUENCES: Dict[str, Tuple[str, ...]] = {
-    "price action": ("range_position_extreme", "delta_confirms_bar", "imbalance_bar"),
+    # Now genuinely bar-form evidence rather than three unrelated conditions
+    # wearing the name. An audit found no primitive anywhere in the library
+    # read Bar.body, upper_wick or lower_wick.
+    "price action": ("candle_reversal", "candle_engulfing",
+                     "candle_decisive_close", "candle_close_strength",
+                     "range_position_extreme"),
     "market structure": ("structure_trend", "break_of_structure"),
     "support/resistance": ("pullback_to_support", "fib_sr_confluence"),
     "supply and demand": ("zone_touch", "fresh_zone_approach", "away_from_zone"),
@@ -78,6 +83,8 @@ SPEC_CONFLUENCES: Dict[str, Tuple[str, ...]] = {
     "previous day high/low": ("prior_day_sweep", "prior_day_breakout"),
     "overnight high/low": ("overnight_sweep",),
     "session highs/lows": ("session_extreme_sweep",),
+    "candlestick patterns": ("candle_reversal", "candle_engulfing",
+                             "candle_decisive_close", "inside_bar_compression"),
     "market profile": ("value_area_edge", "value_area_breakout",
                        "open_outside_value", "initial_balance_break"),
     "fair value gaps": ("fvg_nearby",),

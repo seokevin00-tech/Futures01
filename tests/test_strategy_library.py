@@ -145,8 +145,13 @@ def test_spec_confluence_coverage_is_complete():
     assert not gaps, coverage_report()
 
 
-def test_spec_list_is_the_full_thirty_eight():
-    assert len(SPEC_CONFLUENCES) == 38
+def test_spec_list_covers_the_specification_and_what_was_added_since():
+    """Thirty-eight variables come from the specification. Anything beyond
+    that was added because a gap was found in use - candlestick patterns, for
+    instance, after an audit showed no condition anywhere read a bar's body or
+    wicks. The count is pinned so an entry cannot be dropped silently."""
+    assert len(SPEC_CONFLUENCES) == 39
+    assert "candlestick patterns" in SPEC_CONFLUENCES
 
 
 def test_combinator_draws_from_every_condition_group():

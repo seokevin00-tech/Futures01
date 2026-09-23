@@ -1306,3 +1306,103 @@ def _news_after(snap, tf):
     if since == float("inf") or not (lo < since <= 60.0):
         return ConditionResult.no()
     return ConditionResult.yes(FLAT, f"{since:.0f}m after a high-impact release")
+
+
+# ==========================================================================
+# CANDLESTICK PATTERNS
+#
+# The bar-form evidence the library never read. Bar has carried body,
+# upper_wick, lower_wick and is_up from the start and no condition used them,
+# so "price action" was covered on paper by a range-position indicator, an
+# order-flow check and an imbalance detector - three unrelated things wearing
+# the name, none of which look at the shape of a bar.
+#
+# Every threshold is a fraction of the bar's own range, never a point value,
+# so the same definition behaves identically on a 0.25-tick index future and
+# a 0.01-tick crude contract. Measured, the firing rates differ by under two
+# percentage points between MNQ and MGC, which is what that normalisation is
+# for.
+# ==========================================================================
+
+def _patterns(snap: FeatureSnapshot, tf: int):
+    """Patterns completing on this timeframe's current bar.
+
+    Read off the precomputed column. The first version reached for the frame
+    through the snapshot, which has no such handle: every pattern condition
+    returned nothing on every bar and reported a 0.00% firing rate rather than
+    an error.
+    """
+    s = _s(snap, tf)
+    return (s, list(s.candles)) if s else (None, [])
+
+
+@condition("candle_reversal", "candlestick",
+           description="Rejection bar - one wick dominates and the body sits opposite")
+def _candle_reversal(snap, tf):
+    s, pats = _patterns(snap, tf)
+    if not s:
+        return ConditionResult.no()
+    for p in pats:
+        if p.name == "hammer":
+            return ConditionResult.yes(LONG, f"hammer: {p.detail}", None, p.strength)
+        if p.name == "shooting_star":
+            return ConditionResult.yes(SHORT, f"shooting star: {p.detail}",
+                                       None, p.strength)
+    return ConditionResult.no()
+
+
+@condition("candle_engulfing", "candlestick",
+           description="This body swallows the previous one and reverses its sign")
+def _candle_engulf(snap, tf):
+    s, pats = _patterns(snap, tf)
+    if not s:
+        return ConditionResult.no()
+    for p in pats:
+        if p.name == "bullish_engulfing":
+            return ConditionResult.yes(LONG, p.detail, None, p.strength)
+        if p.name == "bearish_engulfing":
+            return ConditionResult.yes(SHORT, p.detail, None, p.strength)
+    return ConditionResult.no()
+
+
+@condition("candle_decisive_close", "candlestick",
+           description="Body dominates the range - a bar with no argument in it")
+def _candle_marubozu(snap, tf):
+    s, pats = _patterns(snap, tf)
+    if not s:
+        return ConditionResult.no()
+    for p in pats:
+        if p.name == "marubozu":
+            return ConditionResult.yes(
+                LONG if p.direction == "BULLISH" else SHORT, p.detail,
+                None, p.strength)
+    return ConditionResult.no()
+
+
+@condition("candle_close_strength", "candlestick",
+           description="Close located near the extreme of its own bar")
+def _candle_clv(snap, tf):
+    """Close location value, which carries most of what a candlestick NAME
+    encodes and is continuous - far easier to test than a taxonomy."""
+    from ..indicators.candles import close_location_value
+    s = _s(snap, tf)
+    if not s:
+        return ConditionResult.no()
+    clv = close_location_value(s.bar)
+    if clv is None or abs(clv) < 0.6:
+        return ConditionResult.no()
+    return ConditionResult.yes(LONG if clv > 0 else SHORT,
+                               f"close at {clv:+.2f} of range", round(clv, 3),
+                               abs(clv))
+
+
+@condition("inside_bar_compression", "candlestick", kind=ConditionKind.FILTER,
+           description="Prior bar's range contains this one - coiled, not trending")
+def _candle_inside(snap, tf):
+    s, pats = _patterns(snap, tf)
+    if not s:
+        return ConditionResult.no()
+    for p in pats:
+        if p.name == "inside_bar":
+            return ConditionResult.yes(FLAT, p.detail, None, p.strength)
+    return ConditionResult.no()

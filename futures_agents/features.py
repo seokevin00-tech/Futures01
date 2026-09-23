@@ -106,6 +106,9 @@ class TFSnapshot:
     #: recent first. Already masked to this bar: ``fresh`` and ``touches``
     #: answer for now, not for the end of the series.
     sd_zones: List[SDZone] = field(default_factory=list)
+    #: Candlestick patterns completing on this bar. Reads this bar and those
+    #: before it, never the next one.
+    candles: List[Any] = field(default_factory=list)
     #: Bar index of the most recent confirmed swing of each kind. Needed to
     #: know which way the last impulse leg ran, which is what a Fibonacci
     #: retracement is measured against.
@@ -295,6 +298,7 @@ class TimeframeFrame:
         self._profile_cache: Dict[Any, Optional[VolumeProfile]] = {}
         self._build_session_index()
         self._build_imbalances()
+        self._build_candle_patterns()
         self._zones: List[SDZone] = supply_demand_zones(bars, as_of=n - 1)
         self._zone_ptr = self._build_zone_pointers(n)
 
@@ -556,6 +560,20 @@ class TimeframeFrame:
                 self._day_order.append(day)
             self._day_bars[day].append(i)
 
+    def _build_candle_patterns(self) -> None:
+        """Bar-form patterns for every bar, precomputed once.
+
+        Same shape as the imbalance column: classifying per snapshot would
+        rescan the series, and a condition cannot reach back to the prior bar
+        from a snapshot alone - the first version of the candlestick
+        conditions tried and silently returned nothing on every bar.
+        """
+        from .indicators.candles import classify_candle
+        bars = self.series.bars
+        self.candle_col: List[List[Any]] = [[] for _ in bars]
+        for i in range(len(bars)):
+            self.candle_col[i] = classify_candle(bars, i)
+
     def _build_imbalances(self) -> None:
         """Per-bar aggressive-participation flag, precomputed once."""
         from .indicators.structure import detect_imbalances
@@ -653,6 +671,7 @@ class TimeframeFrame:
             bars_since_imbalance=(self.bars_since_imbalance_col[i]
                                   if i < len(self.bars_since_imbalance_col) else None),
             sd_zones=self.active_zones(i),
+            candles=(self.candle_col[i] if i < len(self.candle_col) else []),
             last_swing_high_index=self._last_high_i[i],
             last_swing_low_index=self._last_low_i[i],
         )
