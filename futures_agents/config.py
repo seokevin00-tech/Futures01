@@ -193,6 +193,63 @@ CONTRACTS: Dict[str, ContractSpec] = {
         rth_open="09:00", rth_close="14:30",
         min_stop_ticks=20, typical_atr_points=0.16,
     ),
+    # ---- Grains -----------------------------------------------------------
+    # CME micro grains: 500 bushels, quoted in CENTS per bushel (the supplied
+    # data confirms it - corn 427..537, beans 1010..1328, wheat 542..718). A
+    # one-cent move on 500 bushels is $5.00, and the 1/8-cent tick is therefore
+    # $0.625, which is the published tick value. Getting this pair wrong would
+    # not raise anything; it would silently rescale every R multiple.
+    "MZC": _spec(
+        "MZC", "Micro Corn", "CBOT", tick_size=0.125, point_value=5.0,
+        commission_per_side=0.35, exchange_fee_per_side=0.37, typical_slippage_ticks=1.0,
+        is_micro=True, full_size_symbol="ZC", correlation_group="GRAINS",
+        rth_open="09:30", rth_close="14:20",
+        globex_open="20:00", globex_close="08:45",
+        min_stop_ticks=16, typical_atr_points=8.0,
+    ),
+    "MZS": _spec(
+        "MZS", "Micro Soybean", "CBOT", tick_size=0.125, point_value=5.0,
+        commission_per_side=0.35, exchange_fee_per_side=0.37, typical_slippage_ticks=1.0,
+        is_micro=True, full_size_symbol="ZS", correlation_group="GRAINS",
+        rth_open="09:30", rth_close="14:20",
+        globex_open="20:00", globex_close="08:45",
+        min_stop_ticks=16, typical_atr_points=20.0,
+    ),
+    "MZW": _spec(
+        "MZW", "Micro Chicago Wheat", "CBOT", tick_size=0.125, point_value=5.0,
+        commission_per_side=0.35, exchange_fee_per_side=0.37, typical_slippage_ticks=1.0,
+        is_micro=True, full_size_symbol="ZW", correlation_group="GRAINS",
+        rth_open="09:30", rth_close="14:20",
+        globex_open="20:00", globex_close="08:45",
+        min_stop_ticks=16, typical_atr_points=14.0,
+    ),
+    # ---- ETFs -------------------------------------------------------------
+    # NOT futures. They live here because the supplied data includes them and
+    # dropping a symbol silently is worse than carrying it with a label, but
+    # the economics differ in ways that matter downstream: one unit is a share,
+    # not a contract, so there is no exchange margin, no 23-hour session and no
+    # 60/40 tax treatment. Cost per unit of notional is far lower than a
+    # futures contract's, which flatters their backtests against the micros.
+    # Treat results here as a proxy read on the same underlying index, not as a
+    # tradeable futures strategy.
+    "QQQ": _spec(
+        "QQQ", "Invesco QQQ Trust (ETF, not a future)", "NASDAQ",
+        tick_size=0.01, point_value=1.0,
+        commission_per_side=0.0, exchange_fee_per_side=0.0, typical_slippage_ticks=1.0,
+        correlation_group="US_EQUITY_TECH",
+        rth_open="09:30", rth_close="16:00",
+        globex_open="04:00", globex_close="20:00",
+        min_stop_ticks=25, typical_atr_points=7.0,
+    ),
+    "SPY": _spec(
+        "SPY", "SPDR S&P 500 ETF Trust (ETF, not a future)", "ARCA",
+        tick_size=0.01, point_value=1.0,
+        commission_per_side=0.0, exchange_fee_per_side=0.0, typical_slippage_ticks=1.0,
+        correlation_group="US_EQUITY_BROAD",
+        rth_open="09:30", rth_close="16:00",
+        globex_open="04:00", globex_close="20:00",
+        min_stop_ticks=25, typical_atr_points=6.0,
+    ),
     # ---- Rates / FX -------------------------------------------------------
     "ZN": _spec(
         "ZN", "10-Year T-Note", "CBOT", tick_size=0.015625, point_value=1000.0,
