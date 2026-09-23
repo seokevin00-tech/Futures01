@@ -39,6 +39,36 @@ HORIZONS = {
 }
 
 
+def trade_fingerprint(trades) -> str:
+    """Identity of a strategy's realised behaviour, not of its definition.
+
+    Two strategies that took the same trades are one observation however
+    differently they are written. This matters because the optional-filter
+    dimension generates a control and one variant per filter, and a filter
+    that vetoes nothing produces a clone: measured on MGC daily, five
+    "independent" strategies reported an identical [0.0106, 0.1401, 0.154]
+    across three periods because four of them were the same rule set with a
+    filter attached that removed no trades. Counted raw that reads as five
+    of five against a chance expectation of 0.62; counted properly it is one
+    of one, which is unremarkable.
+    """
+    import hashlib
+    key = "|".join(f"{t.entry_ts.isoformat()}:{t.direction.value}:{t.exit_ts.isoformat()}"
+                   for t in trades)
+    return hashlib.sha1(key.encode()).hexdigest()[:16] if key else "empty"
+
+
+def _dedupe(pairs):
+    """Keep one representative per distinct realised trade set."""
+    seen, out = set(), []
+    for s, m, fp in pairs:
+        if fp in seen:
+            continue
+        seen.add(fp)
+        out.append((s, m, fp))
+    return out
+
+
 def _frame(symbol: str, horizon: str):
     suffix, base_min, tfs = HORIZONS[horizon]
     series = load_csv(f"csv/raw/{symbol}_{suffix}.csv", symbol, base_min)
@@ -55,14 +85,17 @@ def screen(symbol: str, horizon: str, budget: int, out_dir: str) -> dict:
 
     survivors, by_group = [], defaultdict(lambda: [0, 0])
     for s in strategies:
-        m = compute_metrics(results[s.strategy_id].trades)
+        trades = results[s.strategy_id].trades
+        m = compute_metrics(trades)
         by_group[s.group][0] += 1
         if m.trades >= FLOOR:
             by_group[s.group][1] += 1
             if m.expectancy_r > 0:
-                survivors.append((s, m))
+                survivors.append((s, m, trade_fingerprint(trades)))
 
     survivors.sort(key=lambda x: -reward_for_risk_score(x[1]).score)
+    raw_positive = len(survivors)
+    survivors = _dedupe(survivors)
     keep = survivors[:40]
     payload = dict(
         stage="screen", symbol=symbol, horizon=horizon, bars=len(series),
@@ -71,7 +104,8 @@ def screen(symbol: str, horizon: str, budget: int, out_dir: str) -> dict:
         # would hide the search entirely.
         screened=len(strategies),
         cleared_floor=sum(v[1] for v in by_group.values()),
-        positive=len(survivors),
+        positive=len(survivors), positive_raw=raw_positive,
+        clones_collapsed=raw_positive - len(survivors),
         by_group={g: {"generated": v[0], "cleared": v[1]}
                   for g, v in sorted(by_group.items())},
         finalists=[dict(strategy_id=s.strategy_id, group=s.group,
@@ -79,7 +113,7 @@ def screen(symbol: str, horizon: str, budget: int, out_dir: str) -> dict:
                         n=m.trades, exp=round(m.expectancy_r, 4),
                         rr=round(m.payoff_ratio, 3),
                         defl=round(deflated_expectancy(m, len(strategies)), 5))
-                   for s, m in keep],
+                   for s, m, _ in keep],
         seconds=round(time.time() - t0, 1))
     path = os.path.join(out_dir, f"screen_{symbol}_{horizon}.json")
     with open(path, "w", encoding="utf-8") as fh:
@@ -113,8 +147,21 @@ def validate(symbol: str, horizon: str, out_dir: str) -> dict:
         per_period.append({s.strategy_id: compute_metrics(r[s.strategy_id].trades)
                            for s in strategies})
 
-    consistent = []
+    # Fingerprint on the FULL-history trades so clones collapse before any
+    # count is taken. Counting first and deduplicating afterwards would let
+    # the inflated number reach a p-value.
+    full = run_portfolio(frame, strategies)
+    fps, seen = {}, set()
+    unique_strategies = []
     for s in strategies:
+        fp = trade_fingerprint(full[s.strategy_id].trades)
+        fps[s.strategy_id] = fp
+        if fp not in seen:
+            seen.add(fp)
+            unique_strategies.append(s)
+
+    consistent = []
+    for s in unique_strategies:
         ms = [p[s.strategy_id] for p in per_period]
         if any(m.trades < PER_PERIOD_FLOOR for m in ms):
             continue
@@ -132,12 +179,14 @@ def validate(symbol: str, horizon: str, out_dir: str) -> dict:
                   stability=round(w.selection_stability, 3))
 
     # Eligible-for-replication count, needed for the binomial null.
-    eligible = sum(1 for s in strategies
+    eligible = sum(1 for s in unique_strategies
                    if all(per_period[k][s.strategy_id].trades >= PER_PERIOD_FLOOR
                           for k in range(PERIODS)))
     payload = dict(
         stage="validate", symbol=symbol, horizon=horizon,
         screened=prev["screened"], candidates=len(strategies),
+        distinct_candidates=len(unique_strategies),
+        clones_collapsed=len(strategies) - len(unique_strategies),
         replication_eligible=eligible,
         all_periods_positive=len(consistent),
         expected_by_chance=round(eligible / (2 ** PERIODS), 2),
