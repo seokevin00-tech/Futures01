@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import itertools
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Dict, FrozenSet, Iterable, Iterator, List, Optional, Sequence, Tuple
 
 from ..config import TIMEFRAME_GROUPS, get_contract
@@ -647,6 +647,47 @@ def _build_strategy(spec: CombinationSpec) -> Optional[Strategy]:
         )
     except ValueError:
         return None
+
+
+def strategies_for_symbols(symbols: Sequence[str], timeframes: Sequence[int],
+                          *, reference: Optional[str] = None,
+                          **kwargs) -> Dict[str, List[Strategy]]:
+    """One universe of rule sets, instantiated for every symbol.
+
+    Generating independently per symbol looks like per-symbol research and
+    destroys the only question worth asking. The enumerable space for one
+    symbol at one timeframe is over five million combinations; a run samples
+    around a thousand. Two independent samples of that size overlap by an
+    expected 0.18 strategies - measured, the overlap between MNQ, MES and MGC
+    was exactly zero. So "MOMENTUM suits MNQ, MULTI_TIMEFRAME suits MGC" was
+    comparing a thousand strategies against a thousand entirely different
+    ones, and attributing the difference to the contract.
+
+    Here the rule sets are drawn ONCE and rebuilt for each symbol, so a
+    difference in outcome is a difference between the contracts rather than
+    between two unrelated samples. Each symbol still gets its own
+    ``ContractSpec`` - tick size, point value, costs, session - which is where
+    genuine per-symbol behaviour comes from, and its own ``strategy_id``,
+    because the id is a content hash that includes the symbol.
+
+    **This is a diagnostic tool, not the default research path.** The
+    specification is explicit that every symbol is its own universe and that
+    nothing measured on one contract may be claimed for another. The correct
+    way to research a symbol is an independent, deep search of ITS space - see
+    :func:`generate_strategies` - and to report the result without reference
+    to any other contract. Use this only to ask the narrow question "does this
+    specific rule set behave differently on MGC than on MNQ", never to build
+    a cross-symbol league table. A shared universe makes symbols comparable,
+    and comparing them is exactly what the specification forbids.
+    """
+    ref = (reference or symbols[0]).upper()
+    template_set = generate_strategies(ref, timeframes, **kwargs)
+    out: Dict[str, List[Strategy]] = {}
+    for sym in symbols:
+        s = sym.upper()
+        out[s] = ([replace(x, symbol=s, _id=None) for x in template_set]
+                  if s != ref else list(template_set))
+    return out
 
 
 def generate_strategies(

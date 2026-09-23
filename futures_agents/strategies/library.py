@@ -17,6 +17,7 @@ from __future__ import annotations
 import math
 from typing import Callable, Dict, List, Optional, Sequence
 
+from ..config import tf_label
 from ..features import (NEWS_BLACKOUT_AFTER_MIN, FeatureSnapshot,
                         TFSnapshot)
 from ..schema import Direction, fmt_price
@@ -778,13 +779,49 @@ def _reg_dir(snap, tf):
 # ==========================================================================
 
 @condition("mtf_aligned", "multitimeframe",
-           description="Timeframes agree directionally (|alignment| >= 0.4)")
+           description="This timeframe and those above it agree directionally")
 def _mtf(snap, tf):
-    a = snap.alignment()
+    """Alignment measured from the strategy's own timeframe UPWARD.
+
+    Previously this called ``snap.alignment()`` with no argument, which
+    aggregates every timeframe in the snapshot. Bound to 60m and bound to 240m
+    it therefore returned the identical answer on all 428 sampled bars of a
+    5,000-bar series, while a control condition differed on 206 of them - the
+    timeframe binding was inert, and this is the group that went on to
+    dominate the daily rankings.
+    """
+    a = snap.alignment(from_tf=tf)
     if abs(a) < 0.4:
         return ConditionResult.no()
-    return ConditionResult.yes(LONG if a > 0 else SHORT,
-                               f"MTF alignment {a:+.2f}", round(a, 3), abs(a))
+    agree, voting = snap.agreeing_timeframes(from_tf=tf)
+    return ConditionResult.yes(
+        LONG if a > 0 else SHORT,
+        f"{agree}/{voting} timeframes from {tf_label(tf)} up, alignment {a:+.2f}",
+        round(a, 3), abs(a))
+
+
+@condition("mtf_strongly_aligned", "multitimeframe",
+           description="Every timeframe from this one up agrees - maximum linkage")
+def _mtf_strong(snap, tf):
+    """The graded half of the linkage.
+
+    "More timeframes bullish means more bullish" needs a condition that can
+    tell three-of-three from two-of-three. A weighted average blurs that: two
+    strong agreeing timeframes and three weak ones can score the same. This
+    fires only on unanimity among the timeframes at or above the strategy's
+    own, and carries the count in its detail so the journal records which.
+    """
+    agree, voting = snap.agreeing_timeframes(from_tf=tf)
+    if voting < 2 or agree != voting:
+        return ConditionResult.no()
+    a = snap.alignment(from_tf=tf)
+    if a == 0:
+        return ConditionResult.no()
+    return ConditionResult.yes(
+        LONG if a > 0 else SHORT,
+        f"all {voting} timeframes from {tf_label(tf)} up agree ({a:+.2f})",
+        round(a, 3), 1.0)
+
 
 
 @condition("mtf_not_conflicted", "multitimeframe", kind=ConditionKind.FILTER,

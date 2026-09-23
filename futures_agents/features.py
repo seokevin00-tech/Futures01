@@ -703,21 +703,52 @@ class FeatureSnapshot:
     def timeframes(self) -> List[int]:
         return sorted(self.tfs)
 
-    def alignment(self) -> float:
+    def alignment(self, from_tf: Optional[int] = None) -> float:
         """Directional agreement across timeframes, in [-1, 1].
 
         Each timeframe votes with its structural trend, weighted by its length -
         a 4-hour trend is worth more than a 1-minute one. Near zero means the
         timeframes disagree, which is itself a tradeable piece of information
         (and usually an argument for standing aside).
+
+        ``from_tf`` restricts the vote to that timeframe and everything ABOVE
+        it, which is what a strategy trading a given timeframe actually wants
+        to know: a 4-hour trader is not helped by the 1-minute chart agreeing.
+        Without it this aggregated every timeframe in the snapshot regardless
+        of the caller, so ``mtf_aligned`` bound to 60m and bound to 240m
+        returned an identical answer on every bar of a 5,000-bar series - the
+        binding was inert and the condition was blind to the timeframe it was
+        supposed to be reading.
         """
         num = den = 0.0
         for tf, snap in self.tfs.items():
+            if from_tf is not None and tf < from_tf:
+                continue
             w = math.log(tf + 1.0)
             vote = {"UPTREND": 1.0, "DOWNTREND": -1.0}.get(snap.structure_trend, 0.0)
             num += vote * w
             den += w
         return (num / den) if den else 0.0
+
+    def agreeing_timeframes(self, from_tf: Optional[int] = None) -> Tuple[int, int]:
+        """``(agreeing, voting)`` - how many timeframes share the majority view.
+
+        The linkage a trader means by "more timeframes agree, so I am more
+        confident": a count, not a weighted average. Three of three carries a
+        different conviction from two of three even when the weighted score is
+        similar.
+        """
+        votes = []
+        for tf, snap in self.tfs.items():
+            if from_tf is not None and tf < from_tf:
+                continue
+            v = {"UPTREND": 1, "DOWNTREND": -1}.get(snap.structure_trend, 0)
+            if v:
+                votes.append(v)
+        if not votes:
+            return 0, 0
+        ups = sum(1 for v in votes if v > 0)
+        return max(ups, len(votes) - ups), len(votes)
 
     def to_dict(self) -> dict:
         return {
