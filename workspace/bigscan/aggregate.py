@@ -21,7 +21,8 @@ import json
 import os
 from collections import defaultdict
 
-CELLS = "workspace/bigscan/cells"
+CELLS = os.environ.get("SCAN_OUT", "workspace/bigscan/cells")
+ROWS_OUT = os.environ.get("SCAN_ROWS", "workspace/bigscan/all_rows.json")
 TF_NAME = {1440: "1d", 240: "4h", 60: "1h", 30: "30m", 15: "15m", 5: "5m"}
 
 
@@ -168,8 +169,8 @@ def main():
             print(f"  of {len(hr):,} strategies with payoff >= 3:1: "
                   f"{sum(1 for r in hr if r['exp'] > 0) / len(hr):.1%} are profitable")
 
-    json.dump(rows, open("workspace/bigscan/all_rows.json", "w"))
-    print(f"\nall {len(rows):,} rows written to workspace/bigscan/all_rows.json")
+    json.dump(rows, open(ROWS_OUT, "w"))
+    print(f"\nall {len(rows):,} rows written to {ROWS_OUT}")
 
 
 if __name__ == "__main__":

@@ -29,7 +29,11 @@ from futures_agents.scout import FRAMES
 from futures_agents.strategies.combinator import TEMPLATES, generate_strategies
 
 SUFFIX = {1440: "1d", 240: "4h", 60: "1h", 30: "30m", 15: "15m", 5: "5m", 1: "1m"}
-OUT_DIR = "workspace/bigscan/cells"
+#: Timeframes with no file of their own, built by resampling a finer one.
+#: 4-hour is the anchor several earlier results lived on and no vendor file
+#: covers it, so it is aggregated from hourly bars.
+DERIVED = {240: ("1h", 60)}
+OUT_DIR = os.environ.get("SCAN_OUT", "workspace/bigscan/cells")
 FLOOR = 15          # report floor; every row carries n so it can be raised later
 
 
@@ -58,7 +62,15 @@ def main() -> int:
     tag = f"{sym}_{tf}m_{window}d"
     path = f"{OUT_DIR}/{tag}.json"
 
-    full = load_csv(f"csv/raw/{sym}_{SUFFIX[tf]}.csv", sym, tf)
+    if tf in DERIVED:
+        suffix, src_min = DERIVED[tf]
+        src = load_csv(f"csv/raw/{sym}_{suffix}.csv", sym, src_min)
+        # keep_partial=False: a half-formed final 4h bar has not closed, and
+        # letting a strategy read it would be look-ahead on the newest bar -
+        # exactly where a scan is most tempted to find an edge.
+        full = src.resample(tf, keep_partial=False)
+    else:
+        full = load_csv(f"csv/raw/{sym}_{SUFFIX[tf]}.csv", sym, tf)
     bars = list(full.bars)
     span_all = (bars[0].ts, bars[-1].ts)
     cutoff = bars[-1].ts - timedelta(days=window)
