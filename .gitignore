@@ -18,6 +18,7 @@ data/*.csv
 workspace/*/out/*.json
 workspace/*/scratch/
 workspace/*/log/
+workspace/research_plan/
 workspace/_shared/*.json
 reports/
 .DS_Store
