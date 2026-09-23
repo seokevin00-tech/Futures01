@@ -619,8 +619,13 @@ def _build_strategy(spec: CombinationSpec) -> Optional[Strategy]:
         htf = spec.confirm_tfs[0]
         bound: List[Condition] = []
         for c in conds:
-            if c.group in ("multitimeframe",) or (
-                    c.group == "structure" and c.kind is ConditionKind.SIGNAL
+            # Multitimeframe conditions already aggregate "this timeframe and
+            # everything above it", so binding them UPWARD drops the
+            # strategy's own timeframe out of its own alignment vote - and at
+            # the top of the frame it leaves a single voter, which is how
+            # mtf_aligned came to duplicate structure_trend exactly. They stay
+            # on the primary timeframe; the aggregation is what reads higher.
+            if (c.group == "structure" and c.kind is ConditionKind.SIGNAL
                     and len(spec.signal_conditions) >= 3):
                 bound.append(c.bind(htf))
             else:

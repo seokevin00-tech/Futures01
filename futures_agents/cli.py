@@ -155,6 +155,24 @@ def build_parser() -> argparse.ArgumentParser:
                          help="the team roster and workspace tree")
     ro.set_defaults(func=cmd_roster)
 
+    sc = subs.add_parser("scout", parents=[common],
+                         help="rank a symbol's strategies on one timeframe and "
+                              "print how to spot each one on a chart")
+    sc.add_argument("--symbols", nargs="+", default=["MGC", "MNQ"],
+                    help="symbols to scout (default: MGC MNQ)")
+    sc.add_argument("--timeframe", type=int, default=60,
+                    help="anchor timeframe in minutes (default: 60)")
+    sc.add_argument("--top", type=int, default=5,
+                    help="how many strategies to report per symbol")
+    sc.add_argument("--window-days", type=int, default=None,
+                    help="restrict to the last N days of data")
+    sc.add_argument("--budget", type=int, default=2400,
+                    help="strategies generated per template before filtering")
+    sc.add_argument("--no-live", action="store_true",
+                    help="skip the where-this-stands-now section")
+    sc.add_argument("--out", default=None, help="also write the report here")
+    sc.set_defaults(func=cmd_scout)
+
     dash = subs.add_parser("dashboard", parents=[common],
                            help="render the HTML dashboard, if that module exists")
     dash.add_argument("--open", dest="open_browser", action="store_true",
@@ -482,6 +500,30 @@ def _render_dashboard(orc: Orchestrator, *, path: Optional[str] = None,
                     "error is reported here rather than swallowed."])
         return None
     return result if isinstance(result, str) else getattr(result, "path", None)
+
+
+def cmd_scout(args: argparse.Namespace) -> int:
+    """Rank strategies on one timeframe and say how to detect each one.
+
+    Prints the deflation threshold in the header rather than burying it,
+    because at a five-thousand-strategy search size roughly four t-units of
+    apparent significance are free, and a ranking that does not say so invites
+    the reader to trade the top row.
+    """
+    from futures_agents.scout import report
+
+    chunks = []
+    for sym in args.symbols:
+        text = report(sym, timeframe=args.timeframe, top_n=args.top,
+                      window_days=args.window_days, per_template=args.budget,
+                      show_live=not args.no_live)
+        chunks.append(text)
+        print(text)
+    if args.out:
+        with open(args.out, "w", encoding="utf-8") as fh:
+            fh.write("\n\n".join(chunks))
+        print(f"written to {args.out}")
+    return 0
 
 
 def cmd_dashboard(args: argparse.Namespace) -> int:

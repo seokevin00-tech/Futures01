@@ -790,10 +790,18 @@ def _mtf(snap, tf):
     timeframe binding was inert, and this is the group that went on to
     dominate the daily rankings.
     """
+    agree, voting = snap.agreeing_timeframes(from_tf=tf)
+    if voting < 2:
+        # Nothing to align WITH. At the top timeframe of the frame this used to
+        # aggregate a single vote - its own structural trend - so it returned
+        # an identical verdict to structure_trend on 4259/4259 MNQ bars,
+        # 3892/3892 MCL and 4255/4255 MGC. The template requires a
+        # multitimeframe signal AND a structure signal, so those strategies
+        # were counting one reading twice and calling it confluence.
+        return ConditionResult.no()
     a = snap.alignment(from_tf=tf)
     if abs(a) < 0.4:
         return ConditionResult.no()
-    agree, voting = snap.agreeing_timeframes(from_tf=tf)
     return ConditionResult.yes(
         LONG if a > 0 else SHORT,
         f"{agree}/{voting} timeframes from {tf_label(tf)} up, alignment {a:+.2f}",
