@@ -96,3 +96,47 @@ a group effect under another name. The merge must catch this — `x_conditions` 
 NQ 60m lunch, pooled across trades: z = −2.75 on 330 trades. The same comparison done
 per-strategy and paired: z = −0.83 on 13 strategies. Only paired, per-strategy numbers are
 admissible. The merge must reject pooled trade-level z values.
+
+---
+
+## D8 — `ExitModel` index 3 can never trade, and two exits collide on one id (found by `g_mean_reversion`)
+
+`Strategy.evaluate` rejects any setup whose reward/risk is below `exit.min_reward_risk`
+(default 1.5). For an `R_MULTIPLE` exit that ratio **is** `targets_r[-1]`, and exit index 3
+is `ATRx1.2 -> 1.2R`. 1.2 < 1.5, so it is rejected on every bar, always.
+
+Verified: 0 trades as shipped, 85 trades with `min_reward_risk=1.0` on identical entries and
+bars; 0 of 70,657 probe trades originated from it. It is one of seven exits offered to
+MEAN_REVERSION, PULLBACK, REVERSAL, FIBONACCI, VWAP, OPENING_RANGE, LIQUIDITY,
+VOLUME_PROFILE and SUPPLY_DEMAND — so roughly **1/7 of those templates' search budget is
+spent on rule sets that structurally cannot trade**.
+
+Separately and worse: `ExitModel.label` omits `min_reward_risk`, so two exits differing only
+in that field **produce the same `strategy_id`**. `run_portfolio` keys results by
+`strategy_id`, so one silently overwrites the other. This is a data-integrity bug, not just
+wasted budget — it should be fixed before any re-run.
+
+## D9 — 240m regime labels are UNKNOWN on short windows (found by `g_mean_reversion`)
+
+`_default_regime_tf` falls through to 1440 at a 240m primary, and `classify_regime` needs 60
+daily bars. Result: regime is UNKNOWN for **100% of trades at a 58-day window, 93% at 90
+days, 16–35% at 274 days**. Any 240m regime-gated result on a window ≤180d is an artefact of
+missing labels, not a regime finding.
+
+## D10 — my own brief was wrong about 15m window support (found by `g_mean_reversion`)
+
+`workspace/studies/BRIEF.md` told all 21 agents that "windows 274, 180, 90 are the ones all
+timeframes support". **False at 15m**: `csv/raw/*_15m.csv` spans 58 days, so all three
+windows resolve to the same 3,753 bars — one observation reported as three replications. Any
+study treating 15m windows as independent has overcounted. `NQ_15m.csv` also does not exist;
+MNQ is the substitute.
+
+---
+
+## Verdict log
+
+| study | group/topic | verdict |
+|---|---|---|
+| `g_volume_profile` | VOLUME_PROFILE | no detectable edge; the group is one condition (`value_area_breakout`, fires on 51% of bars) wearing six names |
+| `x_session` | time of day | no hours filter helps; `avoid_lunch` folk claim refuted; one replicated negative — do not open intraday 15:00–16:00 ET |
+| `g_mean_reversion` | MEAN_REVERSION | nothing there. The +0.070 was a floor artefact — floor-free median is **−0.141R, worst of 12 groups**. Detectably *worse* than the population (z=−3.09). Regime gating does not rescue it (paired: RANGE better in exactly 50% of 382 identical rule sets). Negative **gross**, so costs are not the cause. |
