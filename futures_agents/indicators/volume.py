@@ -13,7 +13,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from ..timeutil import is_rth, to_et, trading_day
 from ..data.bars import Bar, BarSeries
@@ -22,6 +22,7 @@ from .core import percent_rank, sma
 Num = Optional[float]
 
 __all__ = [
+    "AnchorVWAP", "build_anchor_vwap", "major_move_anchors", "swing_anchors",
     "vwap", "vwap_bands", "anchored_vwap", "delta_series", "cumulative_delta",
     "VolumeProfile", "volume_profile", "relative_volume", "volume_regime",
     "delta_divergence",
@@ -303,3 +304,132 @@ def volume_regime(bars: Sequence[Bar], lookback: int = 60) -> List[Optional[str]
         else:
             out[i] = "THIN"
     return out
+
+
+# --------------------------------------------------------------------------
+# Anchored VWAP
+# --------------------------------------------------------------------------
+
+@dataclass
+class AnchorVWAP:
+    """Volume-weighted average price measured from one chosen origin.
+
+    Session VWAP answers "what is fair value today". Anchored VWAP answers
+    "what has everyone who traded since *that* event paid on average", which is
+    a different and often more useful question: it is the level at which the
+    participants who entered on a move are collectively flat.
+
+    **The look-ahead trap, and how it is handled.** The interesting anchors -
+    the bar a major move departed from, a swing that later turned out to be
+    significant - are only identifiable *after* the move. Anchoring there is
+    legitimate; reading the line before the anchor was identifiable is not.
+    So an anchor carries both ``index`` (where the calculation starts, which
+    may be in the past) and ``knowable_index`` (the first bar at which a trader
+    could have drawn it). :meth:`value_at` returns None before that bar, and
+    the feature layer never exposes an anchor that is not yet knowable.
+
+    That distinction is the whole reason this is not simply a VWAP with a
+    different start: computing from a retrospective origin is standard
+    practice, and *acting* on it before the origin was recognisable is
+    look-ahead of the purest kind.
+    """
+
+    index: int                 # bar the calculation starts from
+    knowable_index: int        # first bar at which this anchor was identifiable
+    kind: str                  # "SWING_HIGH" | "SWING_LOW" | "DISPLACEMENT"
+    ts: datetime
+    values: List[Num] = field(default_factory=list)   # aligned to the series
+    anchor_price: float = 0.0
+
+    def value_at(self, i: int) -> Num:
+        """The line at bar ``i``, or None where it must not be read."""
+        if i < self.knowable_index or i >= len(self.values):
+            return None
+        return self.values[i]
+
+    def distance_atr(self, i: int, price: float, atr_value: Optional[float]) -> Num:
+        v = self.value_at(i)
+        if v is None or not atr_value:
+            return None
+        return (price - v) / atr_value
+
+    def to_dict(self) -> dict:
+        return {"index": self.index, "knowable_index": self.knowable_index,
+                "kind": self.kind, "anchor_price": round(self.anchor_price, 4)}
+
+
+def build_anchor_vwap(bars: Sequence[Bar], anchor_index: int, *,
+                      knowable_index: Optional[int] = None,
+                      kind: str = "CUSTOM") -> Optional[AnchorVWAP]:
+    """VWAP accumulated forward from ``anchor_index``, as a guarded object.
+
+    Distinct from :func:`anchored_vwap`, which returns a bare list and has no
+    notion of when the anchor became identifiable. Both exist because the list
+    form is already part of this package's public surface; this form is the one
+    to use when the anchor is chosen retrospectively, which is nearly always.
+    """
+    n = len(bars)
+    if not 0 <= anchor_index < n:
+        return None
+    values: List[Num] = [None] * n
+    pv = vol = 0.0
+    for i in range(anchor_index, n):
+        b = bars[i]
+        v = b.volume if b.volume > 0 else 1.0
+        pv += b.typical * v
+        vol += v
+        values[i] = pv / vol if vol > 0 else None
+    return AnchorVWAP(index=anchor_index,
+                      knowable_index=(anchor_index if knowable_index is None
+                                      else max(anchor_index, knowable_index)),
+                      kind=kind, ts=bars[anchor_index].ts, values=values,
+                      anchor_price=bars[anchor_index].close)
+
+
+def major_move_anchors(bars: Sequence[Bar], *, window: int = 20,
+                       move_mult: float = 2.5, max_anchors: int = 40,
+                       min_gap: int = 5) -> List[AnchorVWAP]:
+    """Anchors at the origin of each major movement.
+
+    A "major movement" is a bar whose range is ``move_mult`` times the recent
+    average. The anchor is placed at the bar *before* it - the last bar of
+    balance, which is where the participants who got run over were positioned -
+    and becomes knowable only once the move has completed, because that is when
+    a trader could have seen it.
+
+    ``min_gap`` stops one impulse from producing a cluster of near-identical
+    lines, which would look like confluence and be one observation.
+    """
+    n = len(bars)
+    out: List[AnchorVWAP] = []
+    last = -10 ** 9
+    for i in range(window + 1, n):
+        prior = bars[i - window:i]
+        avg = sum(b.range for b in prior) / float(window)
+        if avg <= 0 or bars[i].range < move_mult * avg:
+            continue
+        origin = max(0, i - 1)
+        if origin - last < min_gap:
+            continue
+        last = origin
+        av = build_anchor_vwap(bars, origin, knowable_index=i, kind="DISPLACEMENT")
+        if av is not None:
+            out.append(av)
+    return out[-max_anchors:]
+
+
+def swing_anchors(bars: Sequence[Bar], swings: Sequence[Any], *,
+                  max_anchors: int = 20) -> List[AnchorVWAP]:
+    """Anchors at confirmed swing highs and lows.
+
+    ``swings`` are :class:`~futures_agents.indicators.structure.Swing` objects,
+    whose ``confirmed_index`` is exactly the knowable point - the bar at which
+    the fractal completed and the swing could be drawn.
+    """
+    out: List[AnchorVWAP] = []
+    for s in swings:
+        av = build_anchor_vwap(bars, s.index, knowable_index=s.confirmed_index,
+                               kind="SWING_HIGH" if s.is_high else "SWING_LOW")
+        if av is not None:
+            out.append(av)
+    return out[-max_anchors:]
