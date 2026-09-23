@@ -56,9 +56,14 @@ __all__ = ["CHART_CUES", "RankedStrategy", "rank", "detection_card",
 #: ``structure_trend``. Measured before this was fixed: identical verdicts on
 #: 4259/4259 MNQ bars, 3892/3892 MCL, 4255/4255 MGC.
 FRAMES: Dict[int, List[int]] = {
+    5: [5, 15, 60],
+    15: [15, 60, 240],
+    30: [30, 60, 240],
     60: [60, 240, 1440],
     240: [240, 1440],
-    15: [15, 60, 240],
+    # Daily needs a weekly above it for the same reason every other row does.
+    # 7200 minutes is five sessions.
+    1440: [1440, 7200],
 }
 
 #: Minimum realised trades before a strategy is allowed into a ranking.
