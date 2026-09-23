@@ -30,3 +30,5 @@ workspace/*/cells/
 workspace/*/cells.json
 workspace/*/slice_*.json
 workspace/*/all_rows.json
+# Derived from workspace/studies/out/ by aggregate_studies.py on every run.
+workspace/studies/merged.json
