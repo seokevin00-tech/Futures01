@@ -50,10 +50,10 @@ def _score_from(trades) -> float:
 
 
 def run(symbol: str, tf: int, budget: int = 8000, folds: int = 5,
-        floor_is: int = 15, top_k: int = 10) -> dict:
+        floor_is: int = 15, top_k: int = 10, rth: bool = False) -> dict:
     ser = T._series(symbol, tf, 274)
     frame = build_symbol_frame(ser, FRAMES[tf])
-    S = W.population(symbol, tf, budget, seed=1)
+    S = W.population(symbol, tf, budget, seed=1, rth=rth)
     res = run_portfolio(frame, S)
     traded = [s for s in S if res[s.strategy_id].trades]
     want = max(1, int(math.ceil(0.10 * len(S) / len(W.FLAVOURS))))
@@ -175,7 +175,7 @@ def run(symbol: str, tf: int, budget: int = 8000, folds: int = 5,
         })
     allpos = sum(r["n_positive_oos"] for r in wf_rows)
     alln = sum(r["n_with_oos_trades"] for r in wf_rows)
-    out = {"symbol": symbol, "tf": tf, "bars": len(bars), "n_real": len(S),
+    out = {"symbol": symbol, "tf": tf, "rth": rth, "bars": len(bars), "n_real": len(S),
            "n_placebo": len(P), "folds": folds, "top_k": top_k,
            "holdout_60_40": holdout, "walk_forward": wf_rows,
            "wf_summary": {"selections": alln, "positive_oos": allpos,
@@ -183,7 +183,7 @@ def run(symbol: str, tf: int, budget: int = 8000, folds: int = 5,
                           "sign_test": W.sign_test(
                               [1.0 if r["oos"]["exp"] > 0 else -1.0
                                for f in wf_rows for r in f["selected"] if r["oos"]["n"] > 0])}}
-    with open(f"{CELLS}/wf_{symbol}_{tf}.json", "w") as fh:
+    with open(f"{CELLS}/wf_{symbol}_{tf}{'_rth' if rth else ''}.json", "w") as fh:
         json.dump(out, fh, default=str)
     return out
 
@@ -201,5 +201,5 @@ def _spearman(a: Sequence[float], b: Sequence[float]) -> Optional[float]:
 
 
 if __name__ == "__main__":
-    r = run(sys.argv[1], int(sys.argv[2]))
+    r = run(sys.argv[1], int(sys.argv[2]), rth=(len(sys.argv) > 3 and sys.argv[3] == "rth"))
     print(json.dumps({k: v for k, v in r.items() if k != "walk_forward"}, default=str)[:3000])

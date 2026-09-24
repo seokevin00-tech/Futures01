@@ -2,7 +2,7 @@
  "verdict": "The recurring top-10 ranking is not live-eligible on any symbol or timeframe tested. It carries a small, genuinely out-of-sample amount of information - about 0.7 extra names of ten carrying into a disjoint period - and that information is worth approximately +0.015R per trade, which is inside the cost of being wrong about it.",
  "headline": {
   "placebo_in_top10_cells": "90 of 112",
-  "placebo_rows_vs_chance": 0.872,
+  "placebo_rows_vs_chance": 0.846,
   "programme_free_t": 5.46,
   "rows_clearing_free_t": 0,
   "max_t_anywhere": 3.923,
@@ -34,7 +34,7 @@
  "biases_checked": {
   "look-ahead (signal timing)": "Excluded structurally: the engine computes every signal from a closed-bar snapshot and fills entries at the NEXT bar's open.",
   "look-ahead (window boundary)": "Measured, not assumed. 2.47% of trades open inside a ranking window and close after it. Re-running with a strict rule (entry AND exit inside) moves the pooled out-of-sample figure by -0.00406R on average - the loose rule was mildly generous, so the conclusion is if anything understated.",
-  "data-mining bias": "Quantified: 2,975,677 strategy evaluations, free_t 5.46, zero rows in any top 10 clear it.",
+  "data-mining bias": "Quantified: 2,975,629 strategy evaluations, free_t 5.46, zero rows in any top 10 clear it.",
   "overfitting to the selection window": "Tested directly by disjoint thirds and by rolling walk-forward; the 1-month top 10 shares zero names with the 9-month top 10 in 6 of 6 cells because the two lists rank different populations.",
   "insufficient sample size": "The 20-trade floor admits 3-9 strategies in most 1-month 60m cells and 1-2 in the 240m thirds, so those 'top 10s' are the whole qualifying population. Flagged everywhere it occurs.",
   "clone inflation": "Collapsed on realised trades. Uncollapsed, MES 60m/274d reports 220 qualifiers and lists one TREND rule set four times inside its own top 10; collapsed it reports 116.",
@@ -795,11 +795,11 @@
  "placebo_cohort": {
   "cells": 112,
   "cells_with_placebo_in_top10": "90 of 112",
-  "cells_with_placebo_in_top3": "68 of 112",
-  "cells_with_placebo_ranked_first": "44 of 112",
-  "placebo_rows_inside_top_10s": 306,
-  "expected_if_ranking_carried_no_information": 350.9,
-  "ratio": 0.872
+  "cells_with_placebo_in_top3": "66 of 112",
+  "cells_with_placebo_ranked_first": "43 of 112",
+  "placebo_rows_inside_top_10s": 296,
+  "expected_if_ranking_carried_no_information": 349.7,
+  "ratio": 0.846
  },
  "placebo_validation": {
   "shift0_arm": "a fourth arm that injects the REAL entry bars unchanged; it must reproduce its parent trade for trade, and did so in 100% of cases across every cell (786 checks), so the injection machinery is not the source of any placebo result"
@@ -960,10 +960,10 @@
    "bigscan/cells": 533302,
    "focus/cells": 612908,
    "studies/out (non-rank)": 1127901,
-   "studies/out rank_* (workers 1-3)": 549910,
+   "studies/out rank_* (workers 1-3)": 549862,
    "worker 4 ledgers + placebo cohorts": 151656
   },
-  "total": 2975677,
+  "total": 2975629,
   "free_t": 5.46,
   "rows_examined": 1454,
   "rows_clearing": 0,

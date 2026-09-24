@@ -98,6 +98,21 @@ def do_slices(tf: int) -> None:
                   f"({round(time.time()-t0)}s)", flush=True)
 
 
+def do_slices_rth(tf: int) -> None:
+    """The RTH-scoped arm carried into the three disjoint thirds. Run only
+    because the RTH arm produced the single cell in which the real cohort beat
+    the placebo cohort - a post-hoc find that has to be tested, not believed."""
+    for sym in SYMS:
+        for k, (a, b) in enumerate(T.disjoint_slices(sym, tf, 3), 1):
+            c = W.run_cell(sym, tf, slice_days=(a, b), budget=BUDGET, rth=True)
+            if c.get("skipped"):
+                continue
+            W.save_cell(c, f"{sym}_{tf}_slice{k}_rth")
+            print(f"[{tf}m/slice{k} RTH] {sym} rows={len(c['rows'])} "
+                  f"placebo_rank={c['placebo'].get('best_placebo_rank')}/"
+                  f"{c['placebo'].get('best_placebo_of')}", flush=True)
+
+
 def do_rth(tf: int) -> None:
     """Paired RTH arm at the 274d window: same rule sets, scope on vs off."""
     for sym in SYMS:
@@ -110,4 +125,5 @@ def do_rth(tf: int) -> None:
 if __name__ == "__main__":
     what = sys.argv[1]
     tf = int(sys.argv[2])
-    {"win": do, "slices": do_slices, "rth": do_rth}[what](tf)
+    {"win": do, "slices": do_slices, "rth": do_rth,
+     "slices_rth": do_slices_rth}[what](tf)

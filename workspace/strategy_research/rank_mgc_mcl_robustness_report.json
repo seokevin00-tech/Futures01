@@ -1,0 +1,304 @@
+{
+ "fill_audit": {
+  "MGC_60_274": {
+   "trades": 22679,
+   "entry_not_next_bar": 0,
+   "entry_slippage_favourable": 0,
+   "entry_off_bar_open": 0,
+   "entry_at_bar_extreme": 0,
+   "entry_equals_signal_close_coincidentally": 672,
+   "target_won_a_bar_the_stop_also_touched": 0,
+   "target_on_entry_bar": 1787,
+   "target_on_entry_bar_with_stop_touched": 0,
+   "exit_before_entry": 0,
+   "zero_risk": 0,
+   "zero_cost": 0,
+   "max_entry_slip_ticks": 2.0,
+   "median_cost_r_per_trade": 0.0045,
+   "p90_cost_r_per_trade": 0.0083,
+   "verdict": "clean"
+  },
+  "MCL_60_274": {
+   "trades": 14694,
+   "entry_not_next_bar": 0,
+   "entry_slippage_favourable": 0,
+   "entry_off_bar_open": 0,
+   "entry_at_bar_extreme": 70,
+   "entry_equals_signal_close_coincidentally": 130,
+   "target_won_a_bar_the_stop_also_touched": 0,
+   "target_on_entry_bar": 1253,
+   "target_on_entry_bar_with_stop_touched": 0,
+   "exit_before_entry": 0,
+   "zero_risk": 0,
+   "zero_cost": 0,
+   "max_entry_slip_ticks": 2.0,
+   "median_cost_r_per_trade": 0.0136,
+   "p90_cost_r_per_trade": 0.0327,
+   "verdict": "clean"
+  },
+  "MGC_240_274": {
+   "trades": 2316,
+   "entry_not_next_bar": 0,
+   "entry_slippage_favourable": 0,
+   "entry_off_bar_open": 0,
+   "entry_at_bar_extreme": 0,
+   "entry_equals_signal_close_coincidentally": 11,
+   "target_won_a_bar_the_stop_also_touched": 0,
+   "target_on_entry_bar": 495,
+   "target_on_entry_bar_with_stop_touched": 0,
+   "exit_before_entry": 0,
+   "zero_risk": 0,
+   "zero_cost": 0,
+   "max_entry_slip_ticks": 2.0,
+   "median_cost_r_per_trade": 0.0037,
+   "p90_cost_r_per_trade": 0.005,
+   "verdict": "clean"
+  },
+  "MCL_240_274": {
+   "trades": 2590,
+   "entry_not_next_bar": 0,
+   "entry_slippage_favourable": 0,
+   "entry_off_bar_open": 0,
+   "entry_at_bar_extreme": 15,
+   "entry_equals_signal_close_coincidentally": 23,
+   "target_won_a_bar_the_stop_also_touched": 0,
+   "target_on_entry_bar": 523,
+   "target_on_entry_bar_with_stop_touched": 0,
+   "exit_before_entry": 0,
+   "zero_risk": 0,
+   "zero_cost": 0,
+   "max_entry_slip_ticks": 2.0,
+   "median_cost_r_per_trade": 0.0097,
+   "p90_cost_r_per_trade": 0.0212,
+   "verdict": "clean"
+  }
+ },
+ "power_control": {
+  "MGC_60_274": {
+   "symbol": "MGC",
+   "tf": 60,
+   "window": 274,
+   "n_reals_run": 2361,
+   "n_peeks_run": 20,
+   "n_rows": 147,
+   "n_peek_rows": 13,
+   "best_peek_rank": 1,
+   "peek_ranks": [
+    1,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    19,
+    28,
+    85,
+    133
+   ],
+   "null_expected_best_rank": 10.57,
+   "median_exp_peek": 0.2991,
+   "median_exp_real": -0.004,
+   "paired_peek_beats_its_base": "5/6",
+   "rank_sum_peek_vs_real": {
+    "u": 1390.0,
+    "z": 4.103,
+    "p": 4e-05,
+    "n_a": 12,
+    "n_b": 135
+   },
+   "reading": "A cheat that reads 5 bars ahead must dominate. If it does not, the cell has no power and a good placebo rank there is uninformative rather than damning.",
+   "population": {
+    "generated": 2361,
+    "after_rth_override": 2361,
+    "after_exit_prune": 2361,
+    "dead_groups_dropped": [
+     "OPENING_RANGE"
+    ],
+    "rth_only": false,
+    "dropped_session_close_exits": false
+   }
+  },
+  "MCL_60_274": {
+   "symbol": "MCL",
+   "tf": 60,
+   "window": 274,
+   "n_reals_run": 2335,
+   "n_peeks_run": 20,
+   "n_rows": 106,
+   "n_peek_rows": 14,
+   "best_peek_rank": 1,
+   "peek_ranks": [
+    1,
+    2,
+    3,
+    4,
+    6,
+    7,
+    8,
+    12,
+    26,
+    39,
+    105,
+    106
+   ],
+   "null_expected_best_rank": 7.13,
+   "median_exp_peek": 0.527,
+   "median_exp_real": -0.0478,
+   "paired_peek_beats_its_base": "5/5",
+   "rank_sum_peek_vs_real": {
+    "u": 887.0,
+    "z": 3.221,
+    "p": 0.00128,
+    "n_a": 12,
+    "n_b": 94
+   },
+   "reading": "A cheat that reads 5 bars ahead must dominate. If it does not, the cell has no power and a good placebo rank there is uninformative rather than damning.",
+   "population": {
+    "generated": 2335,
+    "after_rth_override": 2335,
+    "after_exit_prune": 2335,
+    "dead_groups_dropped": [
+     "OPENING_RANGE"
+    ],
+    "rth_only": false,
+    "dropped_session_close_exits": false
+   }
+  },
+  "MGC_240_274": {
+   "symbol": "MGC",
+   "tf": 240,
+   "window": 274,
+   "n_reals_run": 1735,
+   "n_peeks_run": 20,
+   "n_rows": 21,
+   "n_peek_rows": 11,
+   "best_peek_rank": 1,
+   "peek_ranks": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "null_expected_best_rank": 1.83,
+   "median_exp_peek": 0.7615,
+   "median_exp_real": 0.0696,
+   "paired_peek_beats_its_base": "0/0",
+   "rank_sum_peek_vs_real": {
+    "u": 90.0,
+    "z": 3.503,
+    "p": 0.00046,
+    "n_a": 6,
+    "n_b": 15
+   },
+   "reading": "A cheat that reads 5 bars ahead must dominate. If it does not, the cell has no power and a good placebo rank there is uninformative rather than damning.",
+   "population": {
+    "generated": 3616,
+    "after_rth_override": 3616,
+    "after_exit_prune": 1735,
+    "dead_groups_dropped": [
+     "OPENING_RANGE"
+    ],
+    "rth_only": false,
+    "dropped_session_close_exits": true
+   }
+  },
+  "MCL_240_274": {
+   "symbol": "MCL",
+   "tf": 240,
+   "window": 274,
+   "n_reals_run": 1621,
+   "n_peeks_run": 20,
+   "n_rows": 24,
+   "n_peek_rows": 14,
+   "best_peek_rank": 1,
+   "peek_ranks": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    9,
+    10,
+    13,
+    20
+   ],
+   "null_expected_best_rank": 1.67,
+   "median_exp_peek": 0.7198,
+   "median_exp_real": 0.0513,
+   "paired_peek_beats_its_base": "5/5",
+   "rank_sum_peek_vs_real": {
+    "u": 122.0,
+    "z": 3.045,
+    "p": 0.00233,
+    "n_a": 10,
+    "n_b": 14
+   },
+   "reading": "A cheat that reads 5 bars ahead must dominate. If it does not, the cell has no power and a good placebo rank there is uninformative rather than damning.",
+   "population": {
+    "generated": 3567,
+    "after_rth_override": 3567,
+    "after_exit_prune": 1621,
+    "dead_groups_dropped": [
+     "OPENING_RANGE"
+    ],
+    "rth_only": false,
+    "dropped_session_close_exits": true
+   }
+  }
+ },
+ "gross_vs_net": {
+  "MGC_60_274": {
+   "symbol": "MGC",
+   "tf": 60,
+   "window": 274,
+   "n_rows": 259,
+   "median_exp_net": 0.0022,
+   "median_exp_gross": 0.0048,
+   "median_cost_r": 0.0046,
+   "pct_positive_net": 0.506,
+   "pct_positive_gross": 0.51,
+   "n_flipped_by_costs": 1
+  },
+  "MCL_60_274": {
+   "symbol": "MCL",
+   "tf": 60,
+   "window": 274,
+   "n_rows": 183,
+   "median_exp_net": -0.0503,
+   "median_exp_gross": -0.0414,
+   "median_cost_r": 0.0172,
+   "pct_positive_net": 0.339,
+   "pct_positive_gross": 0.383,
+   "n_flipped_by_costs": 8
+  },
+  "MGC_240_274": {
+   "symbol": "MGC",
+   "tf": 240,
+   "window": 274,
+   "n_rows": 32,
+   "median_exp_net": 0.0701,
+   "median_exp_gross": 0.073,
+   "median_cost_r": 0.0032,
+   "pct_positive_net": 0.594,
+   "pct_positive_gross": 0.594,
+   "n_flipped_by_costs": 0
+  },
+  "MCL_240_274": {
+   "symbol": "MCL",
+   "tf": 240,
+   "window": 274,
+   "n_rows": 37,
+   "median_exp_net": 0.0004,
+   "median_exp_gross": 0.0184,
+   "median_cost_r": 0.0127,
+   "pct_positive_net": 0.541,
+   "pct_positive_gross": 0.622,
+   "n_flipped_by_costs": 3
+  }
+ }
+}
