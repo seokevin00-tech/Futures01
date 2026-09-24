@@ -94,3 +94,76 @@ condition.**
   z = +1.90, and sign inconsistent (MCL-60m is 2/48 positive IS but 31/48 OOS).
 - Sample size is *not* the problem here: 32–158 trades per arm per cell.
 - 141 of 387 rule sets flip expectancy sign IS→OOS; only 131 of 387 are positive OOS.
+
+---
+
+## `orb_test` — does ORB give good reward for risk?
+
+**Verdict: no. Median expectancy −0.092R per trade against a median max drawdown of 32R.**
+
+1,920 configurations, 194,005 trades, floor-free, net of costs, `rth_only` deliberately ON, each
+contract's own open (MGC 08:20, MCL 09:00, MES/MNQ/NQ 09:30).
+
+### An ORB entry is not a selective condition
+
+**The opening range is broken in 74–100% of RTH sessions** (median 99.3%; ≥95% in 82 of 128
+cells). By this library's own standard — over 95% firing is not a condition — "the range broke"
+carries almost no information. Exit-free, median MFE/MAE after the break is **0.80–1.03
+range-widths**: no directional information before an exit is even chosen.
+
+### Sample, stated before any performance number
+
+`csv/raw` gives **18–19 RTH sessions per symbol, median 16 trades per configuration** — an
+anecdote, exactly as D30 predicted. The worker therefore added `data/*_1m.csv` (Oanda CFD
+2019-01→2020-05: real market structure, **not** the futures price, and flagged as such) reaching
+**346–352 sessions** for MGC/MES/MNQ. NQ and MCL have no deep archive. Note NQ and MNQ in
+`csv/raw` are the same price series from two fetch snapshots.
+
+### Reward for risk, per symbol, never pooled
+
+| deep archive | win | payoff | expectancy | maxDD |
+|---|---|---|---|---|
+| MGC | 0.416 | 1.266 | **−0.064R** | 15.0R |
+| MES | 0.358 | 1.413 | **−0.142R** | 55.2R |
+| MNQ | 0.404 | 1.377 | **−0.040R** | 28.9R |
+
+18.8% of configs profitable. **Best t anywhere = 2.137 against free_t(1,920) = 3.888 — zero
+clear deflation.** MGC and MCL are the only independent contracts; MNQ/NQ/MES agree by
+construction.
+
+### The payoff/win-rate cancellation, reproduced exactly
+
+| stop | win rate | payoff | expectancy |
+|---|---|---|---|
+| opposite range edge | 44.2% | 1.003 | −0.085R |
+| mid-range | 38.6% | 1.397 | −0.087R |
+| ATR multiple | 30.4% | **1.900** | −0.108R |
+
+Payoff rises **89%**, win rate falls 13.8 points, expectancy does not improve.
+**corr(win, payoff) = −0.745** across configs (−0.93 on MES and MNQ). Reporting payoff alone
+would have called this a win — the fourth time this project has caught that trap.
+
+### Out of sample
+
+Paired per-cell sign tests, Stouffer-combined. In sample five of eight axes are significant
+(orlen 30−60 at z=−7.16, stop opp−mid +4.00). **Out of sample: 3 of 8 flip sign, 5 unresolved,
+zero replicate.** All three disjoint periods negative on all three deep symbols. Of 169 configs
+profitable in sample, only **27.8% stay profitable out of sample — worse than a coin.**
+
+### The decisive test: yesterday's range beats today's
+
+Expectancy is negative at **zero transaction cost** (MGC −0.035R, MES −0.096R, MNQ −0.027R), so
+this is an absent edge rather than a cost problem. And a placebo using **yesterday's** opening
+range *beats* today's on all three symbols:
+
+```
+MGC  -0.041R → +0.002R     profitable-config share 38% → 51%
+MES  -0.128R → -0.072R                              1% →  8%
+MNQ  -0.033R → -0.020R                             18% → 37%
+```
+
+**Today's opening range carries nothing that a wrong-day range does not.** Same logic as the
+sham-zone test that killed order blocks, and the same answer.
+
+The best single config (MGC 15m, OR60, retest, mid stop, 1R target: n=108, +0.191R, t=2.14) has
+20/72 positive neighbours and is negative on MES and MNQ — a spike, not a plateau.

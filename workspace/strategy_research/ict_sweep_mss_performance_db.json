@@ -111982,5 +111982,104 @@
     "n_ctrl": 705
    }
   }
+ },
+ "execution_realism_limit_fill": {
+  "per_cell": {
+   "MES|15": {
+    "n": 49,
+    "exp": -0.2372,
+    "win": 0.1837,
+    "t": -1.699,
+    "total_r": -11.62
+   },
+   "MES|60": {
+    "n": 81,
+    "exp": -0.1018,
+    "win": 0.1975,
+    "t": -0.902,
+    "total_r": -8.25
+   },
+   "MES|240": {
+    "n": 44,
+    "exp": -0.2922,
+    "win": 0.1364,
+    "t": -2.088,
+    "total_r": -12.86
+   },
+   "MNQ|15": {
+    "n": 57,
+    "exp": -0.1764,
+    "win": 0.2105,
+    "t": -1.321,
+    "total_r": -10.05
+   },
+   "MNQ|60": {
+    "n": 77,
+    "exp": -0.1307,
+    "win": 0.1818,
+    "t": -1.156,
+    "total_r": -10.07
+   },
+   "MNQ|240": {
+    "n": 38,
+    "exp": -0.2935,
+    "win": 0.1053,
+    "t": -2.144,
+    "total_r": -11.15
+   },
+   "MGC|15": {
+    "n": 72,
+    "exp": -0.0185,
+    "win": 0.25,
+    "t": -0.145,
+    "total_r": -1.33
+   },
+   "MGC|60": {
+    "n": 86,
+    "exp": -0.1728,
+    "win": 0.1977,
+    "t": -1.535,
+    "total_r": -14.86
+   },
+   "MGC|240": {
+    "n": 40,
+    "exp": -0.141,
+    "win": 0.15,
+    "t": -0.973,
+    "total_r": -5.64
+   },
+   "MCL|15": {
+    "n": 49,
+    "exp": -0.1521,
+    "win": 0.2041,
+    "t": -1.023,
+    "total_r": -7.45
+   },
+   "MCL|60": {
+    "n": 101,
+    "exp": -0.1641,
+    "win": 0.2277,
+    "t": -1.494,
+    "total_r": -16.57
+   },
+   "MCL|240": {
+    "n": 47,
+    "exp": 0.2699,
+    "win": 0.4043,
+    "t": 1.467,
+    "total_r": 12.68
+   }
+  },
+  "cells": 12,
+  "trades": 741,
+  "median_exp": -0.1581,
+  "cells_positive": 1,
+  "median_win_rate": 0.1976,
+  "engine_comparison": {
+   "median_exp": -0.045,
+   "cells_positive": 4,
+   "median_win_rate": 0.399
+  },
+  "verdict": "the execution objection does not rescue the chain - it makes it worse"
  }
 }

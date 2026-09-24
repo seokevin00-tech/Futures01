@@ -511,3 +511,18 @@ midpoint** and tests the **close**; the standard reading keeps the gap live to i
 and tests the **bar range**. A deliberate re-implementation of the library's bookkeeping matches
 it at Jaccard 0.785–0.966, so the machinery is sound — but the rates differ ~8×. Anyone reading
 `fvg_nearby` as "the ICT fair value gap" is measuring something much stricter.
+
+## D35 — a one-sided fill bug that resampling cannot catch (found by `orb_test`)
+
+The worker found this **in its own code**, and the lesson generalises past ORB.
+
+A retest limit order fills mid-bar at the bar's own extreme. Crediting that *same bar's* opposite
+extreme as a target hit is one-sided: the stop cannot fire, because the extreme **is** the entry
+price. It manufactured a **+0.354R cluster at t = 5.19** — and that cluster survived the 60/40
+split **and all three disjoint slices**. 51% of its winners "hit target" on the entry bar. Fixed
+(a stop may fill on a limit-entry bar; a target may not), and the same config is now −0.057R.
+
+**The lesson, which belongs in every future study's method section: resampling cannot detect a
+bias whose sign is always favourable. Only auditing the fill model can.** Out-of-sample testing,
+disjoint periods and walk-forward all pass a bias that is present in every period. This is the
+one failure mode the programme's entire methodology is blind to.
