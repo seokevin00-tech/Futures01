@@ -33,6 +33,22 @@ def load(tag):
     return json.load(open(p)) if os.path.exists(p) else None
 
 
+def thin_like(cell, keep=15):
+    """Cell trimmed for a saved study: ranking head, census, placebo, paired."""
+    out = {k: v for k, v in cell.items() if k not in ("rows", "rows_floorfree")}
+    out["top"] = cell["rows"][:keep]
+    out["top_floorfree"] = cell["rows_floorfree"][:keep]
+    out["n_rows_floored"] = len(cell["rows"])
+    out["n_rows_floorfree"] = len(cell["rows_floorfree"])
+    out["n_clearing_free_t"] = sum(1 for r in cell["rows"] if r["t"] >= cell["free_t"])
+    out["clone_inflation"] = clone_inflation(cell)
+    out["placebo_null_rank"] = null_rank(
+        cell["placebo"].get("best_placebo_of") or 0,
+        cell["placebo"].get("placebo_rows") or 0,
+        cell["placebo"].get("best_placebo_rank") or 1)
+    return out
+
+
 def null_rank(n_total: int, n_placebo: int, observed: int) -> dict:
     """Where the best placebo lands if NOTHING in the cell has an edge.
 
@@ -365,6 +381,7 @@ def main():
         "cost_and_slippage": loadglob("audit_costs_*.json"),
         "parameter_sensitivity": loadglob("audit_sens_*.json"),
         "bias_checklist": BIAS_CHECKLIST,
+        "library_defects": LIBRARY_DEFECTS,
     }
 
     for name, obj in (("strategy_rankings", rankings),
@@ -378,6 +395,67 @@ def main():
                                   "robustness_report")})
     return rankings, robust
 
+
+LIBRARY_DEFECTS = {
+    "NEW - StrategyFilters.label() omits three scope dimensions from the identity hash": {
+        "what": ("Strategy.strategy_id is documented as a stable content hash so "
+                 "'the performance database cannot accumulate duplicate rows for "
+                 "what is really the same rule set'. It is built from "
+                 "filters.label(), and label() emits only sessions, regimes, "
+                 "volatility and require_alignment. rth_only, days_of_week, "
+                 "min_minutes_since_open and max_minutes_since_open are absent."),
+        "measured": ("MES-240m-107391c3583f is the id of the SAME rule set with "
+                     "rth_only=True, with rth_only=False, with "
+                     "max_minutes_since_open=90, and with days_of_week={MON}. Four "
+                     "different strategies, one id."),
+        "consequence": ("run_portfolio keys results by strategy_id and also keys "
+                        "open-position state by it, so running an RTH arm and a "
+                        "non-RTH arm of the same rule sets in one call silently "
+                        "merges them. Same family as the ExitModel.label / "
+                        "min_reward_risk collision already recorded."),
+        "handled_here": ("the RTH arm was run in a separate process against a "
+                         "separate results dict, never in the same call."),
+    },
+    "D11 CONFIRMED on MES and MNQ": (
+        "execution_tf is None in 0 of 9,260 MES 60m and 0 of 13,991 MES 240m "
+        "generated strategies. DEFAULT_EXECUTION_MAP asks for 5m at a 60m anchor "
+        "and 15m at a 240m anchor; scout.FRAMES carries [60,240,1440] and "
+        "[240,1440]. The map and the frames are inconsistent at EVERY timeframe "
+        "in FRAMES, so the anchor/execution split is unreachable through the "
+        "standard population - including through toolkit.measure. Passing "
+        "[5,60,240,1440] explicitly produces 2,607 execution_tf strategies out of "
+        "5,214, confirming the mechanism."),
+    "D14 CONFIRMED on MES and MNQ": (
+        "The per-symbol RNG seed means the two populations share 44 of ~9,250 "
+        "rule sets at 60m (0.5%) and 108 of ~14,000 at 240m (0.8%). So MES/MNQ "
+        "agreement is not merely non-independent - the two searches are over "
+        "almost entirely different rule sets, and 'the same strategy on the other "
+        "contract' is not available on the shipped population at all."),
+    "D15 CONFIRMED on MES and MNQ": (
+        "The sibling-exit sensitivity test found 100 families with >=2 exit "
+        "geometries at MES 60m and ZERO at MNQ 240m, because the exit index is "
+        "sampled jointly with the rule set. Parameter sensitivity therefore "
+        "cannot be measured at 240m on the shipped population."),
+    "D24 MEASURED on MES and MNQ": (
+        "rth_only=True costs the >=20-trade population a factor of 6.8x on MES "
+        "240m and 9.4x on MNQ 240m, and 1.8x / 2.1x at 60m; total trades fall "
+        "2.5-4.0x. See rth_scope_arm_D24."),
+    "D13 INHERITED - my cost figures are understated": (
+        "A three-target exit pays one round turn, not three, and partial legs pay "
+        "zero slippage. My measured median cost of 0.0166 R/trade (MES 60m) and "
+        "0.0029 R/trade (MNQ 240m) is therefore a floor, not an estimate. The 2x "
+        "slippage stress is the right order of correction and the top 10 survive "
+        "it, but nothing here should be read as a precise cost figure."),
+    "D9 INHERITED - 240m regime slices on short windows are missing-label artefacts": (
+        "Regime is UNKNOWN for most 240m trades below a 274-day window. The "
+        "regime_profile_top40_real block on any 240m cell at 30/90/180 days "
+        "should be read as a label-availability report, not a regime finding."),
+    "D21 ACCOUNTED FOR": (
+        "The session-scale guard's threshold is 390 minutes and 240 < 390, so the "
+        "time-of-day conditions still misbehave at 240m. No 240m result reported "
+        "here rests on one; OPENING_RANGE, the template that pins "
+        "max_minutes_since_open, contributes to no 240m top 10."),
+}
 
 BIAS_CHECKLIST = {
     "overfitting_and_data_mining_bias": (

@@ -165,3 +165,63 @@ column is weak rather than strong.
 
 **MCL is the cost-fragile contract; MGC is not.** Costs flip **8 of 183** MCL 60m rows and 3 of 37
 MCL 240m rows from positive gross to negative net, against **1 of 259** for MGC.
+
+---
+
+## Worker 2 (MES, MNQ) — the most damning placebo result of the four
+
+**Best placebo ranked 1st in 12 of 16 cells, ≤3rd in 15 of 16, and 5th in the last.
+96 of 160 top-10 slots are placebos.**
+
+Null-adjusted (placebos are 22–52% of floored rows, so E[best placebo rank] = 1.0–2.9): the
+one-sided p that reals beat placebos at the top is **never below 0.109 in any of the 16 cells**.
+Tag-blindness verified — relabelling random reals reproduces the analytic null to within 0.04, so
+this is the data and not the code.
+
+| cell | placebos in top 10 | best real |
+|---|---|---|
+| MES 30d 60m | **9 / 10** | VOLUME_PROFILE +0.08, n=26 |
+| **MES 30d 240m** | **10 / 10 — no real strategy in the top 10 at all** | — |
+| MNQ 30d 60m | 6 / 10 | MOMENTUM +0.55, n=24 |
+| MES 90d 60m | 2 / 10 | VOLUME_PROFILE +0.63, n=20 |
+| MES 90d 240m | 9 / 10 | VWAP +0.09, n=41 |
+| MNQ 90d 60m | 3 / 10 | TREND +0.66, n=28 |
+| MNQ 90d 240m | 9 / 10 | MOMENTUM +0.14, n=32 |
+| MES 180d 60m | 4 / 10 | VOLUME_PROFILE +0.35, n=44 |
+| MES 180d 240m | 7 / 10 | VWAP +0.67, n=27 |
+| MNQ 180d 60m | 2 / 10 | TREND +0.70, n=27 |
+| MES 274d 60m | 7 / 10 | VOLUME_PROFILE +0.35, n=56 |
+| MNQ 274d 60m | 3 / 10 | TREND +0.44, n=44 |
+
+**Deflation: 0 rows clear `free_t` (4.29 at 60m, 4.38 at 240m) in any of the 16 cells.** Max t in a
+floored ranking is 3.03. The floor-free census shows 7–18 clearers per cell — every one has n=2–4
+trades and most are placebos, so the honest count is zero.
+
+**Replication:** 4 of 40 of the 274d top 10 are positive across all three disjoint thirds, and only
+2–3 of each 10 even traded in all three. Against the coin-flip benchmark p³ the observed rates are
+0.045/0.045/0.081/0.031 vs 0.041/0.040/0.099/0.080 — **no persistence in expectancy sign at all.**
+
+**Walk-forward:** selecting the in-sample top 10 beat its own fold base rate in **4 of 16**
+pre-registered folds (sign z = −2.00, p = 0.046, mean deficit −0.12). Placebos took 3–10 of every
+fold's top 10.
+
+**Parameter sensitivity:** 100 sibling families at MES 60m — **median fraction of siblings positive
+is 0.0**.
+
+### The one controlled positive, and the one candidate
+
+`require_alignment ≥ 0.5`, paired per rule set, split-half, against a random veto removing the
+identical number of trades: **MES 240m +0.047R in sample and +0.077R out of sample** (veto control
+−0.004/−0.011). It is the only controlled positive in the study — and it **helps in 1 of 4 cells,
+in a cell found by looking at 4** (MES 60m −0.087 OOS, MNQ 240m −0.025, MNQ 60m −0.072).
+
+**MNQ 60m with `rth_only=True`** is the single cell of 20 where reals beat placebos at the top
+(best placebo 17th of 322, null E = 3.05, one-sided p = 0.0015, paired host t = +2.55). But it was
+a post-hoc find from a D24 control arm, its 60/40 holdout is **below** base rate (67% vs 72%), and
+in the disjoint thirds the best placebo lands 1st, 3rd and 9th. **Not live-eligible.**
+
+### D14 confirmed quantitatively
+
+MES and MNQ populations share **44 of ~9,250 rule sets at 60m (0.5%)** and **108 of ~14,000 at 240m
+(0.8%)**. "The same strategy on the other contract" is not merely unreliable — it is **not
+available**.

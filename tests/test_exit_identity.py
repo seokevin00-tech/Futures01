@@ -93,3 +93,56 @@ def test_label_stays_readable_but_disambiguates_anchoring():
             assert m.target_kind.value in m.label, (
                 f"{m.label!r} does not reveal that its targets are anchored; a "
                 "report cannot tell it apart from the R-multiple version")
+
+
+# --------------------------------------------------------------------------
+# The same defect, found later in StrategyFilters
+# --------------------------------------------------------------------------
+
+def test_strategy_filters_identity_covers_every_field():
+    """Scope fields must reach ``strategy_id``, or arms merge silently.
+
+    Shipped state before the fix: ``StrategyFilters.label()`` emitted only
+    sessions, regimes, volatility and require_alignment, so one rule set with
+    ``rth_only=True``, with ``rth_only=False``, with ``max_minutes_since_open=90``
+    and with ``days_of_week={MON}`` all hashed to the same id. ``run_portfolio``
+    keys results AND open-position state by that id, so an RTH arm and a
+    non-RTH arm run in one call silently merged.
+    """
+    from futures_agents.strategies.base import StrategyFilters
+
+    base = StrategyFilters()
+    for f in dataclasses.fields(StrategyFilters):
+        current = getattr(base, f.name)
+        if isinstance(current, bool):
+            other = not current
+        elif isinstance(current, (int, float)) and not isinstance(current, bool):
+            other = current + 1
+        elif current is None:
+            other = frozenset({"MON"}) if f.name == "days_of_week" else 1.0
+        elif isinstance(current, frozenset):
+            other = frozenset(current | {"ZZZ"})
+        else:
+            continue
+        assert dataclasses.replace(base, **{f.name: other}).identity != base.identity, (
+            f"StrategyFilters.identity ignores {f.name!r}; two scopes differing "
+            "only in that field share a strategy_id and merge in run_portfolio")
+
+
+def test_rth_arms_get_distinct_strategy_ids():
+    """The exact collision that was measured, as an end-to-end guard."""
+    import dataclasses as dc
+
+    from futures_agents.strategies.base import StrategyFilters
+    from futures_agents.strategies.library import get_condition
+
+    import sys
+    sys.path.insert(0, "workspace/studies")
+    import toolkit as T
+
+    conds = [get_condition("structure_trend"), get_condition("ema_stack")]
+    on = T.make_strategy("MES", 240, conds, filters=StrategyFilters(rth_only=True))
+    off = T.make_strategy("MES", 240, conds, filters=StrategyFilters(rth_only=False))
+    assert on.strategy_id != off.strategy_id, (
+        "an RTH arm and a non-RTH arm share a strategy_id; run_portfolio keys "
+        "results by it, so one would overwrite the other")

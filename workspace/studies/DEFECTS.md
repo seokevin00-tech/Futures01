@@ -636,3 +636,18 @@ or shuffled one doing so.
 study (MZC 60m 180d, placebo taking ranks 1 and 2 of 66 rows) was `placebo_random` and
 `placebo_shuffle`, the two clean kinds. Any future ranking should report the three kinds
 separately and lean on shuffle, which is uniform in every cell tested.
+
+## D43 — `StrategyFilters.label()` omits four fields from `strategy_id` — FIXED (found by `rank_mes_mnq`)
+
+**Second instance of the identity defect already fixed on `ExitModel.label`.** `label()` emitted
+only sessions, regimes, volatility and `require_alignment`, so `rth_only`, `days_of_week`,
+`min_minutes_since_open` and `max_minutes_since_open` never reached the "stable content hash".
+
+Verified before the fix: the same rule set with `rth_only=True`, with `rth_only=False`, with
+`max_minutes_since_open=90` and with `days_of_week={MON}` **all hashed to
+`MES-240m-107391c3583f`**. `run_portfolio` keys both its results *and its open-position state* by
+that id, so running an RTH arm and a non-RTH arm in one call silently merged them — which is why
+worker 2 had to run its RTH arm in a separate process.
+
+Fixed the same way as `ExitModel`: `identity` built from `dataclasses.fields`, `label` kept
+readable and extended to show the previously invisible scope. Two regression tests added; 748 pass.

@@ -436,6 +436,7 @@ class StrategyFilters:
         return True, ""
 
     def label(self) -> str:
+        """Human-readable scope. NOT an identity - see :attr:`identity`."""
         bits = []
         if self.sessions:
             bits.append("+".join(sorted(self.sessions)))
@@ -445,7 +446,42 @@ class StrategyFilters:
             bits.append("vol:" + "+".join(sorted(self.volatility)))
         if self.require_alignment:
             bits.append(f"align>={self.require_alignment:g}")
+        if not self.rth_only:
+            bits.append("allhours")
+        if self.days_of_week:
+            bits.append("dow:" + "+".join(sorted(self.days_of_week)))
+        if self.min_minutes_since_open is not None:
+            bits.append(f"mso>={self.min_minutes_since_open:g}")
+        if self.max_minutes_since_open is not None:
+            bits.append(f"mso<={self.max_minutes_since_open:g}")
         return ",".join(bits) or "any"
+
+    @property
+    def identity(self) -> str:
+        """Every field that changes behaviour, for hashing.
+
+        ``label`` was used for this and emitted only sessions, regimes,
+        volatility and require_alignment - so ``rth_only``, ``days_of_week``
+        and the minutes-since-open bounds were invisible to
+        ``Strategy.strategy_id``. Verified: one rule set with ``rth_only=True``,
+        with ``rth_only=False``, with ``max_minutes_since_open=90`` and with
+        ``days_of_week={MON}`` all hashed to ``MES-240m-107391c3583f``. Since
+        ``run_portfolio`` keys both its results and its open-position state by
+        that id, running an RTH arm and a non-RTH arm in one call silently
+        merged them.
+
+        Second instance of the defect already fixed on ``ExitModel.label``, and
+        built the same way - from ``dataclasses.fields`` rather than a
+        hand-written list, so a field added later cannot reintroduce it.
+        """
+        import dataclasses
+
+        def norm(v):
+            return "+".join(sorted(v)) if isinstance(v, frozenset) else repr(v)
+
+        return "|".join(
+            f"{f.name}={norm(getattr(self, f.name))}"
+            for f in sorted(dataclasses.fields(self), key=lambda f: f.name))
 
 
 # --------------------------------------------------------------------------
@@ -576,7 +612,7 @@ class Strategy:
             parts = [
                 self.symbol, str(self.primary_tf), self.group,
                 "|".join(sorted(c.label for c in self.conditions)),
-                self.exit.identity, self.filters.label(),
+                self.exit.identity, self.filters.identity,
                 "".join(sorted(d.value for d in self.allowed_directions)),
                 ",".join(str(t) for t in sorted(self.confirm_tfs)),
                 str(self.execution_tf or ""),

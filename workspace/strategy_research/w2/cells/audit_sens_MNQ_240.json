@@ -1,5 +1,193 @@
 {
  "symbol": "MNQ",
  "tf": 240,
- "families": 0
+ "families": 103,
+ "sibling_floor": 5,
+ "min_siblings": 2,
+ "median_spread_best_minus_worst": 0.1161,
+ "median_frac_positive_across_siblings": 0.0,
+ "top10_by_best_exit": [
+  {
+   "group": "TREND",
+   "conds": [
+    "break_of_structure",
+    "ema_fast_above_slow",
+    "mtf_strongly_aligned",
+    "regime_matches_direction",
+    "regime_trending",
+    "volatility_normal",
+    "volume_not_thin"
+   ],
+   "siblings": 2,
+   "best": 0.4343,
+   "median": 0.174,
+   "worst": -0.0863,
+   "frac_positive": 0.5
+  },
+  {
+   "group": "TREND",
+   "conds": [
+    "adx_trending",
+    "break_of_structure",
+    "ema_fast_above_slow",
+    "mtf_strongly_aligned",
+    "regime_matches_direction",
+    "regime_trending",
+    "volatility_normal",
+    "volume_not_thin"
+   ],
+   "siblings": 2,
+   "best": 0.4343,
+   "median": 0.174,
+   "worst": -0.0863,
+   "frac_positive": 0.5
+  },
+  {
+   "group": "TREND",
+   "conds": [
+    "away_from_zone",
+    "break_of_structure",
+    "ema_fast_above_slow",
+    "mtf_strongly_aligned",
+    "regime_matches_direction",
+    "regime_trending",
+    "volatility_normal",
+    "volume_not_thin"
+   ],
+   "siblings": 2,
+   "best": 0.4343,
+   "median": 0.201,
+   "worst": -0.0323,
+   "frac_positive": 0.5
+  },
+  {
+   "group": "TREND",
+   "conds": [
+    "break_of_structure",
+    "ema_fast_above_slow",
+    "mtf_strongly_aligned",
+    "no_imminent_release",
+    "regime_matches_direction",
+    "regime_trending",
+    "volatility_normal",
+    "volume_not_thin"
+   ],
+   "siblings": 2,
+   "best": 0.4343,
+   "median": 0.174,
+   "worst": -0.0863,
+   "frac_positive": 0.5
+  },
+  {
+   "group": "TREND",
+   "conds": [
+    "break_of_structure",
+    "ema_fast_above_slow",
+    "mtf_strongly_aligned",
+    "outside_news_blackout",
+    "regime_matches_direction",
+    "regime_trending",
+    "volatility_normal",
+    "volume_not_thin"
+   ],
+   "siblings": 2,
+   "best": 0.4343,
+   "median": 0.174,
+   "worst": -0.0863,
+   "frac_positive": 0.5
+  },
+  {
+   "group": "MOMENTUM",
+   "conds": [
+    "ema_stack",
+    "regime_matches_direction",
+    "stoch_directional",
+    "structure_trend",
+    "volatility_normal"
+   ],
+   "siblings": 2,
+   "best": 0.4341,
+   "median": 0.2355,
+   "worst": 0.0369,
+   "frac_positive": 1.0
+  },
+  {
+   "group": "MOMENTUM",
+   "conds": [
+    "ema_stack",
+    "outside_news_blackout",
+    "regime_matches_direction",
+    "stoch_directional",
+    "structure_trend",
+    "volatility_normal"
+   ],
+   "siblings": 2,
+   "best": 0.4341,
+   "median": 0.2355,
+   "worst": 0.0369,
+   "frac_positive": 1.0
+  },
+  {
+   "group": "MULTI_TIMEFRAME",
+   "conds": [
+    "break_of_structure",
+    "mtf_strongly_aligned",
+    "price_above_ema50",
+    "volatility_normal",
+    "volume_not_thin",
+    "vwap_band_extension"
+   ],
+   "siblings": 2,
+   "best": 0.3884,
+   "median": 0.3494,
+   "worst": 0.3105,
+   "frac_positive": 1.0
+  },
+  {
+   "group": "MULTI_TIMEFRAME",
+   "conds": [
+    "adx_trending",
+    "break_of_structure",
+    "mtf_strongly_aligned",
+    "price_above_ema50",
+    "volatility_normal",
+    "volume_not_thin",
+    "vwap_band_extension"
+   ],
+   "siblings": 2,
+   "best": 0.3884,
+   "median": 0.3494,
+   "worst": 0.3105,
+   "frac_positive": 1.0
+  },
+  {
+   "group": "MULTI_TIMEFRAME",
+   "conds": [
+    "break_of_structure",
+    "mtf_strongly_aligned",
+    "no_imminent_release",
+    "price_above_ema50",
+    "volatility_normal",
+    "volume_not_thin",
+    "vwap_band_extension"
+   ],
+   "siblings": 2,
+   "best": 0.3884,
+   "median": 0.3494,
+   "worst": 0.3105,
+   "frac_positive": 1.0
+  }
+ ],
+ "top10_median_of_their_siblings": [
+  0.174,
+  0.174,
+  0.201,
+  0.174,
+  0.174,
+  0.2355,
+  0.2355,
+  0.3494,
+  0.3494,
+  0.3494
+ ]
 }
