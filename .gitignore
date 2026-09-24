@@ -32,3 +32,6 @@ workspace/*/slice_*.json
 workspace/*/all_rows.json
 # Derived from workspace/studies/out/ by aggregate_studies.py on every run.
 workspace/studies/merged.json
+# Worker run logs, at any nesting depth. The existing workspace/*/log/ rule
+# misses workspace/<x>/<worker>/logs/; results are kept, transcripts are not.
+workspace/**/logs/
