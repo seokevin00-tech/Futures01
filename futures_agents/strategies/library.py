@@ -21,7 +21,7 @@ from ..config import tf_label
 from ..features import (NEWS_BLACKOUT_AFTER_MIN, FeatureSnapshot,
                         TFSnapshot)
 from ..schema import Direction, fmt_price
-from .base import Condition, ConditionKind, ConditionResult
+from .base import Condition, ConditionKind, ConditionResult, _SESSION_MINUTES
 
 __all__ = ["CONDITIONS", "CONDITION_GROUPS", "condition", "get_condition",
            "conditions_in_group", "all_condition_names"]
@@ -845,9 +845,37 @@ def _mtf_ok(snap, tf):
 # TIME OF DAY
 # ==========================================================================
 
+def _spans_sessions(tf: Optional[int]) -> bool:
+    """Is this bar long enough that "where in the session" has no answer?
+
+    ``StrategyFilters.passes`` already guards ``rth_only`` this way, after it
+    was found vetoing every daily bar. These four conditions never got the same
+    guard, and the consequence was larger: on a daily bar ``minutes_since_open``
+    is -570 and the session is ASIA, so three of them vetoed **every** bar - and
+    two are base filters on their templates, so daily LIQUIDITY (1068/1068) and
+    daily OPENING_RANGE (972/972) took zero trades, as did 4h REVERSAL on every
+    symbol tested. Those absences were read as market facts for weeks.
+
+    A filter whose question does not apply must PASS, not veto. A daily bar is
+    not "outside the opening drive"; it contains the opening drive.
+    """
+    return tf is not None and tf >= _SESSION_MINUTES
+
+
+def _rth_minutes(snap) -> float:
+    """Length of this contract's RTH session, in minutes."""
+    def mins(hhmm: str) -> float:
+        h, m = hhmm.split(":")
+        return int(h) * 60 + int(m)
+    span = mins(snap.spec.rth_close) - mins(snap.spec.rth_open)
+    return span if span > 0 else span + 24 * 60
+
+
 @condition("avoid_lunch", "time", kind=ConditionKind.FILTER,
            description="Skip 12:00-13:30 ET - breakouts fail disproportionately")
 def _lunch(snap, tf):
+    if _spans_sessions(tf):
+        return ConditionResult.yes(FLAT, f"inert at {tf_label(tf)}: bar spans sessions")
     return (ConditionResult.no() if snap.session == "LUNCH"
             else ConditionResult.yes(FLAT, f"session {snap.session}"))
 
@@ -855,21 +883,38 @@ def _lunch(snap, tf):
 @condition("opening_drive_window", "time", kind=ConditionKind.FILTER,
            description="First 90 minutes of RTH")
 def _open_win(snap, tf):
+    if _spans_sessions(tf):
+        return ConditionResult.yes(FLAT, f"inert at {tf_label(tf)}: bar spans sessions")
     m = snap.minutes_since_open
     return (ConditionResult.yes(FLAT, f"{m:.0f}m since open")
             if 0 <= m <= 90 else ConditionResult.no())
 
 
 @condition("power_hour", "time", kind=ConditionKind.FILTER,
-           description="Final hour of RTH")
+           description="Final hour of this contract's RTH")
 def _power(snap, tf):
-    return (ConditionResult.yes(FLAT, f"session {snap.session}")
-            if snap.session == "RTH_CLOSE" else ConditionResult.no())
+    """The last hour before THIS contract closes, not 15:00-16:00 ET.
+
+    It previously tested ``session == "RTH_CLOSE"``, which the shared session
+    table fixes at 15:00-16:00 ET - an equity-index clock. MGC closes at 13:30
+    and MCL at 14:30, so their final hour is labelled RTH_AFTERNOON or LUNCH and
+    the condition could never fire: 509 of 509 strategies containing it took
+    zero trades on those two contracts.
+    """
+    if _spans_sessions(tf):
+        return ConditionResult.yes(FLAT, f"inert at {tf_label(tf)}: bar spans sessions")
+    if not snap.is_rth:
+        return ConditionResult.no()
+    m, span = snap.minutes_since_open, _rth_minutes(snap)
+    return (ConditionResult.yes(FLAT, f"{span - m:.0f}m before the close")
+            if span - 60 <= m <= span else ConditionResult.no())
 
 
 @condition("after_opening_range", "time", kind=ConditionKind.FILTER,
            description="At least 30 minutes into RTH")
 def _after_or(snap, tf):
+    if _spans_sessions(tf):
+        return ConditionResult.yes(FLAT, f"inert at {tf_label(tf)}: bar spans sessions")
     m = snap.minutes_since_open
     return (ConditionResult.yes(FLAT, f"{m:.0f}m since open")
             if m >= 30 else ConditionResult.no())

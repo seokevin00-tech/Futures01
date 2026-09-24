@@ -237,8 +237,34 @@ class ExitModel:
 
     @property
     def label(self) -> str:
+        """Human-readable shape. NOT an identity - see :attr:`identity`."""
         t = "/".join(f"{t:g}" for t in self.targets_r)
-        return f"{self.stop_kind.value}x{self.stop_mult:g}->{t}R"
+        base = f"{self.stop_kind.value}x{self.stop_mult:g}->{t}R"
+        if self.target_kind is not TargetKind.R_MULTIPLE:
+            a = "/".join(f"{x:g}" for x in self.anchor_mult)
+            base += f"[{self.target_kind.value}:{a}]"
+        return base
+
+    @property
+    def identity(self) -> str:
+        """Every field that changes behaviour, for hashing.
+
+        ``label`` was used for this and it is not sufficient: it shows only the
+        stop and the R-multiple targets, so the R_MULTIPLE structure exit and
+        the ANCHOR_STRUCTURE structure exit - genuinely different trades, one
+        targeting multiples of the stop and the other the anchor timeframe's own
+        swing objective - both rendered as ``STRUCTUREx1->1/2/3R``. Strategies
+        differing only in that collided on ``strategy_id``, and since
+        ``run_portfolio`` keys its results by that id, one silently overwrote the
+        other's trades.
+
+        Built from ``dataclasses.fields`` rather than a hand-written list so a
+        field added later cannot quietly reintroduce the collision.
+        """
+        import dataclasses
+        return "|".join(
+            f"{f.name}={getattr(self, f.name)!r}"
+            for f in sorted(dataclasses.fields(self), key=lambda f: f.name))
 
     def stop_price(self, snap: FeatureSnapshot, tf: int, direction: Direction,
                    entry: float, spec: ContractSpec) -> Optional[float]:
@@ -550,7 +576,7 @@ class Strategy:
             parts = [
                 self.symbol, str(self.primary_tf), self.group,
                 "|".join(sorted(c.label for c in self.conditions)),
-                self.exit.label, self.filters.label(),
+                self.exit.identity, self.filters.label(),
                 "".join(sorted(d.value for d in self.allowed_directions)),
                 ",".join(str(t) for t in sorted(self.confirm_tfs)),
                 str(self.execution_tf or ""),
@@ -663,11 +689,21 @@ class Strategy:
                                           snap=snap, anchor_tf=self.primary_tf)
         if not targets:
             return None
-        # With an anchored target the reward is no longer guaranteed to exceed
-        # the risk, so it has to be checked rather than assumed.
         risk = abs(entry - stop)
         reward = abs(targets[-1] - entry)
-        if risk <= 0 or reward / risk < self.exit.min_reward_risk:
+        if risk <= 0:
+            return None
+        # With an ANCHORED target the reward is not guaranteed to exceed the
+        # risk - the target is a price level and the stop can drift toward it -
+        # so it has to be checked per setup. With R_MULTIPLE targets the ratio
+        # IS ``targets_r[-1]`` by construction, fixed when the exit model was
+        # written, so applying the same floor there is not a per-setup guard at
+        # all: it statically deletes any R-multiple exit whose last target sits
+        # below the floor. That is what killed the scalp exit
+        # (``ATRx1.2->1.2R`` against a 1.5 default) on every bar of every
+        # backtest, in nine of the thirteen templates.
+        if (self.exit.target_kind is not TargetKind.R_MULTIPLE
+                and reward / risk < self.exit.min_reward_risk):
             return None
 
         # Record higher-timeframe disagreement as a conflict rather than hiding
