@@ -526,3 +526,22 @@ split **and all three disjoint slices**. 51% of its winners "hit target" on the 
 bias whose sign is always favourable. Only auditing the fill model can.** Out-of-sample testing,
 disjoint periods and walk-forward all pass a bias that is present in every period. This is the
 one failure mode the programme's entire methodology is blind to.
+
+## D36 — `session_extreme_sweep` is self-referential, so its rarity is degeneracy (found by `ict_sweep_mss`)
+
+`session_levels()` builds `session_high` from bars with `b.ts <= cutoff` — **which includes the
+bar being tested**. So `bar.high > session_high` is arithmetically impossible, and the condition's
+0.61% firing rate is an artefact rather than a market fact. The same mechanism caps
+`overnight_sweep` at an RTH-only 4.7%.
+
+A causal reimplementation fires at **2.7–3.9%** and **9.3–12.3%** respectively. The control that
+proves the difference belongs to the library and not to the reimplementation: PDH/PDL reproduces
+the library's number **exactly**.
+
+## D37 — the combinator cannot express a sequence at all (found by `ict_sweep_mss`)
+
+`min_signals=2` requires two conditions to fire **on the same bar**. A sweep and its consequence
+never co-occur by definition. So every ordered-chain idea — the whole of ICT's central claim, and
+any "A then B" setup — is inexpressible in the template system, and attempting one produces the
+starvation that was previously misread as the idea failing. This is an architectural limitation,
+not a tuning problem, and it explains the sweep family's "0 rule sets ever reached 20 trades".

@@ -167,3 +167,80 @@ sham-zone test that killed order blocks, and the same answer.
 
 The best single config (MGC 15m, OR60, retest, mid stop, 1R target: n=108, +0.191R, t=2.14) has
 20/72 positive neighbours and is negative on MES and MNQ — a spike, not a plateau.
+
+---
+
+## `ict_sweep_mss` — the sequence: sweep → structure shift → retrace into the imbalance
+
+ICT's central claim, tested as an ordered chain rather than a conjunction. **Verdict: the
+sequence is real, common, correctly detectable without look-ahead, and worthless.**
+
+This is the strongest negative in the programme, because unlike the earlier retractions **the
+population was healthy** — the idea failed on its merits rather than starving.
+
+### The sequence is not rare — the old starvation was an architecture bug
+
+Per symbol at 60m over 10.5 months: **1,893–2,014 sweeps** (37.9–40.3% of bars) → 264–370 reach
+an opposing MSS within 5 bars → 136–184 leave a displacement imbalance → **77–106 retrace into
+it** (1.2–2.1% of bars, 7–9 per month). Built as an ordered chain that is **57–68 trades per
+cell**, against the sweep family's previous **zero rule sets ever reaching 20 trades**.
+
+Cross-check that validates the detector: PDH+PDL sweep rate 12.2% against the library's measured
+`prior_day_sweep` 12.4%.
+
+### The first link does not cause the second
+
+Unadjusted, a sweep raises P(opposing MSS within 5 bars) by a median **×1.46** (Stouffer
+z = +17.6). That is **tautological**: a sweep bar closes back *inside* the level, so it is
+already nearer the swing the MSS must break.
+
+Stratify on that distance in ATR and the effect collapses:
+
+```
+Mantel-Haenszel OR vs bars that ran the same level:   1.08
+vs bars that ran NO level:                            0.86   (Stouffer z = -4.03)
+```
+
+**At matched distance, sweeping liquidity predicts the structure shift slightly *worse* than
+never touching a level at all.**
+
+### Ablation: no stage adds anything
+
+Six arms, matched bars/exit/costs, per-cell paired sign test (never `T.ab`, per D28). **Not one
+of 8 comparisons × 3 windows reaches |z| = 1.96.** `full − sweep_mss`: −0.079R IS → +0.096R OOS.
+`full − mss_only`: −0.091R IS → +0.064R OOS. **Sign flips IS→OOS in 6 of 8.** Absolute level is
+negative: full chain −0.045R per cell, 8/12 cells losing.
+
+### The wrong order trades the same — and ranks first
+
+MSS-then-sweep (the deliberately wrong order): median Δ +0.11R full sample (n.s.), +0.08R OOS.
+**The top two rows of the worker's own durability ranking are the wrong-order control**
+(MNQ 60m, +0.39R, t = 2.10). Best t anywhere 2.10 against free_t = 3.84.
+
+A **placebo** — the same entries displaced 5 bars — returns **+0.08R, beating the real entries.**
+
+### Tuning the timing costs more than the effect is worth
+
+19 variants of gap and retrace tolerance: none positive OOS, 18 of 19 negative IS. Entry counts
+scale **~linearly in N** (28/41/56/81/118/138/174) — independent events, not a mechanism.
+Walk-forward: tuning N on history returns **−0.11R per fold** against −0.00R for never tuning,
+with a hindsight oracle at +0.18R — so **data-mining bias ≈ 0.29R per fold, larger than any
+effect in the study.**
+
+### Execution and cost reality
+
+Gross +0.052R → net −0.017R → at 4× slippage −0.062R: **the entire gross edge sits inside the
+cost envelope**, and D13 means even that understates it. 41% of entries land more than one
+gap-height from the edge, so an idealised resting limit at the imbalance was tested — it is
+**worse**: −0.158R over 741 trades, 1/12 cells positive, win rate falling 39.9% → 19.8%.
+
+### Audit
+
+**0 mismatches in 1,494 prefix-versus-full entry comparisons** across 8 cells × 5 truncations.
+`.events` never read (D27); swings filtered on `confirmed_index`; FVGs dated to their third bar;
+the MSS reference pinned to swings formed *before* the sweep so it cannot drift. Max Jaccard
+against 12 library conditions: **0.055** — not a duplicate. Sample bound stated honestly: 20–68
+trades per cell, SE ≈ 0.2R, so effects under ~0.4R are unresolvable here.
+
+Multi-timeframe made it worse: 240m levels into a 60m chain gives −0.199R against −0.060R,
+**8/8 cells negative**, starved to 9–17 trades per cell.
