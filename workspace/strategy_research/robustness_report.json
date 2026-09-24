@@ -470,5 +470,3284 @@
    ],
    "full_findings": "workspace/studies/out/s_freshness.json"
   }
+ },
+ "swing_depth": {
+  "scope": "Anti-overfitting audit of the swing-count depth family (workspace/newstrats/depth.py): sd_count_ge1..5, sd_count_eq1..4, sd_mtf_ge1..5, sd_age_ge*, over MGC/MES/NQ/MNQ/MCL at 240m and 60m, 14 matched partner rule sets, 2,800 strategy rows and 1,926 count-matched resampling tests.",
+  "bottom_line": "Nothing is live-eligible. The one genuinely new claim that survives both halves is NEGATIVE: deep structure is worse, not better. The only positive arm (sd_age_ge50, a duration rather than a count) exists in 4 cells, all on 60m, and does not clear deflation.",
+  "checks": {
+   "look_ahead_bias": {
+    "status": "PASS",
+    "detail": "Depth recomputed from bars[0..i] only, at 240 random bars across MGC/MCL x 240m/60m, matched the full-series column on 240/240. Swings enter the running depth at confirmed_index, never at index; measured confirmation lag is exactly 3 bars on all 955 MGC 60m swings."
+   },
+   "repainting": {
+    "status": "PASS",
+    "detail": "Same truncation test. The depth column cannot change retroactively because a swing enters it once, at confirmation."
+   },
+   "future_data_leakage": {
+    "status": "PASS",
+    "detail": "Depth is registered from the SymbolFrame the backtest runs on, keyed on (symbol, tf, bar timestamp). Zero lookup misses across all 2,800 runs, so no condition silently returned no-signal through a key mismatch. Engine defaults used: entry on next bar open, stop assumed to fill before target within a bar, gaps filled at the open."
+   },
+   "data_mining_bias": {
+    "status": "FAIL",
+    "detail": "30 arm comparisons screened -> free_t = sqrt(2*ln(30)) = 2.61. The best single half t in the whole 2,800-row population is 2.566 against free_t(2800) = 3.984. No arm clears its own deflation."
+   },
+   "out_of_sample": {
+    "status": "FAIL",
+    "detail": "Spearman(IS exp, OOS exp) = +0.004 over the 966 rows with >=20 trades in both halves. Controls without depth score +0.287 Pearson - depth filtering destroys IS->OOS transfer rather than improving it."
+   },
+   "parameter_sensitivity": {
+    "status": "PASS on shape, FAIL on sign",
+    "detail": "Fractal width swept 2/3/4/5 on all 10 cells: firing rates stay inside ge1 0.55-0.65, ge2 0.14-0.25, ge3 0.05-0.10, ge4 0.01-0.05, ge5 0.00-0.04, so the depth distribution is not an artifact of the 3/3 fractal. But the direction of the ge3 effect flips between 240m (OOS z=-4.87) and 60m (OOS z=+2.29), which is a worse instability than parameter sensitivity.",
+    "sweep": {
+     "MGC_240_w2": {
+      "ge1": 0.6276,
+      "ge2": 0.2114,
+      "ge3": 0.0861,
+      "ge4": 0.0289,
+      "ge5": 0.0119
+     },
+     "MGC_240_w3": {
+      "ge1": 0.6172,
+      "ge2": 0.2203,
+      "ge3": 0.0853,
+      "ge4": 0.0349,
+      "ge5": 0.0119
+     },
+     "MGC_240_w4": {
+      "ge1": 0.5757,
+      "ge2": 0.1944,
+      "ge3": 0.0668,
+      "ge4": 0.0119,
+      "ge5": 0.0
+     },
+     "MGC_240_w5": {
+      "ge1": 0.5467,
+      "ge2": 0.1358,
+      "ge3": 0.0519,
+      "ge4": 0.0156,
+      "ge5": 0.0
+     },
+     "MGC_60_w2": {
+      "ge1": 0.5766,
+      "ge2": 0.1998,
+      "ge3": 0.074,
+      "ge4": 0.022,
+      "ge5": 0.0024
+     },
+     "MGC_60_w3": {
+      "ge1": 0.619,
+      "ge2": 0.2278,
+      "ge3": 0.0854,
+      "ge4": 0.0358,
+      "ge5": 0.016
+     },
+     "MGC_60_w4": {
+      "ge1": 0.642,
+      "ge2": 0.2238,
+      "ge3": 0.079,
+      "ge4": 0.0356,
+      "ge5": 0.0194
+     },
+     "MGC_60_w5": {
+      "ge1": 0.645,
+      "ge2": 0.2522,
+      "ge3": 0.0972,
+      "ge4": 0.0326,
+      "ge5": 0.008
+     },
+     "MES_240_w2": {
+      "ge1": 0.5954,
+      "ge2": 0.2123,
+      "ge3": 0.0683,
+      "ge4": 0.0089,
+      "ge5": 0.0
+     },
+     "MES_240_w3": {
+      "ge1": 0.6488,
+      "ge2": 0.2168,
+      "ge3": 0.0557,
+      "ge4": 0.0141,
+      "ge5": 0.0
+     },
+     "MES_240_w4": {
+      "ge1": 0.6013,
+      "ge2": 0.1663,
+      "ge3": 0.046,
+      "ge4": 0.0141,
+      "ge5": 0.0
+     },
+     "MES_240_w5": {
+      "ge1": 0.6303,
+      "ge2": 0.2004,
+      "ge3": 0.0668,
+      "ge4": 0.0,
+      "ge5": 0.0
+     },
+     "MES_60_w2": {
+      "ge1": 0.5736,
+      "ge2": 0.186,
+      "ge3": 0.057,
+      "ge4": 0.0084,
+      "ge5": 0.003
+     },
+     "MES_60_w3": {
+      "ge1": 0.5712,
+      "ge2": 0.1666,
+      "ge3": 0.0532,
+      "ge4": 0.012,
+      "ge5": 0.0064
+     },
+     "MES_60_w4": {
+      "ge1": 0.5714,
+      "ge2": 0.1728,
+      "ge3": 0.05,
+      "ge4": 0.0136,
+      "ge5": 0.002
+     },
+     "MES_60_w5": {
+      "ge1": 0.5994,
+      "ge2": 0.2042,
+      "ge3": 0.0774,
+      "ge4": 0.0188,
+      "ge5": 0.0012
+     },
+     "NQ_240_w2": {
+      "ge1": 0.6036,
+      "ge2": 0.2331,
+      "ge3": 0.1047,
+      "ge4": 0.0512,
+      "ge5": 0.0186
+     },
+     "NQ_240_w3": {
+      "ge1": 0.6325,
+      "ge2": 0.2405,
+      "ge3": 0.0891,
+      "ge4": 0.0371,
+      "ge5": 0.0067
+     },
+     "NQ_240_w4": {
+      "ge1": 0.6964,
+      "ge2": 0.2509,
+      "ge3": 0.1024,
+      "ge4": 0.0371,
+      "ge5": 0.0015
+     },
+     "NQ_240_w5": {
+      "ge1": 0.6347,
+      "ge2": 0.2339,
+      "ge3": 0.1262,
+      "ge4": 0.0646,
+      "ge5": 0.0312
+     },
+     "NQ_60_w2": {
+      "ge1": 0.5734,
+      "ge2": 0.1926,
+      "ge3": 0.0612,
+      "ge4": 0.0204,
+      "ge5": 0.0046
+     },
+     "NQ_60_w3": {
+      "ge1": 0.5638,
+      "ge2": 0.1746,
+      "ge3": 0.0542,
+      "ge4": 0.0152,
+      "ge5": 0.0066
+     },
+     "NQ_60_w4": {
+      "ge1": 0.6098,
+      "ge2": 0.202,
+      "ge3": 0.06,
+      "ge4": 0.026,
+      "ge5": 0.012
+     },
+     "NQ_60_w5": {
+      "ge1": 0.6108,
+      "ge2": 0.226,
+      "ge3": 0.0892,
+      "ge4": 0.031,
+      "ge5": 0.0116
+     },
+     "MNQ_240_w2": {
+      "ge1": 0.6095,
+      "ge2": 0.2316,
+      "ge3": 0.0935,
+      "ge4": 0.0453,
+      "ge5": 0.0186
+     },
+     "MNQ_240_w3": {
+      "ge1": 0.6236,
+      "ge2": 0.2442,
+      "ge3": 0.0891,
+      "ge4": 0.0371,
+      "ge5": 0.0067
+     },
+     "MNQ_240_w4": {
+      "ge1": 0.6578,
+      "ge2": 0.2361,
+      "ge3": 0.0935,
+      "ge4": 0.0282,
+      "ge5": 0.0015
+     },
+     "MNQ_240_w5": {
+      "ge1": 0.6362,
+      "ge2": 0.2339,
+      "ge3": 0.1262,
+      "ge4": 0.0646,
+      "ge5": 0.0312
+     },
+     "MNQ_60_w2": {
+      "ge1": 0.5728,
+      "ge2": 0.1908,
+      "ge3": 0.0606,
+      "ge4": 0.0184,
+      "ge5": 0.0024
+     },
+     "MNQ_60_w3": {
+      "ge1": 0.5656,
+      "ge2": 0.1782,
+      "ge3": 0.0536,
+      "ge4": 0.0178,
+      "ge5": 0.0068
+     },
+     "MNQ_60_w4": {
+      "ge1": 0.6114,
+      "ge2": 0.2168,
+      "ge3": 0.0672,
+      "ge4": 0.031,
+      "ge5": 0.014
+     },
+     "MNQ_60_w5": {
+      "ge1": 0.6218,
+      "ge2": 0.2444,
+      "ge3": 0.096,
+      "ge4": 0.0324,
+      "ge5": 0.0114
+     },
+     "MCL_240_w2": {
+      "ge1": 0.6351,
+      "ge2": 0.2384,
+      "ge3": 0.0788,
+      "ge4": 0.0253,
+      "ge5": 0.013
+     },
+     "MCL_240_w3": {
+      "ge1": 0.5939,
+      "ge2": 0.2262,
+      "ge3": 0.0679,
+      "ge4": 0.0202,
+      "ge5": 0.0
+     },
+     "MCL_240_w4": {
+      "ge1": 0.6004,
+      "ge2": 0.216,
+      "ge3": 0.0954,
+      "ge4": 0.0499,
+      "ge5": 0.0426
+     },
+     "MCL_240_w5": {
+      "ge1": 0.6185,
+      "ge2": 0.229,
+      "ge3": 0.091,
+      "ge4": 0.0527,
+      "ge5": 0.0325
+     },
+     "MCL_60_w2": {
+      "ge1": 0.5686,
+      "ge2": 0.177,
+      "ge3": 0.0624,
+      "ge4": 0.024,
+      "ge5": 0.006
+     },
+     "MCL_60_w3": {
+      "ge1": 0.562,
+      "ge2": 0.1526,
+      "ge3": 0.0486,
+      "ge4": 0.014,
+      "ge5": 0.0008
+     },
+     "MCL_60_w4": {
+      "ge1": 0.5814,
+      "ge2": 0.174,
+      "ge3": 0.0526,
+      "ge4": 0.018,
+      "ge5": 0.002
+     },
+     "MCL_60_w5": {
+      "ge1": 0.5908,
+      "ge2": 0.1834,
+      "ge3": 0.0602,
+      "ge4": 0.0158,
+      "ge5": 0.0028
+     }
+    }
+   },
+   "insufficient_sample": {
+    "status": "FAIL for depth>=4",
+    "detail": "ge5 fires below the 1% degeneracy floor in 6 of 10 cells (MES_240 0.00%, MCL_240 0.00%, MCL_60 0.08%, MES_60 0.64%, NQ_60 0.66%, MNQ_60 0.68%) and produced a median of 0 trades per arm. Independent structural episodes over 10.5 months: depth-3 <=10 and depth-4 <=4 on every symbol at 240m. Depth 4 and 5 are reported as untestable, not as negative."
+   },
+   "unrealistic_fills": {
+    "status": "PASS",
+    "detail": "FillModel defaults: entry_on_next_open=True, stop_before_target_in_same_bar=True, honour_gaps=True."
+   },
+   "understated_costs": {
+    "status": "PASS",
+    "detail": "Full grid re-run with 3x slippage (base 1.5 ticks, stop extra 3.0, volatility coefficient 1.8, thin 3.0, news 6.0). Every conclusion holds: ge3 vs control IS z=-3.33 base / -3.30 stressed; ge1 vs control OOS -3.21 base / -2.37 stressed; age50 OOS +2.37 base / +2.67 stressed.",
+    "detail_table": {
+     "base|ge1|IS": {
+      "stouffer_z": 0.34,
+      "cells": 10,
+      "cells_pos": 6,
+      "median_delta": 0.004
+     },
+     "base|ge1|OOS": {
+      "stouffer_z": -3.21,
+      "cells": 10,
+      "cells_pos": 5,
+      "median_delta": -0.0297
+     },
+     "base|ge2|IS": {
+      "stouffer_z": -1.18,
+      "cells": 10,
+      "cells_pos": 4,
+      "median_delta": -0.0115
+     },
+     "base|ge2|OOS": {
+      "stouffer_z": -0.42,
+      "cells": 10,
+      "cells_pos": 4,
+      "median_delta": -0.0119
+     },
+     "base|ge3|IS": {
+      "stouffer_z": -3.33,
+      "cells": 9,
+      "cells_pos": 4,
+      "median_delta": -0.1641
+     },
+     "base|ge3|OOS": {
+      "stouffer_z": -1.36,
+      "cells": 8,
+      "cells_pos": 4,
+      "median_delta": -0.0295
+     },
+     "base|mtf2|IS": {
+      "stouffer_z": 0.41,
+      "cells": 7,
+      "cells_pos": 4,
+      "median_delta": 0.024
+     },
+     "base|mtf2|OOS": {
+      "stouffer_z": 1.65,
+      "cells": 10,
+      "cells_pos": 6,
+      "median_delta": 0.0394
+     },
+     "base|age50|IS": {
+      "stouffer_z": 2.42,
+      "cells": 5,
+      "cells_pos": 4,
+      "median_delta": 0.1091
+     },
+     "base|age50|OOS": {
+      "stouffer_z": 2.37,
+      "cells": 4,
+      "cells_pos": 2,
+      "median_delta": 0.2599
+     },
+     "3x|ge1|IS": {
+      "stouffer_z": 0.34,
+      "cells": 10,
+      "cells_pos": 5,
+      "median_delta": 0.0034
+     },
+     "3x|ge1|OOS": {
+      "stouffer_z": -2.37,
+      "cells": 10,
+      "cells_pos": 5,
+      "median_delta": -0.0247
+     },
+     "3x|ge2|IS": {
+      "stouffer_z": -1.18,
+      "cells": 10,
+      "cells_pos": 4,
+      "median_delta": -0.0132
+     },
+     "3x|ge2|OOS": {
+      "stouffer_z": 0.24,
+      "cells": 10,
+      "cells_pos": 5,
+      "median_delta": 0.0077
+     },
+     "3x|ge3|IS": {
+      "stouffer_z": -3.3,
+      "cells": 9,
+      "cells_pos": 4,
+      "median_delta": -0.1451
+     },
+     "3x|ge3|OOS": {
+      "stouffer_z": -1.17,
+      "cells": 8,
+      "cells_pos": 4,
+      "median_delta": -0.0242
+     },
+     "3x|mtf2|IS": {
+      "stouffer_z": 0.41,
+      "cells": 7,
+      "cells_pos": 4,
+      "median_delta": 0.0344
+     },
+     "3x|mtf2|OOS": {
+      "stouffer_z": 1.64,
+      "cells": 10,
+      "cells_pos": 6,
+      "median_delta": 0.055
+     },
+     "3x|age50|IS": {
+      "stouffer_z": 3.19,
+      "cells": 5,
+      "cells_pos": 4,
+      "median_delta": 0.1156
+     },
+     "3x|age50|OOS": {
+      "stouffer_z": 2.67,
+      "cells": 4,
+      "cells_pos": 3,
+      "median_delta": 0.2686
+     }
+    }
+   },
+   "survivorship_bias": {
+    "status": "NOT APPLICABLE / NOTED",
+    "detail": "One continuous front-month series per symbol and no universe selection, so no survivorship. Roll effects are inherited from the CSVs and were not separately modelled."
+   },
+   "degeneracy_and_duplication": {
+    "status": "FAIL - one duplicate found",
+    "detail": "sd_count_ge1 is bit-identical to structure_trend on 100.000% of bars in all 10 cells and on 140/140 (cell,partner) trade fingerprints. features.py lines 639-649 set UPTREND iff last_high>prior_high AND last_low>prior_low, which is depth>=1. The library already contains this condition. sd_count_eq1/eq2 and sd_count_ge2/ge3 are non-degenerate; sd_mtf_ge4/ge5 fire below 1% and are dead."
+   },
+   "pooling_inflation": {
+    "status": "CONTROLLED",
+    "detail": "All headline statistics are per-cell then Stouffer-combined, never pooled trade lists. Where a per-cell z itself pools 14 partner rule sets sharing the same bars, the one-vote-per-cell sign test is also reported: under it NOTHING in the family clears, ge3 being 3/9 cells IS and 4/8 OOS."
+   },
+   "trade_count_confound": {
+    "status": "CONTROLLED",
+    "detail": "1,926 count-matched resampling tests: each arm's realised mean R is compared against 2,000 random draws of the SAME number of trades from its own control. Depth-3 sits at the 28.7th percentile in sample, Stouffer z=-6.57 IS and -3.49 OOS. Caveat: arms are not exact subsets of their controls (median 52.8% trade overlap) because the engine holds one position at a time, so this is count-matched resampling, not an exact permutation test."
+   },
+   "walk_forward": {
+    "status": "NULL for every count arm",
+    "detail": "5 sequential non-overlapping folds x 10 cells. Positive folds: ge1 20/50, ge2 18/45, ge3 7/18, mtf2 16/32, age50 8/10. Only age50 leans positive (fold sign z=+1.90) and it exists in 10 of 50 fold slots.",
+    "per_arm": {
+     "ge1": {
+      "folds": 50,
+      "positive": 20,
+      "fold_sign_z": -1.41,
+      "mean_fold_z": -0.25,
+      "median_delta": 0.0027
+     },
+     "ge2": {
+      "folds": 45,
+      "positive": 18,
+      "fold_sign_z": -1.34,
+      "mean_fold_z": -0.45,
+      "median_delta": -0.0626
+     },
+     "ge3": {
+      "folds": 18,
+      "positive": 7,
+      "fold_sign_z": -0.94,
+      "mean_fold_z": 0.0,
+      "median_delta": -0.0314
+     },
+     "mtf2": {
+      "folds": 32,
+      "positive": 16,
+      "fold_sign_z": 0.0,
+      "mean_fold_z": -0.22,
+      "median_delta": 0.0069
+     },
+     "age50": {
+      "folds": 10,
+      "positive": 8,
+      "fold_sign_z": 1.9,
+      "mean_fold_z": 1.97,
+      "median_delta": 0.1701
+     }
+    }
+   }
+  },
+  "headline_results": {
+   "paired_arm_tests": {
+    "ge2_vs_ge1_IS": {
+     "arm_a": "ge2",
+     "arm_b": "ge1",
+     "split": "IS",
+     "cells": 10,
+     "stouffer_z": -2.7,
+     "cells_positive": 2,
+     "median_delta_pooled": -0.031,
+     "n_pairs": 140,
+     "percell": [
+      [
+       "MCL_240",
+       -0.53,
+       -0.0069,
+       14
+      ],
+      [
+       "MCL_60",
+       3.74,
+       0.23,
+       14
+      ],
+      [
+       "MES_240",
+       -3.74,
+       -0.2083,
+       14
+      ],
+      [
+       "MES_60",
+       -2.67,
+       -0.0593,
+       14
+      ],
+      [
+       "MGC_240",
+       0.53,
+       0.0267,
+       14
+      ],
+      [
+       "MGC_60",
+       -3.21,
+       -0.0684,
+       14
+      ],
+      [
+       "MNQ_240",
+       0.0,
+       -0.0124,
+       14
+      ],
+      [
+       "MNQ_60",
+       -0.53,
+       -0.0282,
+       14
+      ],
+      [
+       "NQ_240",
+       -0.53,
+       -0.0069,
+       14
+      ],
+      [
+       "NQ_60",
+       -1.6,
+       -0.0533,
+       14
+      ]
+     ]
+    },
+    "ge2_vs_ge1_OOS": {
+     "arm_a": "ge2",
+     "arm_b": "ge1",
+     "split": "OOS",
+     "cells": 10,
+     "stouffer_z": 0.35,
+     "cells_positive": 5,
+     "median_delta_pooled": 0.0042,
+     "n_pairs": 138,
+     "percell": [
+      [
+       "MCL_240",
+       -3.21,
+       -0.2208,
+       14
+      ],
+      [
+       "MCL_60",
+       3.74,
+       0.1508,
+       14
+      ],
+      [
+       "MES_240",
+       0.58,
+       0.0281,
+       12
+      ],
+      [
+       "MES_60",
+       -1.07,
+       -0.0458,
+       14
+      ],
+      [
+       "MGC_240",
+       3.74,
+       0.3156,
+       14
+      ],
+      [
+       "MGC_60",
+       -1.07,
+       -0.023,
+       14
+      ],
+      [
+       "MNQ_240",
+       -3.74,
+       -0.1786,
+       14
+      ],
+      [
+       "MNQ_60",
+       3.74,
+       0.1295,
+       14
+      ],
+      [
+       "NQ_240",
+       -3.74,
+       -0.2384,
+       14
+      ],
+      [
+       "NQ_60",
+       2.14,
+       0.0786,
+       14
+      ]
+     ]
+    },
+    "ge3_vs_ge1_IS": {
+     "arm_a": "ge3",
+     "arm_b": "ge1",
+     "split": "IS",
+     "cells": 9,
+     "stouffer_z": -4.26,
+     "cells_positive": 3,
+     "median_delta_pooled": -0.1618,
+     "n_pairs": 86,
+     "percell": [
+      [
+       "MCL_60",
+       1.51,
+       0.1618,
+       11
+      ],
+      [
+       "MES_240",
+       -2.45,
+       -0.5427,
+       6
+      ],
+      [
+       "MES_60",
+       -3.46,
+       -0.297,
+       12
+      ],
+      [
+       "MGC_240",
+       -3.16,
+       -0.1643,
+       10
+      ],
+      [
+       "MGC_60",
+       -1.6,
+       -0.0307,
+       14
+      ],
+      [
+       "MNQ_240",
+       0.33,
+       0.103,
+       9
+      ],
+      [
+       "MNQ_60",
+       -2.83,
+       -0.5115,
+       8
+      ],
+      [
+       "NQ_240",
+       1.89,
+       0.1551,
+       7
+      ],
+      [
+       "NQ_60",
+       -3.0,
+       -0.5259,
+       9
+      ]
+     ]
+    },
+    "ge3_vs_ge1_OOS": {
+     "arm_a": "ge3",
+     "arm_b": "ge1",
+     "split": "OOS",
+     "cells": 8,
+     "stouffer_z": -1.36,
+     "cells_positive": 4,
+     "median_delta_pooled": -0.0245,
+     "n_pairs": 86,
+     "percell": [
+      [
+       "MCL_240",
+       -3.16,
+       -0.4078,
+       10
+      ],
+      [
+       "MCL_60",
+       -2.67,
+       -0.0775,
+       14
+      ],
+      [
+       "MES_60",
+       2.45,
+       0.337,
+       6
+      ],
+      [
+       "MGC_60",
+       0.53,
+       0.041,
+       14
+      ],
+      [
+       "MNQ_240",
+       -2.45,
+       -0.6832,
+       6
+      ],
+      [
+       "MNQ_60",
+       3.74,
+       0.3088,
+       14
+      ],
+      [
+       "NQ_240",
+       -2.83,
+       -0.538,
+       8
+      ],
+      [
+       "NQ_60",
+       0.53,
+       0.0439,
+       14
+      ]
+     ]
+    },
+    "ge3_vs_ge2_IS": {
+     "arm_a": "ge3",
+     "arm_b": "ge2",
+     "split": "IS",
+     "cells": 9,
+     "stouffer_z": -3.96,
+     "cells_positive": 3,
+     "median_delta_pooled": -0.1564,
+     "n_pairs": 86,
+     "percell": [
+      [
+       "MCL_60",
+       -2.71,
+       -0.0814,
+       11
+      ],
+      [
+       "MES_240",
+       -2.45,
+       -0.3172,
+       6
+      ],
+      [
+       "MES_60",
+       -2.89,
+       -0.1903,
+       12
+      ],
+      [
+       "MGC_240",
+       -3.16,
+       -0.1712,
+       10
+      ],
+      [
+       "MGC_60",
+       1.6,
+       0.0384,
+       14
+      ],
+      [
+       "MNQ_240",
+       1.67,
+       0.0697,
+       9
+      ],
+      [
+       "MNQ_60",
+       -2.83,
+       -0.482,
+       8
+      ],
+      [
+       "NQ_240",
+       1.89,
+       0.1602,
+       7
+      ],
+      [
+       "NQ_60",
+       -3.0,
+       -0.4,
+       9
+      ]
+     ]
+    },
+    "ge3_vs_ge2_OOS": {
+     "arm_a": "ge3",
+     "arm_b": "ge2",
+     "split": "OOS",
+     "cells": 8,
+     "stouffer_z": -1.17,
+     "cells_positive": 3,
+     "median_delta_pooled": -0.0726,
+     "n_pairs": 86,
+     "percell": [
+      [
+       "MCL_240",
+       -3.16,
+       -0.2076,
+       10
+      ],
+      [
+       "MCL_60",
+       -2.67,
+       -0.2655,
+       14
+      ],
+      [
+       "MES_60",
+       2.45,
+       0.2631,
+       6
+      ],
+      [
+       "MGC_60",
+       1.6,
+       0.0497,
+       14
+      ],
+      [
+       "MNQ_240",
+       -2.45,
+       -0.4799,
+       6
+      ],
+      [
+       "MNQ_60",
+       3.74,
+       0.1799,
+       14
+      ],
+      [
+       "NQ_240",
+       -2.83,
+       -0.2858,
+       8
+      ],
+      [
+       "NQ_60",
+       0.0,
+       -0.0054,
+       14
+      ]
+     ]
+    },
+    "ge1_vs_ctrl_IS": {
+     "arm_a": "ge1",
+     "arm_b": "ctrl",
+     "split": "IS",
+     "cells": 10,
+     "stouffer_z": 0.34,
+     "cells_positive": 6,
+     "median_delta_pooled": 0.004,
+     "n_pairs": 140,
+     "percell": [
+      [
+       "MCL_240",
+       -3.21,
+       -0.1396,
+       14
+      ],
+      [
+       "MCL_60",
+       -3.21,
+       -0.0905,
+       14
+      ],
+      [
+       "MES_240",
+       0.53,
+       0.0071,
+       14
+      ],
+      [
+       "MES_60",
+       2.67,
+       0.026,
+       14
+      ],
+      [
+       "MGC_240",
+       -0.53,
+       -0.019,
+       14
+      ],
+      [
+       "MGC_60",
+       3.74,
+       0.0515,
+       14
+      ],
+      [
+       "MNQ_240",
+       0.53,
+       0.007,
+       14
+      ],
+      [
+       "MNQ_60",
+       -1.6,
+       -0.0105,
+       14
+      ],
+      [
+       "NQ_240",
+       1.07,
+       0.0623,
+       14
+      ],
+      [
+       "NQ_60",
+       1.07,
+       0.0224,
+       14
+      ]
+     ]
+    },
+    "ge1_vs_ctrl_OOS": {
+     "arm_a": "ge1",
+     "arm_b": "ctrl",
+     "split": "OOS",
+     "cells": 10,
+     "stouffer_z": -3.21,
+     "cells_positive": 5,
+     "median_delta_pooled": -0.0297,
+     "n_pairs": 140,
+     "percell": [
+      [
+       "MCL_240",
+       3.21,
+       0.1678,
+       14
+      ],
+      [
+       "MCL_60",
+       -3.74,
+       -0.0885,
+       14
+      ],
+      [
+       "MES_240",
+       -3.74,
+       -0.1803,
+       14
+      ],
+      [
+       "MES_60",
+       0.53,
+       0.0108,
+       14
+      ],
+      [
+       "MGC_240",
+       1.6,
+       0.1162,
+       14
+      ],
+      [
+       "MGC_60",
+       -2.67,
+       -0.0171,
+       14
+      ],
+      [
+       "MNQ_240",
+       -3.21,
+       -0.1532,
+       14
+      ],
+      [
+       "MNQ_60",
+       0.53,
+       0.0094,
+       14
+      ],
+      [
+       "NQ_240",
+       -3.74,
+       -0.2043,
+       14
+      ],
+      [
+       "NQ_60",
+       1.07,
+       0.0101,
+       14
+      ]
+     ]
+    },
+    "ge2_vs_ctrl_IS": {
+     "arm_a": "ge2",
+     "arm_b": "ctrl",
+     "split": "IS",
+     "cells": 10,
+     "stouffer_z": -1.18,
+     "cells_positive": 4,
+     "median_delta_pooled": -0.0114,
+     "n_pairs": 140,
+     "percell": [
+      [
+       "MCL_240",
+       -2.67,
+       -0.1602,
+       14
+      ],
+      [
+       "MCL_60",
+       2.14,
+       0.1094,
+       14
+      ],
+      [
+       "MES_240",
+       -3.74,
+       -0.1915,
+       14
+      ],
+      [
+       "MES_60",
+       -2.14,
+       -0.0389,
+       14
+      ],
+      [
+       "MGC_240",
+       1.07,
+       0.0435,
+       14
+      ],
+      [
+       "MGC_60",
+       0.0,
+       -0.0017,
+       14
+      ],
+      [
+       "MNQ_240",
+       1.07,
+       0.0397,
+       14
+      ],
+      [
+       "MNQ_60",
+       -1.07,
+       -0.0404,
+       14
+      ],
+      [
+       "NQ_240",
+       1.6,
+       0.0579,
+       14
+      ],
+      [
+       "NQ_60",
+       0.0,
+       -0.0039,
+       14
+      ]
+     ]
+    },
+    "ge2_vs_ctrl_OOS": {
+     "arm_a": "ge2",
+     "arm_b": "ctrl",
+     "split": "OOS",
+     "cells": 10,
+     "stouffer_z": -0.42,
+     "cells_positive": 4,
+     "median_delta_pooled": -0.0119,
+     "n_pairs": 138,
+     "percell": [
+      [
+       "MCL_240",
+       -0.53,
+       -0.0145,
+       14
+      ],
+      [
+       "MCL_60",
+       2.14,
+       0.0599,
+       14
+      ],
+      [
+       "MES_240",
+       -3.46,
+       -0.1305,
+       12
+      ],
+      [
+       "MES_60",
+       0.0,
+       -0.0034,
+       14
+      ],
+      [
+       "MGC_240",
+       3.74,
+       0.4266,
+       14
+      ],
+      [
+       "MGC_60",
+       -2.14,
+       -0.0344,
+       14
+      ],
+      [
+       "MNQ_240",
+       -3.74,
+       -0.3092,
+       14
+      ],
+      [
+       "MNQ_60",
+       3.74,
+       0.1362,
+       14
+      ],
+      [
+       "NQ_240",
+       -3.74,
+       -0.4037,
+       14
+      ],
+      [
+       "NQ_60",
+       2.67,
+       0.079,
+       14
+      ]
+     ]
+    },
+    "ge3_vs_ctrl_IS": {
+     "arm_a": "ge3",
+     "arm_b": "ctrl",
+     "split": "IS",
+     "cells": 9,
+     "stouffer_z": -3.32,
+     "cells_positive": 4,
+     "median_delta_pooled": -0.1641,
+     "n_pairs": 86,
+     "percell": [
+      [
+       "MCL_60",
+       0.3,
+       0.0358,
+       11
+      ],
+      [
+       "MES_240",
+       -2.45,
+       -0.5388,
+       6
+      ],
+      [
+       "MES_60",
+       -3.46,
+       -0.2518,
+       12
+      ],
+      [
+       "MGC_240",
+       -3.16,
+       -0.2055,
+       10
+      ],
+      [
+       "MGC_60",
+       1.07,
+       0.0101,
+       14
+      ],
+      [
+       "MNQ_240",
+       1.67,
+       0.1097,
+       9
+      ],
+      [
+       "MNQ_60",
+       -2.83,
+       -0.5526,
+       8
+      ],
+      [
+       "NQ_240",
+       1.89,
+       0.1503,
+       7
+      ],
+      [
+       "NQ_60",
+       -3.0,
+       -0.4906,
+       9
+      ]
+     ]
+    },
+    "ge3_vs_ctrl_OOS": {
+     "arm_a": "ge3",
+     "arm_b": "ctrl",
+     "split": "OOS",
+     "cells": 8,
+     "stouffer_z": -1.36,
+     "cells_positive": 4,
+     "median_delta_pooled": -0.0295,
+     "n_pairs": 86,
+     "percell": [
+      [
+       "MCL_240",
+       -3.16,
+       -0.2419,
+       10
+      ],
+      [
+       "MCL_60",
+       -2.67,
+       -0.1688,
+       14
+      ],
+      [
+       "MES_60",
+       2.45,
+       0.3111,
+       6
+      ],
+      [
+       "MGC_60",
+       0.53,
+       0.0394,
+       14
+      ],
+      [
+       "MNQ_240",
+       -2.45,
+       -0.7706,
+       6
+      ],
+      [
+       "MNQ_60",
+       3.74,
+       0.328,
+       14
+      ],
+      [
+       "NQ_240",
+       -2.83,
+       -0.7609,
+       8
+      ],
+      [
+       "NQ_60",
+       0.53,
+       0.063,
+       14
+      ]
+     ]
+    },
+    "mtf1_vs_ctrl_IS": {
+     "arm_a": "mtf1",
+     "arm_b": "ctrl",
+     "split": "IS",
+     "cells": 10,
+     "stouffer_z": -1.22,
+     "cells_positive": 4,
+     "median_delta_pooled": -0.0226,
+     "n_pairs": 137,
+     "percell": [
+      [
+       "MCL_240",
+       2.67,
+       0.2218,
+       14
+      ],
+      [
+       "MCL_60",
+       -3.74,
+       -0.1249,
+       14
+      ],
+      [
+       "MES_240",
+       -3.05,
+       -0.1173,
+       13
+      ],
+      [
+       "MES_60",
+       -0.53,
+       -0.003,
+       14
+      ],
+      [
+       "MGC_240",
+       -1.07,
+       -0.027,
+       14
+      ],
+      [
+       "MGC_60",
+       3.21,
+       0.0748,
+       14
+      ],
+      [
+       "MNQ_240",
+       -3.61,
+       -0.4797,
+       13
+      ],
+      [
+       "MNQ_60",
+       2.67,
+       0.0436,
+       14
+      ],
+      [
+       "NQ_240",
+       -3.61,
+       -0.4979,
+       13
+      ],
+      [
+       "NQ_60",
+       3.21,
+       0.03,
+       14
+      ]
+     ]
+    },
+    "mtf1_vs_ctrl_OOS": {
+     "arm_a": "mtf1",
+     "arm_b": "ctrl",
+     "split": "OOS",
+     "cells": 10,
+     "stouffer_z": 0.73,
+     "cells_positive": 6,
+     "median_delta_pooled": 0.0175,
+     "n_pairs": 139,
+     "percell": [
+      [
+       "MCL_240",
+       2.14,
+       0.058,
+       14
+      ],
+      [
+       "MCL_60",
+       3.74,
+       0.1328,
+       14
+      ],
+      [
+       "MES_240",
+       -3.05,
+       -0.3069,
+       13
+      ],
+      [
+       "MES_60",
+       -3.74,
+       -0.1111,
+       14
+      ],
+      [
+       "MGC_240",
+       3.74,
+       0.1906,
+       14
+      ],
+      [
+       "MGC_60",
+       2.14,
+       0.0358,
+       14
+      ],
+      [
+       "MNQ_240",
+       1.07,
+       0.041,
+       14
+      ],
+      [
+       "MNQ_60",
+       -2.67,
+       -0.0889,
+       14
+      ],
+      [
+       "NQ_240",
+       2.14,
+       0.0915,
+       14
+      ],
+      [
+       "NQ_60",
+       -3.21,
+       -0.2344,
+       14
+      ]
+     ]
+    },
+    "mtf2_vs_ctrl_IS": {
+     "arm_a": "mtf2",
+     "arm_b": "ctrl",
+     "split": "IS",
+     "cells": 7,
+     "stouffer_z": 0.41,
+     "cells_positive": 4,
+     "median_delta_pooled": 0.024,
+     "n_pairs": 92,
+     "percell": [
+      [
+       "MCL_240",
+       -2.12,
+       -0.2485,
+       8
+      ],
+      [
+       "MCL_60",
+       -3.74,
+       -0.1762,
+       14
+      ],
+      [
+       "MES_60",
+       -2.67,
+       -0.1253,
+       14
+      ],
+      [
+       "MGC_240",
+       3.74,
+       0.1635,
+       14
+      ],
+      [
+       "MGC_60",
+       3.74,
+       0.29,
+       14
+      ],
+      [
+       "MNQ_60",
+       0.53,
+       0.083,
+       14
+      ],
+      [
+       "NQ_60",
+       1.6,
+       0.0358,
+       14
+      ]
+     ]
+    },
+    "mtf2_vs_ctrl_OOS": {
+     "arm_a": "mtf2",
+     "arm_b": "ctrl",
+     "split": "OOS",
+     "cells": 10,
+     "stouffer_z": 1.65,
+     "cells_positive": 6,
+     "median_delta_pooled": 0.0393,
+     "n_pairs": 119,
+     "percell": [
+      [
+       "MCL_240",
+       0.0,
+       -0.144,
+       6
+      ],
+      [
+       "MCL_60",
+       1.07,
+       0.0224,
+       14
+      ],
+      [
+       "MES_240",
+       0.45,
+       0.0456,
+       5
+      ],
+      [
+       "MES_60",
+       -1.39,
+       -0.0536,
+       13
+      ],
+      [
+       "MGC_240",
+       2.14,
+       0.1244,
+       14
+      ],
+      [
+       "MGC_60",
+       3.21,
+       0.0732,
+       14
+      ],
+      [
+       "MNQ_240",
+       1.94,
+       0.1747,
+       13
+      ],
+      [
+       "MNQ_60",
+       -0.53,
+       -0.0236,
+       14
+      ],
+      [
+       "NQ_240",
+       1.94,
+       0.1781,
+       13
+      ],
+      [
+       "NQ_60",
+       -3.61,
+       -0.3172,
+       13
+      ]
+     ]
+    },
+    "mtf2_vs_mtf1_IS": {
+     "arm_a": "mtf2",
+     "arm_b": "mtf1",
+     "split": "IS",
+     "cells": 7,
+     "stouffer_z": 0.94,
+     "cells_positive": 4,
+     "median_delta_pooled": 0.0187,
+     "n_pairs": 92,
+     "percell": [
+      [
+       "MCL_240",
+       -0.71,
+       -0.2338,
+       8
+      ],
+      [
+       "MCL_60",
+       -2.67,
+       -0.06,
+       14
+      ],
+      [
+       "MES_60",
+       -2.67,
+       -0.1145,
+       14
+      ],
+      [
+       "MGC_240",
+       3.74,
+       0.1497,
+       14
+      ],
+      [
+       "MGC_60",
+       3.74,
+       0.2011,
+       14
+      ],
+      [
+       "MNQ_60",
+       0.53,
+       0.0015,
+       14
+      ],
+      [
+       "NQ_60",
+       0.53,
+       0.0082,
+       14
+      ]
+     ]
+    },
+    "mtf2_vs_mtf1_OOS": {
+     "arm_a": "mtf2",
+     "arm_b": "mtf1",
+     "split": "OOS",
+     "cells": 10,
+     "stouffer_z": 1.7,
+     "cells_positive": 6,
+     "median_delta_pooled": 0.0256,
+     "n_pairs": 119,
+     "percell": [
+      [
+       "MCL_240",
+       -0.82,
+       -0.1941,
+       6
+      ],
+      [
+       "MCL_60",
+       -2.67,
+       -0.0918,
+       14
+      ],
+      [
+       "MES_240",
+       2.24,
+       0.1866,
+       5
+      ],
+      [
+       "MES_60",
+       1.39,
+       0.0458,
+       13
+      ],
+      [
+       "MGC_240",
+       -2.67,
+       -0.074,
+       14
+      ],
+      [
+       "MGC_60",
+       1.07,
+       0.0458,
+       14
+      ],
+      [
+       "MNQ_240",
+       2.5,
+       0.1565,
+       13
+      ],
+      [
+       "MNQ_60",
+       2.67,
+       0.0928,
+       14
+      ],
+      [
+       "NQ_240",
+       2.5,
+       0.1175,
+       13
+      ],
+      [
+       "NQ_60",
+       -0.83,
+       -0.0588,
+       13
+      ]
+     ]
+    },
+    "mtf2_vs_ge2_IS": {
+     "arm_a": "mtf2",
+     "arm_b": "ge2",
+     "split": "IS",
+     "cells": 7,
+     "stouffer_z": 1.89,
+     "cells_positive": 4,
+     "median_delta_pooled": 0.0632,
+     "n_pairs": 92,
+     "percell": [
+      [
+       "MCL_240",
+       -1.41,
+       -0.0865,
+       8
+      ],
+      [
+       "MCL_60",
+       -3.74,
+       -0.2689,
+       14
+      ],
+      [
+       "MES_60",
+       -1.07,
+       -0.0449,
+       14
+      ],
+      [
+       "MGC_240",
+       3.21,
+       0.1793,
+       14
+      ],
+      [
+       "MGC_60",
+       3.74,
+       0.2598,
+       14
+      ],
+      [
+       "MNQ_60",
+       2.67,
+       0.0852,
+       14
+      ],
+      [
+       "NQ_60",
+       1.6,
+       0.0936,
+       14
+      ]
+     ]
+    },
+    "mtf2_vs_ge2_OOS": {
+     "arm_a": "mtf2",
+     "arm_b": "ge2",
+     "split": "OOS",
+     "cells": 9,
+     "stouffer_z": 0.03,
+     "cells_positive": 3,
+     "median_delta_pooled": 0.0106,
+     "n_pairs": 118,
+     "percell": [
+      [
+       "MCL_240",
+       0.0,
+       -0.1517,
+       6
+      ],
+      [
+       "MCL_60",
+       -0.53,
+       -0.0259,
+       14
+      ],
+      [
+       "MES_60",
+       -1.39,
+       -0.0813,
+       13
+      ],
+      [
+       "MGC_240",
+       -3.21,
+       -0.3352,
+       14
+      ],
+      [
+       "MGC_60",
+       3.21,
+       0.16,
+       14
+      ],
+      [
+       "MNQ_240",
+       3.61,
+       0.5083,
+       13
+      ],
+      [
+       "MNQ_60",
+       -1.6,
+       -0.1299,
+       14
+      ],
+      [
+       "NQ_240",
+       3.61,
+       0.7216,
+       13
+      ],
+      [
+       "NQ_60",
+       -3.61,
+       -0.3325,
+       13
+      ]
+     ]
+    },
+    "ge2_mtf2_vs_ge2_IS": {
+     "arm_a": "ge2_mtf2",
+     "arm_b": "ge2",
+     "split": "IS",
+     "cells": 2,
+     "stouffer_z": 0.27,
+     "cells_positive": 1,
+     "median_delta_pooled": 0.1666,
+     "n_pairs": 19,
+     "percell": [
+      [
+       "MGC_240",
+       -2.45,
+       -0.2133,
+       6
+      ],
+      [
+       "MGC_60",
+       2.83,
+       0.2266,
+       8
+      ]
+     ]
+    },
+    "ge2_mtf2_vs_ge2_OOS": {
+     "arm_a": "ge2_mtf2",
+     "arm_b": "ge2",
+     "split": "OOS",
+     "cells": 3,
+     "stouffer_z": 2.55,
+     "cells_positive": 2,
+     "median_delta_pooled": 0.152,
+     "n_pairs": 28,
+     "percell": [
+      [
+       "MCL_60",
+       3.21,
+       0.1424,
+       14
+      ],
+      [
+       "MGC_60",
+       -1.63,
+       -0.0363,
+       6
+      ],
+      [
+       "MNQ_60",
+       2.83,
+       0.7056,
+       8
+      ]
+     ]
+    },
+    "age50_vs_ge1_IS": {
+     "arm_a": "age50",
+     "arm_b": "ge1",
+     "split": "IS",
+     "cells": 5,
+     "stouffer_z": 1.94,
+     "cells_positive": 3,
+     "median_delta_pooled": 0.0798,
+     "n_pairs": 62,
+     "percell": [
+      [
+       "MES_60",
+       0.0,
+       0.0592,
+       12
+      ],
+      [
+       "MGC_240",
+       -3.16,
+       -0.1953,
+       10
+      ],
+      [
+       "MGC_60",
+       2.14,
+       0.0579,
+       14
+      ],
+      [
+       "MNQ_60",
+       1.9,
+       0.2087,
+       10
+      ],
+      [
+       "NQ_60",
+       3.46,
+       0.1478,
+       12
+      ]
+     ]
+    },
+    "age50_vs_ge1_OOS": {
+     "arm_a": "age50",
+     "arm_b": "ge1",
+     "split": "OOS",
+     "cells": 4,
+     "stouffer_z": 2.06,
+     "cells_positive": 2,
+     "median_delta_pooled": 0.2705,
+     "n_pairs": 52,
+     "percell": [
+      [
+       "MCL_60",
+       3.74,
+       0.4478,
+       14
+      ],
+      [
+       "MGC_60",
+       -2.45,
+       -0.2304,
+       6
+      ],
+      [
+       "MNQ_60",
+       3.74,
+       0.343,
+       14
+      ],
+      [
+       "NQ_60",
+       -0.9,
+       -0.0046,
+       11
+      ]
+     ]
+    },
+    "age25_vs_ge1_IS": {
+     "arm_a": "age25",
+     "arm_b": "ge1",
+     "split": "IS",
+     "cells": 10,
+     "stouffer_z": -0.68,
+     "cells_positive": 5,
+     "median_delta_pooled": -0.0131,
+     "n_pairs": 140,
+     "percell": [
+      [
+       "MCL_240",
+       0.53,
+       0.0402,
+       14
+      ],
+      [
+       "MCL_60",
+       1.6,
+       0.0345,
+       14
+      ],
+      [
+       "MES_240",
+       -3.21,
+       -0.095,
+       14
+      ],
+      [
+       "MES_60",
+       2.67,
+       0.0273,
+       14
+      ],
+      [
+       "MGC_240",
+       -3.74,
+       -0.2023,
+       14
+      ],
+      [
+       "MGC_60",
+       -3.21,
+       -0.0307,
+       14
+      ],
+      [
+       "MNQ_240",
+       -1.6,
+       -0.0723,
+       14
+      ],
+      [
+       "MNQ_60",
+       3.21,
+       0.0393,
+       14
+      ],
+      [
+       "NQ_240",
+       -1.07,
+       -0.0418,
+       14
+      ],
+      [
+       "NQ_60",
+       2.67,
+       0.0549,
+       14
+      ]
+     ]
+    },
+    "age25_vs_ge1_OOS": {
+     "arm_a": "age25",
+     "arm_b": "ge1",
+     "split": "OOS",
+     "cells": 10,
+     "stouffer_z": -4.56,
+     "cells_positive": 1,
+     "median_delta_pooled": -0.0345,
+     "n_pairs": 140,
+     "percell": [
+      [
+       "MCL_240",
+       -1.07,
+       -0.036,
+       14
+      ],
+      [
+       "MCL_60",
+       3.21,
+       0.0336,
+       14
+      ],
+      [
+       "MES_240",
+       -0.53,
+       -0.0093,
+       14
+      ],
+      [
+       "MES_60",
+       -3.21,
+       -0.0596,
+       14
+      ],
+      [
+       "MGC_240",
+       -0.53,
+       -0.0143,
+       14
+      ],
+      [
+       "MGC_60",
+       -1.07,
+       -0.0067,
+       14
+      ],
+      [
+       "MNQ_240",
+       -3.21,
+       -0.1121,
+       14
+      ],
+      [
+       "MNQ_60",
+       -2.67,
+       -0.0213,
+       14
+      ],
+      [
+       "NQ_240",
+       -2.67,
+       -0.1042,
+       14
+      ],
+      [
+       "NQ_60",
+       -2.67,
+       -0.0258,
+       14
+      ]
+     ]
+    },
+    "eq2_vs_eq1_IS": {
+     "arm_a": "eq2",
+     "arm_b": "eq1",
+     "split": "IS",
+     "cells": 10,
+     "stouffer_z": 0.0,
+     "cells_positive": 3,
+     "median_delta_pooled": 0.0014,
+     "n_pairs": 140,
+     "percell": [
+      [
+       "MCL_240",
+       1.07,
+       0.0143,
+       14
+      ],
+      [
+       "MCL_60",
+       3.74,
+       0.2796,
+       14
+      ],
+      [
+       "MES_240",
+       -3.21,
+       -0.3408,
+       14
+      ],
+      [
+       "MES_60",
+       -2.67,
+       -0.0752,
+       14
+      ],
+      [
+       "MGC_240",
+       3.74,
+       0.2127,
+       14
+      ],
+      [
+       "MGC_60",
+       0.0,
+       -0.017,
+       14
+      ],
+      [
+       "MNQ_240",
+       -1.07,
+       -0.053,
+       14
+      ],
+      [
+       "MNQ_60",
+       0.0,
+       -0.0061,
+       14
+      ],
+      [
+       "NQ_240",
+       -1.07,
+       -0.068,
+       14
+      ],
+      [
+       "NQ_60",
+       -0.53,
+       -0.0668,
+       14
+      ]
+     ]
+    },
+    "eq2_vs_eq1_OOS": {
+     "arm_a": "eq2",
+     "arm_b": "eq1",
+     "split": "OOS",
+     "cells": 10,
+     "stouffer_z": 0.56,
+     "cells_positive": 5,
+     "median_delta_pooled": 0.0298,
+     "n_pairs": 128,
+     "percell": [
+      [
+       "MCL_240",
+       -3.21,
+       -0.3062,
+       14
+      ],
+      [
+       "MCL_60",
+       3.74,
+       0.2389,
+       14
+      ],
+      [
+       "MES_240",
+       0.63,
+       0.041,
+       10
+      ],
+      [
+       "MES_60",
+       -2.14,
+       -0.0499,
+       14
+      ],
+      [
+       "MGC_240",
+       3.61,
+       0.64,
+       13
+      ],
+      [
+       "MGC_60",
+       -3.21,
+       -0.122,
+       14
+      ],
+      [
+       "MNQ_240",
+       0.0,
+       -0.0269,
+       12
+      ],
+      [
+       "MNQ_60",
+       2.67,
+       0.1364,
+       14
+      ],
+      [
+       "NQ_240",
+       -3.0,
+       -0.1922,
+       9
+      ],
+      [
+       "NQ_60",
+       2.67,
+       0.1055,
+       14
+      ]
+     ]
+    },
+    "eq3_vs_eq2_IS": {
+     "arm_a": "eq3",
+     "arm_b": "eq2",
+     "split": "IS",
+     "cells": 5,
+     "stouffer_z": -3.42,
+     "cells_positive": 1,
+     "median_delta_pooled": -0.2707,
+     "n_pairs": 59,
+     "percell": [
+      [
+       "MCL_60",
+       -0.3,
+       -0.0241,
+       11
+      ],
+      [
+       "MES_60",
+       -3.46,
+       -0.3449,
+       12
+      ],
+      [
+       "MGC_60",
+       1.94,
+       0.1056,
+       13
+      ],
+      [
+       "MNQ_60",
+       -2.83,
+       -0.525,
+       8
+      ],
+      [
+       "NQ_60",
+       -3.0,
+       -0.4798,
+       9
+      ]
+     ]
+    },
+    "eq3_vs_eq2_OOS": {
+     "arm_a": "eq3",
+     "arm_b": "eq2",
+     "split": "OOS",
+     "cells": 4,
+     "stouffer_z": 0.83,
+     "cells_positive": 2,
+     "median_delta_pooled": 0.0794,
+     "n_pairs": 44,
+     "percell": [
+      [
+       "MCL_60",
+       -3.0,
+       -0.6584,
+       9
+      ],
+      [
+       "MGC_60",
+       1.51,
+       0.0868,
+       11
+      ],
+      [
+       "MNQ_60",
+       3.46,
+       0.3576,
+       12
+      ],
+      [
+       "NQ_60",
+       -0.3,
+       -0.0063,
+       11
+      ]
+     ]
+    }
+   },
+   "count_matched": {
+    "ge1_IS": {
+     "tests": 140,
+     "median_pctile": 0.515,
+     "stouffer_z": -0.37,
+     "cells": 10,
+     "cells_positive": 7,
+     "per_cell": [
+      [
+       "MCL_240",
+       -4.11,
+       14
+      ],
+      [
+       "MCL_60",
+       -6.13,
+       14
+      ],
+      [
+       "MES_240",
+       0.13,
+       14
+      ],
+      [
+       "MES_60",
+       2.2,
+       14
+      ],
+      [
+       "MGC_240",
+       0.39,
+       14
+      ],
+      [
+       "MGC_60",
+       4.27,
+       14
+      ],
+      [
+       "MNQ_240",
+       0.85,
+       14
+      ],
+      [
+       "MNQ_60",
+       -2.27,
+       14
+      ],
+      [
+       "NQ_240",
+       2.17,
+       14
+      ],
+      [
+       "NQ_60",
+       1.34,
+       14
+      ]
+     ],
+     "median_m": 97.0,
+     "median_parent_n": 165.0
+    },
+    "ge1_OOS": {
+     "tests": 137,
+     "median_pctile": 0.333,
+     "stouffer_z": -5.46,
+     "cells": 10,
+     "cells_positive": 3,
+     "per_cell": [
+      [
+       "MCL_240",
+       5.1,
+       14
+      ],
+      [
+       "MCL_60",
+       -5.03,
+       14
+      ],
+      [
+       "MES_240",
+       -5.35,
+       13
+      ],
+      [
+       "MES_60",
+       -0.1,
+       14
+      ],
+      [
+       "MGC_240",
+       2.56,
+       14
+      ],
+      [
+       "MGC_60",
+       -1.62,
+       14
+      ],
+      [
+       "MNQ_240",
+       -5.48,
+       13
+      ],
+      [
+       "MNQ_60",
+       0.23,
+       14
+      ],
+      [
+       "NQ_240",
+       -7.47,
+       13
+      ],
+      [
+       "NQ_60",
+       -0.11,
+       14
+      ]
+     ],
+     "median_m": 64,
+     "median_parent_n": 106
+    },
+    "eq1_IS": {
+     "tests": 140,
+     "median_pctile": 0.635,
+     "stouffer_z": 1.08,
+     "cells": 10,
+     "cells_positive": 7,
+     "per_cell": [
+      [
+       "MCL_240",
+       -4.36,
+       14
+      ],
+      [
+       "MCL_60",
+       -7.59,
+       14
+      ],
+      [
+       "MES_240",
+       4.17,
+       14
+      ],
+      [
+       "MES_60",
+       3.99,
+       14
+      ],
+      [
+       "MGC_240",
+       -0.88,
+       14
+      ],
+      [
+       "MGC_60",
+       2.76,
+       14
+      ],
+      [
+       "MNQ_240",
+       0.35,
+       14
+      ],
+      [
+       "MNQ_60",
+       0.43,
+       14
+      ],
+      [
+       "NQ_240",
+       1.34,
+       14
+      ],
+      [
+       "NQ_60",
+       3.2,
+       14
+      ]
+     ],
+     "median_m": 70.0,
+     "median_parent_n": 165.0
+    },
+    "eq1_OOS": {
+     "tests": 139,
+     "median_pctile": 0.357,
+     "stouffer_z": -4.08,
+     "cells": 10,
+     "cells_positive": 3,
+     "per_cell": [
+      [
+       "MCL_240",
+       6.52,
+       14
+      ],
+      [
+       "MCL_60",
+       -6.65,
+       14
+      ],
+      [
+       "MES_240",
+       -3.77,
+       14
+      ],
+      [
+       "MES_60",
+       1.53,
+       14
+      ],
+      [
+       "MGC_240",
+       -1.04,
+       13
+      ],
+      [
+       "MGC_60",
+       0.59,
+       14
+      ],
+      [
+       "MNQ_240",
+       -2.47,
+       14
+      ],
+      [
+       "MNQ_60",
+       -2.75,
+       14
+      ],
+      [
+       "NQ_240",
+       -3.18,
+       14
+      ],
+      [
+       "NQ_60",
+       -1.69,
+       14
+      ]
+     ],
+     "median_m": 50,
+     "median_parent_n": 103
+    },
+    "ge2_IS": {
+     "tests": 140,
+     "median_pctile": 0.47,
+     "stouffer_z": -0.96,
+     "cells": 10,
+     "cells_positive": 4,
+     "per_cell": [
+      [
+       "MCL_240",
+       -1.59,
+       14
+      ],
+      [
+       "MCL_60",
+       2.95,
+       14
+      ],
+      [
+       "MES_240",
+       -3.92,
+       14
+      ],
+      [
+       "MES_60",
+       -1.62,
+       14
+      ],
+      [
+       "MGC_240",
+       0.74,
+       14
+      ],
+      [
+       "MGC_60",
+       -0.24,
+       14
+      ],
+      [
+       "MNQ_240",
+       0.96,
+       14
+      ],
+      [
+       "MNQ_60",
+       -1.08,
+       14
+      ],
+      [
+       "NQ_240",
+       1.28,
+       14
+      ],
+      [
+       "NQ_60",
+       -0.52,
+       14
+      ]
+     ],
+     "median_m": 39.0,
+     "median_parent_n": 165.0
+    },
+    "ge2_OOS": {
+     "tests": 138,
+     "median_pctile": 0.471,
+     "stouffer_z": -1.19,
+     "cells": 10,
+     "cells_positive": 4,
+     "per_cell": [
+      [
+       "MCL_240",
+       -0.55,
+       14
+      ],
+      [
+       "MCL_60",
+       1.72,
+       14
+      ],
+      [
+       "MES_240",
+       -2.67,
+       12
+      ],
+      [
+       "MES_60",
+       -0.06,
+       14
+      ],
+      [
+       "MGC_240",
+       6.35,
+       14
+      ],
+      [
+       "MGC_60",
+       -1.2,
+       14
+      ],
+      [
+       "MNQ_240",
+       -5.52,
+       14
+      ],
+      [
+       "MNQ_60",
+       3.93,
+       14
+      ],
+      [
+       "NQ_240",
+       -7.56,
+       14
+      ],
+      [
+       "NQ_60",
+       1.8,
+       14
+      ]
+     ],
+     "median_m": 27.5,
+     "median_parent_n": 104.5
+    },
+    "eq2_IS": {
+     "tests": 140,
+     "median_pctile": 0.494,
+     "stouffer_z": 0.16,
+     "cells": 10,
+     "cells_positive": 4,
+     "per_cell": [
+      [
+       "MCL_240",
+       -2.17,
+       14
+      ],
+      [
+       "MCL_60",
+       2.14,
+       14
+      ],
+      [
+       "MES_240",
+       -3.26,
+       14
+      ],
+      [
+       "MES_60",
+       -0.55,
+       14
+      ],
+      [
+       "MGC_240",
+       2.96,
+       14
+      ],
+      [
+       "MGC_60",
+       0.87,
+       14
+      ],
+      [
+       "MNQ_240",
+       -0.06,
+       14
+      ],
+      [
+       "MNQ_60",
+       -0.24,
+       14
+      ],
+      [
+       "NQ_240",
+       -0.03,
+       14
+      ],
+      [
+       "NQ_60",
+       0.86,
+       14
+      ]
+     ],
+     "median_m": 33.0,
+     "median_parent_n": 165.0
+    },
+    "eq2_OOS": {
+     "tests": 129,
+     "median_pctile": 0.482,
+     "stouffer_z": 0.8,
+     "cells": 10,
+     "cells_positive": 6,
+     "per_cell": [
+      [
+       "MCL_240",
+       0.31,
+       14
+      ],
+      [
+       "MCL_60",
+       1.91,
+       14
+      ],
+      [
+       "MES_240",
+       -1.93,
+       10
+      ],
+      [
+       "MES_60",
+       0.06,
+       14
+      ],
+      [
+       "MGC_240",
+       6.25,
+       14
+      ],
+      [
+       "MGC_60",
+       -2.83,
+       14
+      ],
+      [
+       "MNQ_240",
+       -1.57,
+       12
+      ],
+      [
+       "MNQ_60",
+       1.03,
+       14
+      ],
+      [
+       "NQ_240",
+       -2.27,
+       9
+      ],
+      [
+       "NQ_60",
+       1.58,
+       14
+      ]
+     ],
+     "median_m": 25,
+     "median_parent_n": 157
+    },
+    "ge3_IS": {
+     "tests": 86,
+     "median_pctile": 0.287,
+     "stouffer_z": -6.57,
+     "cells": 9,
+     "cells_positive": 3,
+     "per_cell": [
+      [
+       "MCL_60",
+       -0.02,
+       11
+      ],
+      [
+       "MES_240",
+       -4.53,
+       6
+      ],
+      [
+       "MES_60",
+       -3.95,
+       12
+      ],
+      [
+       "MGC_240",
+       -2.26,
+       10
+      ],
+      [
+       "MGC_60",
+       0.22,
+       14
+      ],
+      [
+       "MNQ_240",
+       1.04,
+       9
+      ],
+      [
+       "MNQ_60",
+       -5.54,
+       8
+      ],
+      [
+       "NQ_240",
+       1.06,
+       7
+      ],
+      [
+       "NQ_60",
+       -5.72,
+       9
+      ]
+     ],
+     "median_m": 16.0,
+     "median_parent_n": 395.5
+    },
+    "ge3_OOS": {
+     "tests": 86,
+     "median_pctile": 0.464,
+     "stouffer_z": -3.49,
+     "cells": 8,
+     "cells_positive": 4,
+     "per_cell": [
+      [
+       "MCL_240",
+       -2.52,
+       10
+      ],
+      [
+       "MCL_60",
+       -2.15,
+       14
+      ],
+      [
+       "MES_60",
+       2.32,
+       6
+      ],
+      [
+       "MGC_60",
+       0.34,
+       14
+      ],
+      [
+       "MNQ_240",
+       -6.88,
+       6
+      ],
+      [
+       "MNQ_60",
+       5.08,
+       14
+      ],
+      [
+       "NQ_240",
+       -7.05,
+       8
+      ],
+      [
+       "NQ_60",
+       0.98,
+       14
+      ]
+     ],
+     "median_m": 17.0,
+     "median_parent_n": 281.5
+    },
+    "ge4_IS": {
+     "tests": 16,
+     "median_pctile": 0.428,
+     "stouffer_z": -0.01,
+     "cells": 1,
+     "cells_positive": 0,
+     "per_cell": [
+      [
+       "MGC_60",
+       -0.01,
+       10
+      ]
+     ],
+     "median_m": 12.5,
+     "median_parent_n": 434.5
+    },
+    "ge4_OOS": {
+     "tests": 34,
+     "median_pctile": 0.544,
+     "stouffer_z": 1.16,
+     "cells": 4,
+     "cells_positive": 3,
+     "per_cell": [
+      [
+       "MCL_60",
+       0.96,
+       8
+      ],
+      [
+       "MGC_60",
+       1.46,
+       5
+      ],
+      [
+       "MNQ_60",
+       0.42,
+       11
+      ],
+      [
+       "NQ_60",
+       -0.52,
+       10
+      ]
+     ],
+     "median_m": 13.5,
+     "median_parent_n": 298.5
+    },
+    "mtf1_IS": {
+     "tests": 137,
+     "median_pctile": 0.44,
+     "stouffer_z": -4.09,
+     "cells": 10,
+     "cells_positive": 5,
+     "per_cell": [
+      [
+       "MCL_240",
+       2.02,
+       14
+      ],
+      [
+       "MCL_60",
+       -5.05,
+       14
+      ],
+      [
+       "MES_240",
+       -2.54,
+       13
+      ],
+      [
+       "MES_60",
+       -0.97,
+       14
+      ],
+      [
+       "MGC_240",
+       0.08,
+       14
+      ],
+      [
+       "MGC_60",
+       3.71,
+       14
+      ],
+      [
+       "MNQ_240",
+       -6.87,
+       13
+      ],
+      [
+       "MNQ_60",
+       2.42,
+       14
+      ],
+      [
+       "NQ_240",
+       -7.93,
+       13
+      ],
+      [
+       "NQ_60",
+       2.19,
+       14
+      ]
+     ],
+     "median_m": 62,
+     "median_parent_n": 185
+    },
+    "mtf1_OOS": {
+     "tests": 139,
+     "median_pctile": 0.554,
+     "stouffer_z": -1.39,
+     "cells": 10,
+     "cells_positive": 6,
+     "per_cell": [
+      [
+       "MCL_240",
+       1.41,
+       14
+      ],
+      [
+       "MCL_60",
+       5.93,
+       14
+      ],
+      [
+       "MES_240",
+       -4.94,
+       13
+      ],
+      [
+       "MES_60",
+       -4.92,
+       14
+      ],
+      [
+       "MGC_240",
+       5.81,
+       14
+      ],
+      [
+       "MGC_60",
+       1.65,
+       14
+      ],
+      [
+       "MNQ_240",
+       0.25,
+       14
+      ],
+      [
+       "MNQ_60",
+       -3.62,
+       14
+      ],
+      [
+       "NQ_240",
+       2.94,
+       14
+      ],
+      [
+       "NQ_60",
+       -8.91,
+       14
+      ]
+     ],
+     "median_m": 51,
+     "median_parent_n": 103
+    },
+    "mtf2_IS": {
+     "tests": 92,
+     "median_pctile": 0.549,
+     "stouffer_z": 2.27,
+     "cells": 7,
+     "cells_positive": 4,
+     "per_cell": [
+      [
+       "MCL_240",
+       -1.01,
+       8
+      ],
+      [
+       "MCL_60",
+       -3.28,
+       14
+      ],
+      [
+       "MES_60",
+       -3.02,
+       14
+      ],
+      [
+       "MGC_240",
+       3.28,
+       14
+      ],
+      [
+       "MGC_60",
+       7.03,
+       14
+      ],
+      [
+       "MNQ_60",
+       1.78,
+       14
+      ],
+      [
+       "NQ_60",
+       1.22,
+       14
+      ]
+     ],
+     "median_m": 50.0,
+     "median_parent_n": 409.0
+    },
+    "mtf2_OOS": {
+     "tests": 119,
+     "median_pctile": 0.586,
+     "stouffer_z": 0.79,
+     "cells": 10,
+     "cells_positive": 7,
+     "per_cell": [
+      [
+       "MCL_240",
+       -2.53,
+       6
+      ],
+      [
+       "MCL_60",
+       1.26,
+       14
+      ],
+      [
+       "MES_240",
+       0.39,
+       5
+      ],
+      [
+       "MES_60",
+       -1.48,
+       13
+      ],
+      [
+       "MGC_240",
+       1.98,
+       14
+      ],
+      [
+       "MGC_60",
+       2.1,
+       14
+      ],
+      [
+       "MNQ_240",
+       2.08,
+       13
+      ],
+      [
+       "MNQ_60",
+       0.48,
+       14
+      ],
+      [
+       "NQ_240",
+       3.3,
+       13
+      ],
+      [
+       "NQ_60",
+       -5.07,
+       13
+      ]
+     ],
+     "median_m": 28,
+     "median_parent_n": 195
+    },
+    "age50_IS": {
+     "tests": 62,
+     "median_pctile": 0.678,
+     "stouffer_z": 1.86,
+     "cells": 5,
+     "cells_positive": 4,
+     "per_cell": [
+      [
+       "MES_60",
+       1.33,
+       12
+      ],
+      [
+       "MGC_240",
+       -1.89,
+       10
+      ],
+      [
+       "MGC_60",
+       1.77,
+       14
+      ],
+      [
+       "MNQ_60",
+       0.97,
+       10
+      ],
+      [
+       "NQ_60",
+       1.98,
+       12
+      ]
+     ],
+     "median_m": 16.0,
+     "median_parent_n": 410.5
+    },
+    "age50_OOS": {
+     "tests": 52,
+     "median_pctile": 0.81,
+     "stouffer_z": 4.45,
+     "cells": 4,
+     "cells_positive": 3,
+     "per_cell": [
+      [
+       "MCL_60",
+       6.01,
+       14
+      ],
+      [
+       "MGC_60",
+       -1.66,
+       6
+      ],
+      [
+       "MNQ_60",
+       4.31,
+       14
+      ],
+      [
+       "NQ_60",
+       0.23,
+       11
+      ]
+     ],
+     "median_m": 15.0,
+     "median_parent_n": 293.0
+    }
+   }
+  },
+  "negative_findings_worth_keeping": [
+   "structure_trend IS a depth-1 condition. Any future work treating it as a generic trend read and then adding a swing-count filter on top is double-counting.",
+   "Requiring depth>=3 is significantly worse than the same rule sets at depth 1 or 2 in sample (Stouffer z=-4.26 and -3.96) and count-matched worse in both halves (-6.57 IS, -3.49 OOS). The late-trend hypothesis is supported in magnitude, though not under the strictest cell-level sign test.",
+   "Requiring depth>=2 costs 80% of control trades and 62% of depth-1 trades and moves expectancy by z=-2.70 IS / +0.35 OOS. It buys nothing. This is the same trade-off the programme found for confluence, but four times more expensive in trades.",
+   "Multi-timeframe depth (sd_mtf_ge2) is the mildest positive in the family (+1.65 OOS vs control, +1.70 OOS vs mtf1) and does not clear free_t=2.61.",
+   "Duration beats count on 60m: sd_age_ge50 is z=+3.75 IS / +2.06 OOS against depth-1 and +5.15 / +2.47 against depth-2, at 4.1% of control trades - but it reverses to -3.16 on 240m and is the single most likely overfit in this study."
+  ],
+  "out_of_sample_and_walk_forward": "Two independent out-of-sample designs were run and agree: a 60/40 temporal split (headline) and a 5-fold sequential walk-forward. Neither shows any count arm beating its control. The in-sample negative on depth-3 (z=-4.26 vs depth-1) weakens to -1.36 out of sample and to 7/18 positive folds in the walk-forward, so even the negative finding is a magnitude result rather than a replicated one."
  }
 }

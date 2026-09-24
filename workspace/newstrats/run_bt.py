@@ -119,4 +119,5 @@ def main():
     print("saved", len(allrows))
 
 
-main()
+if __name__ == "__main__":
+    main()

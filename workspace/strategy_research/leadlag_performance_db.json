@@ -1,0 +1,2947 @@
+{
+ "generated_by": "strategy research worker - lead-lag study (s_leadlag, s_leadlag_arms, s_leadlag_walkforward, s_leadlag_bos240_oos, s_leadlag_robustness)",
+ "independence": "Every symbol is its own universe. Nothing measured on MNQ is claimed for MES, MGC or MCL. MNQ/NQ/MES are one index complex and are counted as ONE independent unit alongside MGC and MCL.",
+ "timeframes_tested": {
+  "individually": [
+   60,
+   240
+  ],
+  "as_a_pair": "60m lower / 240m higher on one frame, plus a 15m/60m replication of the MEASUREMENT only (58-day span, never used for a tradeability claim)"
+ },
+ "metric_note": "Values are medians across the 14-strategy population per arm (bare entry + 13 partner conditions), aggregated over 3 genuinely disjoint ~107-day slices. max_drawdown_R is the worst across the population; avg_drawdown_R is its median.",
+ "max_consecutive": {
+  "base": {
+   "CONFIRM_late0": {
+    "n_strategies": 157,
+    "median_exp": -0.0767,
+    "median_win": 0.3585,
+    "median_pf": 0.862,
+    "pct_profitable": 0.306,
+    "median_max_consec_losses": 7,
+    "median_max_consec_wins": 3,
+    "median_trades": 41
+   },
+   "CONFIRM_late4": {
+    "n_strategies": 122,
+    "median_exp": -0.1041,
+    "median_win": 0.375,
+    "median_pf": 0.82,
+    "pct_profitable": 0.311,
+    "median_max_consec_losses": 4.0,
+    "median_max_consec_wins": 3.0,
+    "median_trades": 25.0
+   },
+   "EARLY_fresh0": {
+    "n_strategies": 145,
+    "median_exp": -0.0357,
+    "median_win": 0.3974,
+    "median_pf": 0.935,
+    "pct_profitable": 0.359,
+    "median_max_consec_losses": 7,
+    "median_max_consec_wins": 4,
+    "median_trades": 78
+   },
+   "EARLY_fresh1": {
+    "n_strategies": 158,
+    "median_exp": -0.0456,
+    "median_win": 0.3948,
+    "median_pf": 0.911,
+    "pct_profitable": 0.304,
+    "median_max_consec_losses": 6.0,
+    "median_max_consec_wins": 4.0,
+    "median_trades": 84.0
+   },
+   "EARLY_fresh3": {
+    "n_strategies": 163,
+    "median_exp": -0.0122,
+    "median_win": 0.4,
+    "median_pf": 0.977,
+    "pct_profitable": 0.442,
+    "median_max_consec_losses": 7,
+    "median_max_consec_wins": 4,
+    "median_trades": 92
+   },
+   "EARLY_ltf_break_first": {
+    "n_strategies": 174,
+    "median_exp": -0.0434,
+    "median_win": 0.3935,
+    "median_pf": 0.919,
+    "pct_profitable": 0.385,
+    "median_max_consec_losses": 7.0,
+    "median_max_consec_wins": 4.0,
+    "median_trades": 97.0
+   }
+  },
+  "stress_2x_slippage": {
+   "CONFIRM_late0": {
+    "n_strategies": 157,
+    "median_exp": -0.0991,
+    "median_win": 0.3611,
+    "median_pf": 0.825,
+    "pct_profitable": 0.229,
+    "median_max_consec_losses": 7,
+    "median_max_consec_wins": 3,
+    "median_trades": 41
+   },
+   "CONFIRM_late4": {
+    "n_strategies": 122,
+    "median_exp": -0.1147,
+    "median_win": 0.3727,
+    "median_pf": 0.803,
+    "pct_profitable": 0.279,
+    "median_max_consec_losses": 4.0,
+    "median_max_consec_wins": 2.0,
+    "median_trades": 24.5
+   },
+   "EARLY_fresh0": {
+    "n_strategies": 145,
+    "median_exp": -0.0529,
+    "median_win": 0.3913,
+    "median_pf": 0.902,
+    "pct_profitable": 0.248,
+    "median_max_consec_losses": 7,
+    "median_max_consec_wins": 4,
+    "median_trades": 78
+   },
+   "EARLY_fresh1": {
+    "n_strategies": 158,
+    "median_exp": -0.0758,
+    "median_win": 0.3873,
+    "median_pf": 0.866,
+    "pct_profitable": 0.228,
+    "median_max_consec_losses": 7.0,
+    "median_max_consec_wins": 4.0,
+    "median_trades": 84.0
+   },
+   "EARLY_fresh3": {
+    "n_strategies": 163,
+    "median_exp": -0.036,
+    "median_win": 0.4,
+    "median_pf": 0.929,
+    "pct_profitable": 0.399,
+    "median_max_consec_losses": 7,
+    "median_max_consec_wins": 4,
+    "median_trades": 91
+   },
+   "EARLY_ltf_break_first": {
+    "n_strategies": 173,
+    "median_exp": -0.0552,
+    "median_win": 0.3922,
+    "median_pf": 0.898,
+    "pct_profitable": 0.329,
+    "median_max_consec_losses": 7,
+    "median_max_consec_wins": 4,
+    "median_trades": 97
+   }
+  }
+ },
+ "by_symbol": {
+  "MGC": {
+   "60": {
+    "ALIGNED_both_broken": {
+     "n_strategies": 33,
+     "total_trades": 1967,
+     "median_trades": 63,
+     "win_rate": 0.3962,
+     "avg_win_R": 1.2787,
+     "avg_loss_R": -0.8995,
+     "payoff_ratio": 1.418,
+     "profit_factor": 1.004,
+     "expectancy_R": 0.0018,
+     "max_drawdown_R": 13.902,
+     "avg_drawdown_R": 10.956,
+     "sortino": 0.003,
+     "t_stat": 0.012,
+     "avg_MAE_R": 1.1223,
+     "avg_MFE_R": 1.4653,
+     "edge_ratio_MFE_over_MAE": 1.306,
+     "avg_duration_min": 444.6,
+     "pct_profitable": 0.515,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0175,
+       "pct_profitable": 0.273
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0718,
+       "pct_profitable": 0.364
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": 0.0089,
+       "pct_profitable": 0.909
+      }
+     }
+    },
+    "CONFIRM_htf_broken_now": {
+     "n_strategies": 33,
+     "total_trades": 2972,
+     "median_trades": 97,
+     "win_rate": 0.3905,
+     "avg_win_R": 1.3289,
+     "avg_loss_R": -0.8529,
+     "payoff_ratio": 1.527,
+     "profit_factor": 0.949,
+     "expectancy_R": -0.0279,
+     "max_drawdown_R": 20.656,
+     "avg_drawdown_R": 14.743,
+     "sortino": -0.038,
+     "t_stat": -0.236,
+     "avg_MAE_R": 1.1664,
+     "avg_MFE_R": 1.4785,
+     "edge_ratio_MFE_over_MAE": 1.268,
+     "avg_duration_min": 516.8,
+     "pct_profitable": 0.273,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0315,
+       "pct_profitable": 0.273
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0307,
+       "pct_profitable": 0.273
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0198,
+       "pct_profitable": 0.273
+      }
+     }
+    },
+    "CONFIRM_late0": {
+     "n_strategies": 32,
+     "total_trades": 1126,
+     "median_trades": 35.0,
+     "win_rate": 0.385,
+     "avg_win_R": 1.3815,
+     "avg_loss_R": -0.8822,
+     "payoff_ratio": 1.454,
+     "profit_factor": 1.027,
+     "expectancy_R": 0.014,
+     "max_drawdown_R": 11.681,
+     "avg_drawdown_R": 6.648,
+     "sortino": 0.019,
+     "t_stat": 0.062,
+     "avg_MAE_R": 1.0669,
+     "avg_MFE_R": 1.4505,
+     "edge_ratio_MFE_over_MAE": 1.36,
+     "avg_duration_min": 554.5,
+     "pct_profitable": 0.531,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 10,
+       "expectancy_R": -0.081,
+       "pct_profitable": 0.2
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0694,
+       "pct_profitable": 0.364
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": 0.0585,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "CONFIRM_late4": {
+     "n_strategies": 18,
+     "total_trades": 418,
+     "median_trades": 24.0,
+     "win_rate": 0.4,
+     "avg_win_R": 1.0917,
+     "avg_loss_R": -0.8667,
+     "payoff_ratio": 1.345,
+     "profit_factor": 0.889,
+     "expectancy_R": -0.0571,
+     "max_drawdown_R": 8.008,
+     "avg_drawdown_R": 5.689,
+     "sortino": -0.079,
+     "t_stat": -0.25,
+     "avg_MAE_R": 1.0642,
+     "avg_MFE_R": 1.404,
+     "edge_ratio_MFE_over_MAE": 1.319,
+     "avg_duration_min": 628.4,
+     "pct_profitable": 0.111,
+     "per_disjoint_slice": {
+      "slice1": {
+       "n_strategies": 9,
+       "expectancy_R": -0.0986,
+       "pct_profitable": 0.111
+      },
+      "slice2": {
+       "n_strategies": 9,
+       "expectancy_R": -0.0547,
+       "pct_profitable": 0.111
+      }
+     }
+    },
+    "EARLY_fresh0": {
+     "n_strategies": 29,
+     "total_trades": 1932,
+     "median_trades": 70,
+     "win_rate": 0.4419,
+     "avg_win_R": 1.2416,
+     "avg_loss_R": -0.8498,
+     "payoff_ratio": 1.521,
+     "profit_factor": 1.153,
+     "expectancy_R": 0.0743,
+     "max_drawdown_R": 14.464,
+     "avg_drawdown_R": 8.23,
+     "sortino": 0.107,
+     "t_stat": 0.428,
+     "avg_MAE_R": 1.053,
+     "avg_MFE_R": 1.5106,
+     "edge_ratio_MFE_over_MAE": 1.435,
+     "avg_duration_min": 448.8,
+     "pct_profitable": 0.724,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 9,
+       "expectancy_R": -0.0818,
+       "pct_profitable": 0.111
+      },
+      "slice1": {
+       "n_strategies": 9,
+       "expectancy_R": 0.0691,
+       "pct_profitable": 1.0
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": 0.1474,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "EARLY_fresh1": {
+     "n_strategies": 31,
+     "total_trades": 2164,
+     "median_trades": 73,
+     "win_rate": 0.44,
+     "avg_win_R": 1.2325,
+     "avg_loss_R": -0.8475,
+     "payoff_ratio": 1.447,
+     "profit_factor": 1.13,
+     "expectancy_R": 0.0653,
+     "max_drawdown_R": 14.059,
+     "avg_drawdown_R": 9.756,
+     "sortino": 0.094,
+     "t_stat": 0.433,
+     "avg_MAE_R": 1.0614,
+     "avg_MFE_R": 1.5215,
+     "edge_ratio_MFE_over_MAE": 1.433,
+     "avg_duration_min": 430.6,
+     "pct_profitable": 0.71,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 10,
+       "expectancy_R": -0.1152,
+       "pct_profitable": 0.1
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": 0.0716,
+       "pct_profitable": 1.0
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": 0.1124,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "EARLY_fresh3": {
+     "n_strategies": 32,
+     "total_trades": 2376,
+     "median_trades": 78.5,
+     "win_rate": 0.4303,
+     "avg_win_R": 1.2561,
+     "avg_loss_R": -0.8384,
+     "payoff_ratio": 1.515,
+     "profit_factor": 1.188,
+     "expectancy_R": 0.0882,
+     "max_drawdown_R": 17.891,
+     "avg_drawdown_R": 9.758,
+     "sortino": 0.127,
+     "t_stat": 0.638,
+     "avg_MAE_R": 1.0648,
+     "avg_MFE_R": 1.51,
+     "edge_ratio_MFE_over_MAE": 1.418,
+     "avg_duration_min": 476.1,
+     "pct_profitable": 0.656,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 10,
+       "expectancy_R": -0.1688,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": 0.1032,
+       "pct_profitable": 1.0
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": 0.1043,
+       "pct_profitable": 0.917
+      }
+     }
+    },
+    "EARLY_ltf_break_first": {
+     "n_strategies": 33,
+     "total_trades": 2605,
+     "median_trades": 83,
+     "win_rate": 0.4095,
+     "avg_win_R": 1.2412,
+     "avg_loss_R": -0.8621,
+     "payoff_ratio": 1.447,
+     "profit_factor": 1.026,
+     "expectancy_R": 0.0128,
+     "max_drawdown_R": 18.908,
+     "avg_drawdown_R": 9.761,
+     "sortino": 0.018,
+     "t_stat": 0.112,
+     "avg_MAE_R": 1.072,
+     "avg_MFE_R": 1.4277,
+     "edge_ratio_MFE_over_MAE": 1.332,
+     "avg_duration_min": 462.4,
+     "pct_profitable": 0.545,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 10,
+       "expectancy_R": -0.19,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": 0.0231,
+       "pct_profitable": 0.727
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": 0.0322,
+       "pct_profitable": 0.833
+      }
+     }
+    },
+    "INCUMBENT_bos_htf_bound": {
+     "n_strategies": 33,
+     "total_trades": 2972,
+     "median_trades": 97,
+     "win_rate": 0.3905,
+     "avg_win_R": 1.3289,
+     "avg_loss_R": -0.8529,
+     "payoff_ratio": 1.527,
+     "profit_factor": 0.949,
+     "expectancy_R": -0.0279,
+     "max_drawdown_R": 20.656,
+     "avg_drawdown_R": 14.743,
+     "sortino": -0.038,
+     "t_stat": -0.236,
+     "avg_MAE_R": 1.1664,
+     "avg_MFE_R": 1.4785,
+     "edge_ratio_MFE_over_MAE": 1.268,
+     "avg_duration_min": 516.8,
+     "pct_profitable": 0.273,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0315,
+       "pct_profitable": 0.273
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0307,
+       "pct_profitable": 0.273
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0198,
+       "pct_profitable": 0.273
+      }
+     }
+    },
+    "INCUMBENT_bos_ltf": {
+     "n_strategies": 36,
+     "total_trades": 4159,
+     "median_trades": 131.5,
+     "win_rate": 0.4041,
+     "avg_win_R": 1.2704,
+     "avg_loss_R": -0.8733,
+     "payoff_ratio": 1.477,
+     "profit_factor": 0.988,
+     "expectancy_R": -0.0062,
+     "max_drawdown_R": 24.073,
+     "avg_drawdown_R": 11.933,
+     "sortino": -0.009,
+     "t_stat": -0.062,
+     "avg_MAE_R": 1.093,
+     "avg_MFE_R": 1.4303,
+     "edge_ratio_MFE_over_MAE": 1.309,
+     "avg_duration_min": 457.9,
+     "pct_profitable": 0.472,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 12,
+       "expectancy_R": -0.0731,
+       "pct_profitable": 0.25
+      },
+      "slice1": {
+       "n_strategies": 12,
+       "expectancy_R": 0.0155,
+       "pct_profitable": 0.75
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": -0.0106,
+       "pct_profitable": 0.417
+      }
+     }
+    }
+   },
+   "240": {
+    "INCUMBENT240_bos": {
+     "n_strategies": 29,
+     "total_trades": 1080,
+     "median_trades": 38,
+     "win_rate": 0.3824,
+     "avg_win_R": 1.29,
+     "avg_loss_R": -0.9009,
+     "payoff_ratio": 1.402,
+     "profit_factor": 0.894,
+     "expectancy_R": -0.0579,
+     "max_drawdown_R": 12.276,
+     "avg_drawdown_R": 6.629,
+     "sortino": -0.078,
+     "t_stat": -0.314,
+     "avg_MAE_R": 1.1471,
+     "avg_MFE_R": 1.3484,
+     "edge_ratio_MFE_over_MAE": 1.175,
+     "avg_duration_min": 1567.1,
+     "pct_profitable": 0.034,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 10,
+       "expectancy_R": -0.0104,
+       "pct_profitable": 0.1
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": -0.0674,
+       "pct_profitable": 0.0
+      },
+      "slice2": {
+       "n_strategies": 9,
+       "expectancy_R": -0.1,
+       "pct_profitable": 0.0
+      }
+     }
+    },
+    "S240_break_of_structure": {
+     "n_strategies": 29,
+     "total_trades": 1080,
+     "median_trades": 38,
+     "win_rate": 0.3824,
+     "avg_win_R": 1.29,
+     "avg_loss_R": -0.9009,
+     "payoff_ratio": 1.402,
+     "profit_factor": 0.894,
+     "expectancy_R": -0.0579,
+     "max_drawdown_R": 12.276,
+     "avg_drawdown_R": 6.629,
+     "sortino": -0.078,
+     "t_stat": -0.314,
+     "avg_MAE_R": 1.1471,
+     "avg_MFE_R": 1.3484,
+     "edge_ratio_MFE_over_MAE": 1.175,
+     "avg_duration_min": 1567.1,
+     "pct_profitable": 0.034,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 10,
+       "expectancy_R": -0.0104,
+       "pct_profitable": 0.1
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": -0.0674,
+       "pct_profitable": 0.0
+      },
+      "slice2": {
+       "n_strategies": 9,
+       "expectancy_R": -0.1,
+       "pct_profitable": 0.0
+      }
+     }
+    },
+    "S240_pullback_to_support": {
+     "n_strategies": 8,
+     "total_trades": 170,
+     "median_trades": 21.0,
+     "win_rate": 0.4179,
+     "avg_win_R": 1.3476,
+     "avg_loss_R": -0.9163,
+     "payoff_ratio": 1.484,
+     "profit_factor": 1.132,
+     "expectancy_R": 0.0391,
+     "max_drawdown_R": 5.876,
+     "avg_drawdown_R": 3.699,
+     "sortino": 0.074,
+     "t_stat": 0.074,
+     "avg_MAE_R": 1.1075,
+     "avg_MFE_R": 1.3365,
+     "edge_ratio_MFE_over_MAE": 1.207,
+     "avg_duration_min": 1625.5,
+     "pct_profitable": 0.5,
+     "per_disjoint_slice": {
+      "slice1": {
+       "n_strategies": 4,
+       "expectancy_R": -0.2348,
+       "pct_profitable": 0.0
+      },
+      "slice2": {
+       "n_strategies": 4,
+       "expectancy_R": 0.3466,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "S240_range_position_extreme": {
+     "n_strategies": 25,
+     "total_trades": 605,
+     "median_trades": 24,
+     "win_rate": 0.4615,
+     "avg_win_R": 1.2419,
+     "avg_loss_R": -0.9406,
+     "payoff_ratio": 1.313,
+     "profit_factor": 1.321,
+     "expectancy_R": 0.1552,
+     "max_drawdown_R": 7.219,
+     "avg_drawdown_R": 4.124,
+     "sortino": 0.222,
+     "t_stat": 0.606,
+     "avg_MAE_R": 1.0377,
+     "avg_MFE_R": 1.5599,
+     "edge_ratio_MFE_over_MAE": 1.503,
+     "avg_duration_min": 1633.8,
+     "pct_profitable": 1.0,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 10,
+       "expectancy_R": 0.2141,
+       "pct_profitable": 1.0
+      },
+      "slice1": {
+       "n_strategies": 7,
+       "expectancy_R": 0.0641,
+       "pct_profitable": 1.0
+      },
+      "slice2": {
+       "n_strategies": 8,
+       "expectancy_R": 0.1552,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "S240_structure_trend": {
+     "n_strategies": 29,
+     "total_trades": 1352,
+     "median_trades": 47,
+     "win_rate": 0.3871,
+     "avg_win_R": 1.283,
+     "avg_loss_R": -0.8991,
+     "payoff_ratio": 1.496,
+     "profit_factor": 0.974,
+     "expectancy_R": -0.0126,
+     "max_drawdown_R": 12.935,
+     "avg_drawdown_R": 7.393,
+     "sortino": -0.018,
+     "t_stat": -0.08,
+     "avg_MAE_R": 1.1998,
+     "avg_MFE_R": 1.345,
+     "edge_ratio_MFE_over_MAE": 1.121,
+     "avg_duration_min": 1730.3,
+     "pct_profitable": 0.414,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 10,
+       "expectancy_R": -0.0618,
+       "pct_profitable": 0.2
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": 0.019,
+       "pct_profitable": 0.7
+      },
+      "slice2": {
+       "n_strategies": 9,
+       "expectancy_R": -0.0126,
+       "pct_profitable": 0.333
+      }
+     }
+    }
+   }
+  },
+  "MES": {
+   "60": {
+    "ALIGNED_both_broken": {
+     "n_strategies": 33,
+     "total_trades": 1911,
+     "median_trades": 61,
+     "win_rate": 0.4091,
+     "avg_win_R": 1.3351,
+     "avg_loss_R": -0.991,
+     "payoff_ratio": 1.313,
+     "profit_factor": 0.986,
+     "expectancy_R": -0.0082,
+     "max_drawdown_R": 25.58,
+     "avg_drawdown_R": 13.01,
+     "sortino": -0.009,
+     "t_stat": -0.048,
+     "avg_MAE_R": 1.1344,
+     "avg_MFE_R": 1.4406,
+     "edge_ratio_MFE_over_MAE": 1.27,
+     "avg_duration_min": 603.6,
+     "pct_profitable": 0.364,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.3001,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": 0.0247,
+       "pct_profitable": 0.636
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0034,
+       "pct_profitable": 0.455
+      }
+     }
+    },
+    "CONFIRM_htf_broken_now": {
+     "n_strategies": 34,
+     "total_trades": 2843,
+     "median_trades": 91.0,
+     "win_rate": 0.4028,
+     "avg_win_R": 1.2913,
+     "avg_loss_R": -0.9398,
+     "payoff_ratio": 1.357,
+     "profit_factor": 0.986,
+     "expectancy_R": -0.008,
+     "max_drawdown_R": 26.8,
+     "avg_drawdown_R": 11.71,
+     "sortino": -0.01,
+     "t_stat": -0.066,
+     "avg_MAE_R": 1.1482,
+     "avg_MFE_R": 1.3979,
+     "edge_ratio_MFE_over_MAE": 1.217,
+     "avg_duration_min": 616.2,
+     "pct_profitable": 0.441,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.1825,
+       "pct_profitable": 0.091
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": 0.006,
+       "pct_profitable": 0.545
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": 0.0377,
+       "pct_profitable": 0.667
+      }
+     }
+    },
+    "CONFIRM_late0": {
+     "n_strategies": 31,
+     "total_trades": 1349,
+     "median_trades": 45,
+     "win_rate": 0.3111,
+     "avg_win_R": 1.3852,
+     "avg_loss_R": -1.0104,
+     "payoff_ratio": 1.371,
+     "profit_factor": 0.565,
+     "expectancy_R": -0.3059,
+     "max_drawdown_R": 19.818,
+     "avg_drawdown_R": 14.801,
+     "sortino": -0.318,
+     "t_stat": -1.362,
+     "avg_MAE_R": 1.2378,
+     "avg_MFE_R": 1.1545,
+     "edge_ratio_MFE_over_MAE": 0.933,
+     "avg_duration_min": 609.3,
+     "pct_profitable": 0.032,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 10,
+       "expectancy_R": -0.3286,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": -0.1424,
+       "pct_profitable": 0.091
+      },
+      "slice2": {
+       "n_strategies": 10,
+       "expectancy_R": -0.3258,
+       "pct_profitable": 0.0
+      }
+     }
+    },
+    "CONFIRM_late4": {
+     "n_strategies": 25,
+     "total_trades": 655,
+     "median_trades": 25,
+     "win_rate": 0.3704,
+     "avg_win_R": 1.4193,
+     "avg_loss_R": -1.1082,
+     "payoff_ratio": 1.28,
+     "profit_factor": 0.753,
+     "expectancy_R": -0.1841,
+     "max_drawdown_R": 14.387,
+     "avg_drawdown_R": 8.595,
+     "sortino": -0.173,
+     "t_stat": -0.66,
+     "avg_MAE_R": 1.2887,
+     "avg_MFE_R": 1.3125,
+     "edge_ratio_MFE_over_MAE": 1.018,
+     "avg_duration_min": 831.2,
+     "pct_profitable": 0.08,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 8,
+       "expectancy_R": -0.1193,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": -0.227,
+       "pct_profitable": 0.1
+      },
+      "slice2": {
+       "n_strategies": 7,
+       "expectancy_R": -0.1349,
+       "pct_profitable": 0.143
+      }
+     }
+    },
+    "EARLY_fresh0": {
+     "n_strategies": 29,
+     "total_trades": 2136,
+     "median_trades": 80,
+     "win_rate": 0.3704,
+     "avg_win_R": 1.1694,
+     "avg_loss_R": -0.8846,
+     "payoff_ratio": 1.292,
+     "profit_factor": 0.829,
+     "expectancy_R": -0.0938,
+     "max_drawdown_R": 33.219,
+     "avg_drawdown_R": 15.401,
+     "sortino": -0.124,
+     "t_stat": -0.734,
+     "avg_MAE_R": 1.2117,
+     "avg_MFE_R": 1.3435,
+     "edge_ratio_MFE_over_MAE": 1.109,
+     "avg_duration_min": 350.5,
+     "pct_profitable": 0.138,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 9,
+       "expectancy_R": -0.2806,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": -0.093,
+       "pct_profitable": 0.2
+      },
+      "slice2": {
+       "n_strategies": 10,
+       "expectancy_R": -0.044,
+       "pct_profitable": 0.2
+      }
+     }
+    },
+    "EARLY_fresh1": {
+     "n_strategies": 33,
+     "total_trades": 2472,
+     "median_trades": 86,
+     "win_rate": 0.3889,
+     "avg_win_R": 1.1723,
+     "avg_loss_R": -0.8965,
+     "payoff_ratio": 1.272,
+     "profit_factor": 0.864,
+     "expectancy_R": -0.0736,
+     "max_drawdown_R": 26.847,
+     "avg_drawdown_R": 14.586,
+     "sortino": -0.098,
+     "t_stat": -0.606,
+     "avg_MAE_R": 1.1926,
+     "avg_MFE_R": 1.3468,
+     "edge_ratio_MFE_over_MAE": 1.129,
+     "avg_duration_min": 365.0,
+     "pct_profitable": 0.152,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.2122,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0591,
+       "pct_profitable": 0.182
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0439,
+       "pct_profitable": 0.273
+      }
+     }
+    },
+    "EARLY_fresh3": {
+     "n_strategies": 34,
+     "total_trades": 2816,
+     "median_trades": 98.5,
+     "win_rate": 0.3738,
+     "avg_win_R": 1.1877,
+     "avg_loss_R": -0.8848,
+     "payoff_ratio": 1.28,
+     "profit_factor": 0.836,
+     "expectancy_R": -0.0911,
+     "max_drawdown_R": 22.336,
+     "avg_drawdown_R": 13.797,
+     "sortino": -0.12,
+     "t_stat": -0.774,
+     "avg_MAE_R": 1.2034,
+     "avg_MFE_R": 1.3282,
+     "edge_ratio_MFE_over_MAE": 1.104,
+     "avg_duration_min": 370.7,
+     "pct_profitable": 0.118,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.1644,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0652,
+       "pct_profitable": 0.182
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": -0.0604,
+       "pct_profitable": 0.167
+      }
+     }
+    },
+    "EARLY_ltf_break_first": {
+     "n_strategies": 36,
+     "total_trades": 3307,
+     "median_trades": 111.0,
+     "win_rate": 0.3698,
+     "avg_win_R": 1.1926,
+     "avg_loss_R": -0.9069,
+     "payoff_ratio": 1.303,
+     "profit_factor": 0.794,
+     "expectancy_R": -0.1148,
+     "max_drawdown_R": 26.919,
+     "avg_drawdown_R": 18.694,
+     "sortino": -0.151,
+     "t_stat": -1.087,
+     "avg_MAE_R": 1.1986,
+     "avg_MFE_R": 1.2923,
+     "edge_ratio_MFE_over_MAE": 1.078,
+     "avg_duration_min": 403.5,
+     "pct_profitable": 0.083,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 12,
+       "expectancy_R": -0.1682,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 12,
+       "expectancy_R": -0.085,
+       "pct_profitable": 0.167
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": -0.1148,
+       "pct_profitable": 0.083
+      }
+     }
+    },
+    "INCUMBENT_bos_htf_bound": {
+     "n_strategies": 34,
+     "total_trades": 2843,
+     "median_trades": 91.0,
+     "win_rate": 0.4028,
+     "avg_win_R": 1.2913,
+     "avg_loss_R": -0.9398,
+     "payoff_ratio": 1.357,
+     "profit_factor": 0.986,
+     "expectancy_R": -0.008,
+     "max_drawdown_R": 26.8,
+     "avg_drawdown_R": 11.71,
+     "sortino": -0.01,
+     "t_stat": -0.066,
+     "avg_MAE_R": 1.1482,
+     "avg_MFE_R": 1.3979,
+     "edge_ratio_MFE_over_MAE": 1.217,
+     "avg_duration_min": 616.2,
+     "pct_profitable": 0.441,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.1825,
+       "pct_profitable": 0.091
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": 0.006,
+       "pct_profitable": 0.545
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": 0.0377,
+       "pct_profitable": 0.667
+      }
+     }
+    },
+    "INCUMBENT_bos_ltf": {
+     "n_strategies": 36,
+     "total_trades": 4672,
+     "median_trades": 145.0,
+     "win_rate": 0.398,
+     "avg_win_R": 1.2056,
+     "avg_loss_R": -0.9284,
+     "payoff_ratio": 1.303,
+     "profit_factor": 0.871,
+     "expectancy_R": -0.0733,
+     "max_drawdown_R": 40.051,
+     "avg_drawdown_R": 21.377,
+     "sortino": -0.091,
+     "t_stat": -0.708,
+     "avg_MAE_R": 1.174,
+     "avg_MFE_R": 1.3755,
+     "edge_ratio_MFE_over_MAE": 1.172,
+     "avg_duration_min": 473.9,
+     "pct_profitable": 0.167,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 12,
+       "expectancy_R": -0.1915,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 12,
+       "expectancy_R": -0.071,
+       "pct_profitable": 0.167
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": -0.0103,
+       "pct_profitable": 0.333
+      }
+     }
+    }
+   },
+   "240": {
+    "INCUMBENT240_bos": {
+     "n_strategies": 27,
+     "total_trades": 989,
+     "median_trades": 39,
+     "win_rate": 0.4211,
+     "avg_win_R": 1.2375,
+     "avg_loss_R": -0.946,
+     "payoff_ratio": 1.308,
+     "profit_factor": 0.999,
+     "expectancy_R": -0.0006,
+     "max_drawdown_R": 14.024,
+     "avg_drawdown_R": 6.959,
+     "sortino": -0.001,
+     "t_stat": -0.003,
+     "avg_MAE_R": 1.1274,
+     "avg_MFE_R": 1.3262,
+     "edge_ratio_MFE_over_MAE": 1.176,
+     "avg_duration_min": 1984.9,
+     "pct_profitable": 0.444,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 9,
+       "expectancy_R": -0.1661,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 9,
+       "expectancy_R": 0.097,
+       "pct_profitable": 1.0
+      },
+      "slice2": {
+       "n_strategies": 9,
+       "expectancy_R": -0.0006,
+       "pct_profitable": 0.333
+      }
+     }
+    },
+    "S240_break_of_structure": {
+     "n_strategies": 27,
+     "total_trades": 989,
+     "median_trades": 39,
+     "win_rate": 0.4211,
+     "avg_win_R": 1.2375,
+     "avg_loss_R": -0.946,
+     "payoff_ratio": 1.308,
+     "profit_factor": 0.999,
+     "expectancy_R": -0.0006,
+     "max_drawdown_R": 14.024,
+     "avg_drawdown_R": 6.959,
+     "sortino": -0.001,
+     "t_stat": -0.003,
+     "avg_MAE_R": 1.1274,
+     "avg_MFE_R": 1.3262,
+     "edge_ratio_MFE_over_MAE": 1.176,
+     "avg_duration_min": 1984.9,
+     "pct_profitable": 0.444,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 9,
+       "expectancy_R": -0.1661,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 9,
+       "expectancy_R": 0.097,
+       "pct_profitable": 1.0
+      },
+      "slice2": {
+       "n_strategies": 9,
+       "expectancy_R": -0.0006,
+       "pct_profitable": 0.333
+      }
+     }
+    },
+    "S240_pullback_to_support": {
+     "n_strategies": 15,
+     "total_trades": 444,
+     "median_trades": 31,
+     "win_rate": 0.4062,
+     "avg_win_R": 1.3253,
+     "avg_loss_R": -0.9513,
+     "payoff_ratio": 1.368,
+     "profit_factor": 0.936,
+     "expectancy_R": -0.0369,
+     "max_drawdown_R": 13.271,
+     "avg_drawdown_R": 6.817,
+     "sortino": -0.048,
+     "t_stat": -0.169,
+     "avg_MAE_R": 1.1327,
+     "avg_MFE_R": 1.3192,
+     "edge_ratio_MFE_over_MAE": 1.165,
+     "avg_duration_min": 1534.7,
+     "pct_profitable": 0.333,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 5,
+       "expectancy_R": 0.0225,
+       "pct_profitable": 1.0
+      },
+      "slice1": {
+       "n_strategies": 3,
+       "expectancy_R": -0.5681,
+       "pct_profitable": 0.0
+      },
+      "slice2": {
+       "n_strategies": 7,
+       "expectancy_R": -0.0369,
+       "pct_profitable": 0.0
+      }
+     }
+    },
+    "S240_range_position_extreme": {
+     "n_strategies": 22,
+     "total_trades": 576,
+     "median_trades": 26.5,
+     "win_rate": 0.3636,
+     "avg_win_R": 1.1489,
+     "avg_loss_R": -0.8639,
+     "payoff_ratio": 1.352,
+     "profit_factor": 0.795,
+     "expectancy_R": -0.1096,
+     "max_drawdown_R": 9.207,
+     "avg_drawdown_R": 8.222,
+     "sortino": -0.148,
+     "t_stat": -0.519,
+     "avg_MAE_R": 1.2857,
+     "avg_MFE_R": 1.2908,
+     "edge_ratio_MFE_over_MAE": 1.004,
+     "avg_duration_min": 2072.7,
+     "pct_profitable": 0.0,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 6,
+       "expectancy_R": -0.4011,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 8,
+       "expectancy_R": -0.0863,
+       "pct_profitable": 0.0
+      },
+      "slice2": {
+       "n_strategies": 8,
+       "expectancy_R": -0.1164,
+       "pct_profitable": 0.0
+      }
+     }
+    },
+    "S240_structure_trend": {
+     "n_strategies": 28,
+     "total_trades": 1260,
+     "median_trades": 43.0,
+     "win_rate": 0.3999,
+     "avg_win_R": 1.1857,
+     "avg_loss_R": -0.9367,
+     "payoff_ratio": 1.288,
+     "profit_factor": 0.835,
+     "expectancy_R": -0.0825,
+     "max_drawdown_R": 22.451,
+     "avg_drawdown_R": 9.662,
+     "sortino": -0.115,
+     "t_stat": -0.581,
+     "avg_MAE_R": 1.2077,
+     "avg_MFE_R": 1.2681,
+     "edge_ratio_MFE_over_MAE": 1.05,
+     "avg_duration_min": 1741.1,
+     "pct_profitable": 0.357,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 9,
+       "expectancy_R": -0.1733,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": 0.1384,
+       "pct_profitable": 0.9
+      },
+      "slice2": {
+       "n_strategies": 9,
+       "expectancy_R": -0.1422,
+       "pct_profitable": 0.111
+      }
+     }
+    }
+   }
+  },
+  "NQ": {
+   "60": {
+    "ALIGNED_both_broken": {
+     "n_strategies": 33,
+     "total_trades": 2015,
+     "median_trades": 61,
+     "win_rate": 0.3837,
+     "avg_win_R": 1.4146,
+     "avg_loss_R": -0.8608,
+     "payoff_ratio": 1.595,
+     "profit_factor": 1.03,
+     "expectancy_R": 0.0162,
+     "max_drawdown_R": 22.002,
+     "avg_drawdown_R": 10.789,
+     "sortino": 0.022,
+     "t_stat": 0.125,
+     "avg_MAE_R": 1.2412,
+     "avg_MFE_R": 1.3872,
+     "edge_ratio_MFE_over_MAE": 1.118,
+     "avg_duration_min": 510.7,
+     "pct_profitable": 0.515,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.1472,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": 0.0162,
+       "pct_profitable": 0.727
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": 0.0592,
+       "pct_profitable": 0.818
+      }
+     }
+    },
+    "CONFIRM_htf_broken_now": {
+     "n_strategies": 36,
+     "total_trades": 3244,
+     "median_trades": 98.5,
+     "win_rate": 0.4127,
+     "avg_win_R": 1.3214,
+     "avg_loss_R": -0.8692,
+     "payoff_ratio": 1.486,
+     "profit_factor": 1.033,
+     "expectancy_R": 0.0175,
+     "max_drawdown_R": 24.602,
+     "avg_drawdown_R": 10.486,
+     "sortino": 0.024,
+     "t_stat": 0.135,
+     "avg_MAE_R": 1.1705,
+     "avg_MFE_R": 1.4071,
+     "edge_ratio_MFE_over_MAE": 1.202,
+     "avg_duration_min": 571.4,
+     "pct_profitable": 0.556,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.1162,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 13,
+       "expectancy_R": 0.1184,
+       "pct_profitable": 0.923
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": 0.0416,
+       "pct_profitable": 0.667
+      }
+     }
+    },
+    "CONFIRM_late0": {
+     "n_strategies": 31,
+     "total_trades": 1283,
+     "median_trades": 44,
+     "win_rate": 0.3478,
+     "avg_win_R": 1.3673,
+     "avg_loss_R": -0.84,
+     "payoff_ratio": 1.591,
+     "profit_factor": 0.906,
+     "expectancy_R": -0.0497,
+     "max_drawdown_R": 15.319,
+     "avg_drawdown_R": 8.728,
+     "sortino": -0.068,
+     "t_stat": -0.292,
+     "avg_MAE_R": 1.2116,
+     "avg_MFE_R": 1.338,
+     "edge_ratio_MFE_over_MAE": 1.104,
+     "avg_duration_min": 630.0,
+     "pct_profitable": 0.161,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 10,
+       "expectancy_R": -0.1323,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0497,
+       "pct_profitable": 0.273
+      },
+      "slice2": {
+       "n_strategies": 10,
+       "expectancy_R": -0.0277,
+       "pct_profitable": 0.2
+      }
+     }
+    },
+    "CONFIRM_late4": {
+     "n_strategies": 23,
+     "total_trades": 587,
+     "median_trades": 23,
+     "win_rate": 0.3448,
+     "avg_win_R": 1.2104,
+     "avg_loss_R": -0.8602,
+     "payoff_ratio": 1.566,
+     "profit_factor": 0.712,
+     "expectancy_R": -0.1729,
+     "max_drawdown_R": 11.688,
+     "avg_drawdown_R": 5.627,
+     "sortino": -0.222,
+     "t_stat": -0.786,
+     "avg_MAE_R": 1.201,
+     "avg_MFE_R": 1.2921,
+     "edge_ratio_MFE_over_MAE": 1.076,
+     "avg_duration_min": 625.7,
+     "pct_profitable": 0.217,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 9,
+       "expectancy_R": -0.1729,
+       "pct_profitable": 0.111
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": -0.1738,
+       "pct_profitable": 0.0
+      },
+      "slice2": {
+       "n_strategies": 4,
+       "expectancy_R": 0.1794,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "EARLY_fresh0": {
+     "n_strategies": 29,
+     "total_trades": 2129,
+     "median_trades": 78,
+     "win_rate": 0.3973,
+     "avg_win_R": 1.2989,
+     "avg_loss_R": -0.8891,
+     "payoff_ratio": 1.456,
+     "profit_factor": 0.932,
+     "expectancy_R": -0.037,
+     "max_drawdown_R": 17.697,
+     "avg_drawdown_R": 12.15,
+     "sortino": -0.05,
+     "t_stat": -0.293,
+     "avg_MAE_R": 1.2518,
+     "avg_MFE_R": 1.3772,
+     "edge_ratio_MFE_over_MAE": 1.1,
+     "avg_duration_min": 411.7,
+     "pct_profitable": 0.345,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 9,
+       "expectancy_R": -0.0568,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 9,
+       "expectancy_R": -0.0427,
+       "pct_profitable": 0.333
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": 0.0028,
+       "pct_profitable": 0.636
+      }
+     }
+    },
+    "EARLY_fresh1": {
+     "n_strategies": 32,
+     "total_trades": 2466,
+     "median_trades": 85.5,
+     "win_rate": 0.3872,
+     "avg_win_R": 1.2775,
+     "avg_loss_R": -0.8947,
+     "payoff_ratio": 1.426,
+     "profit_factor": 0.899,
+     "expectancy_R": -0.0552,
+     "max_drawdown_R": 23.742,
+     "avg_drawdown_R": 12.448,
+     "sortino": -0.074,
+     "t_stat": -0.454,
+     "avg_MAE_R": 1.2443,
+     "avg_MFE_R": 1.3763,
+     "edge_ratio_MFE_over_MAE": 1.106,
+     "avg_duration_min": 437.8,
+     "pct_profitable": 0.156,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0942,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": -0.0396,
+       "pct_profitable": 0.2
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": -0.038,
+       "pct_profitable": 0.273
+      }
+     }
+    },
+    "EARLY_fresh3": {
+     "n_strategies": 32,
+     "total_trades": 2653,
+     "median_trades": 93.5,
+     "win_rate": 0.4142,
+     "avg_win_R": 1.2727,
+     "avg_loss_R": -0.9048,
+     "payoff_ratio": 1.383,
+     "profit_factor": 1.04,
+     "expectancy_R": 0.0209,
+     "max_drawdown_R": 16.079,
+     "avg_drawdown_R": 9.169,
+     "sortino": 0.029,
+     "t_stat": 0.173,
+     "avg_MAE_R": 1.211,
+     "avg_MFE_R": 1.4304,
+     "edge_ratio_MFE_over_MAE": 1.181,
+     "avg_duration_min": 474.4,
+     "pct_profitable": 0.594,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0056,
+       "pct_profitable": 0.455
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": -0.0123,
+       "pct_profitable": 0.4
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": 0.0524,
+       "pct_profitable": 0.909
+      }
+     }
+    },
+    "EARLY_ltf_break_first": {
+     "n_strategies": 35,
+     "total_trades": 3022,
+     "median_trades": 101,
+     "win_rate": 0.4091,
+     "avg_win_R": 1.2819,
+     "avg_loss_R": -0.912,
+     "payoff_ratio": 1.401,
+     "profit_factor": 1.008,
+     "expectancy_R": 0.0044,
+     "max_drawdown_R": 16.821,
+     "avg_drawdown_R": 9.162,
+     "sortino": 0.006,
+     "t_stat": 0.037,
+     "avg_MAE_R": 1.195,
+     "avg_MFE_R": 1.417,
+     "edge_ratio_MFE_over_MAE": 1.186,
+     "avg_duration_min": 465.0,
+     "pct_profitable": 0.6,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 12,
+       "expectancy_R": -0.0186,
+       "pct_profitable": 0.417
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": 0.0044,
+       "pct_profitable": 0.636
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": 0.0176,
+       "pct_profitable": 0.75
+      }
+     }
+    },
+    "INCUMBENT_bos_htf_bound": {
+     "n_strategies": 36,
+     "total_trades": 3244,
+     "median_trades": 98.5,
+     "win_rate": 0.4127,
+     "avg_win_R": 1.3214,
+     "avg_loss_R": -0.8692,
+     "payoff_ratio": 1.486,
+     "profit_factor": 1.033,
+     "expectancy_R": 0.0175,
+     "max_drawdown_R": 24.602,
+     "avg_drawdown_R": 10.486,
+     "sortino": 0.024,
+     "t_stat": 0.135,
+     "avg_MAE_R": 1.1705,
+     "avg_MFE_R": 1.4071,
+     "edge_ratio_MFE_over_MAE": 1.202,
+     "avg_duration_min": 571.4,
+     "pct_profitable": 0.556,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.1162,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 13,
+       "expectancy_R": 0.1184,
+       "pct_profitable": 0.923
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": 0.0416,
+       "pct_profitable": 0.667
+      }
+     }
+    },
+    "INCUMBENT_bos_ltf": {
+     "n_strategies": 36,
+     "total_trades": 4494,
+     "median_trades": 145.0,
+     "win_rate": 0.4052,
+     "avg_win_R": 1.2811,
+     "avg_loss_R": -0.8859,
+     "payoff_ratio": 1.437,
+     "profit_factor": 0.997,
+     "expectancy_R": -0.0016,
+     "max_drawdown_R": 26.321,
+     "avg_drawdown_R": 13.633,
+     "sortino": -0.002,
+     "t_stat": -0.012,
+     "avg_MAE_R": 1.2202,
+     "avg_MFE_R": 1.4099,
+     "edge_ratio_MFE_over_MAE": 1.155,
+     "avg_duration_min": 496.7,
+     "pct_profitable": 0.5,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 12,
+       "expectancy_R": -0.0682,
+       "pct_profitable": 0.083
+      },
+      "slice1": {
+       "n_strategies": 12,
+       "expectancy_R": -0.0016,
+       "pct_profitable": 0.5
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": 0.068,
+       "pct_profitable": 0.917
+      }
+     }
+    }
+   },
+   "240": {
+    "INCUMBENT240_bos": {
+     "n_strategies": 28,
+     "total_trades": 1063,
+     "median_trades": 40.0,
+     "win_rate": 0.4246,
+     "avg_win_R": 1.0472,
+     "avg_loss_R": -0.9545,
+     "payoff_ratio": 1.131,
+     "profit_factor": 0.767,
+     "expectancy_R": -0.1275,
+     "max_drawdown_R": 14.219,
+     "avg_drawdown_R": 8.476,
+     "sortino": -0.168,
+     "t_stat": -0.744,
+     "avg_MAE_R": 1.1238,
+     "avg_MFE_R": 1.5828,
+     "edge_ratio_MFE_over_MAE": 1.408,
+     "avg_duration_min": 1916.5,
+     "pct_profitable": 0.357,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 9,
+       "expectancy_R": -0.1487,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": 0.3504,
+       "pct_profitable": 1.0
+      },
+      "slice2": {
+       "n_strategies": 9,
+       "expectancy_R": -0.1775,
+       "pct_profitable": 0.0
+      }
+     }
+    },
+    "S240_break_of_structure": {
+     "n_strategies": 28,
+     "total_trades": 1063,
+     "median_trades": 40.0,
+     "win_rate": 0.4246,
+     "avg_win_R": 1.0472,
+     "avg_loss_R": -0.9545,
+     "payoff_ratio": 1.131,
+     "profit_factor": 0.767,
+     "expectancy_R": -0.1275,
+     "max_drawdown_R": 14.219,
+     "avg_drawdown_R": 8.476,
+     "sortino": -0.168,
+     "t_stat": -0.744,
+     "avg_MAE_R": 1.1238,
+     "avg_MFE_R": 1.5828,
+     "edge_ratio_MFE_over_MAE": 1.408,
+     "avg_duration_min": 1916.5,
+     "pct_profitable": 0.357,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 9,
+       "expectancy_R": -0.1487,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": 0.3504,
+       "pct_profitable": 1.0
+      },
+      "slice2": {
+       "n_strategies": 9,
+       "expectancy_R": -0.1775,
+       "pct_profitable": 0.0
+      }
+     }
+    },
+    "S240_pullback_to_support": {
+     "n_strategies": 9,
+     "total_trades": 251,
+     "median_trades": 29,
+     "win_rate": 0.5,
+     "avg_win_R": 1.1159,
+     "avg_loss_R": -0.7808,
+     "payoff_ratio": 1.368,
+     "profit_factor": 1.331,
+     "expectancy_R": 0.1232,
+     "max_drawdown_R": 4.993,
+     "avg_drawdown_R": 3.533,
+     "sortino": 0.202,
+     "t_stat": 0.651,
+     "avg_MAE_R": 1.0073,
+     "avg_MFE_R": 1.6204,
+     "edge_ratio_MFE_over_MAE": 1.609,
+     "avg_duration_min": 1827.7,
+     "pct_profitable": 1.0,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 5,
+       "expectancy_R": 0.1232,
+       "pct_profitable": 1.0
+      },
+      "slice2": {
+       "n_strategies": 4,
+       "expectancy_R": 0.0879,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "S240_range_position_extreme": {
+     "n_strategies": 25,
+     "total_trades": 730,
+     "median_trades": 27,
+     "win_rate": 0.3462,
+     "avg_win_R": 1.1921,
+     "avg_loss_R": -0.8423,
+     "payoff_ratio": 1.151,
+     "profit_factor": 0.601,
+     "expectancy_R": -0.2007,
+     "max_drawdown_R": 12.318,
+     "avg_drawdown_R": 9.305,
+     "sortino": -0.283,
+     "t_stat": -1.076,
+     "avg_MAE_R": 1.1413,
+     "avg_MFE_R": 1.1526,
+     "edge_ratio_MFE_over_MAE": 1.01,
+     "avg_duration_min": 1864.6,
+     "pct_profitable": 0.24,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 8,
+       "expectancy_R": -0.3611,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 9,
+       "expectancy_R": 0.0339,
+       "pct_profitable": 0.667
+      },
+      "slice2": {
+       "n_strategies": 8,
+       "expectancy_R": -0.2007,
+       "pct_profitable": 0.0
+      }
+     }
+    },
+    "S240_structure_trend": {
+     "n_strategies": 31,
+     "total_trades": 1411,
+     "median_trades": 42,
+     "win_rate": 0.4098,
+     "avg_win_R": 1.2737,
+     "avg_loss_R": -0.8558,
+     "payoff_ratio": 1.506,
+     "profit_factor": 0.802,
+     "expectancy_R": -0.1095,
+     "max_drawdown_R": 22.765,
+     "avg_drawdown_R": 10.068,
+     "sortino": -0.147,
+     "t_stat": -0.768,
+     "avg_MAE_R": 1.1904,
+     "avg_MFE_R": 1.3209,
+     "edge_ratio_MFE_over_MAE": 1.11,
+     "avg_duration_min": 1596.0,
+     "pct_profitable": 0.355,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 10,
+       "expectancy_R": -0.1095,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": 0.1504,
+       "pct_profitable": 1.0
+      },
+      "slice2": {
+       "n_strategies": 10,
+       "expectancy_R": -0.2886,
+       "pct_profitable": 0.0
+      }
+     }
+    }
+   }
+  },
+  "MNQ": {
+   "60": {
+    "ALIGNED_both_broken": {
+     "n_strategies": 34,
+     "total_trades": 2172,
+     "median_trades": 64.5,
+     "win_rate": 0.4066,
+     "avg_win_R": 1.3996,
+     "avg_loss_R": -0.8921,
+     "payoff_ratio": 1.585,
+     "profit_factor": 1.1,
+     "expectancy_R": 0.053,
+     "max_drawdown_R": 21.844,
+     "avg_drawdown_R": 10.096,
+     "sortino": 0.072,
+     "t_stat": 0.407,
+     "avg_MAE_R": 1.3394,
+     "avg_MFE_R": 1.4435,
+     "edge_ratio_MFE_over_MAE": 1.078,
+     "avg_duration_min": 476.2,
+     "pct_profitable": 0.588,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.1485,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": 0.06,
+       "pct_profitable": 0.727
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": 0.1282,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "CONFIRM_htf_broken_now": {
+     "n_strategies": 36,
+     "total_trades": 3394,
+     "median_trades": 101.5,
+     "win_rate": 0.4328,
+     "avg_win_R": 1.3153,
+     "avg_loss_R": -0.9048,
+     "payoff_ratio": 1.481,
+     "profit_factor": 1.133,
+     "expectancy_R": 0.0664,
+     "max_drawdown_R": 25.512,
+     "avg_drawdown_R": 12.079,
+     "sortino": 0.091,
+     "t_stat": 0.56,
+     "avg_MAE_R": 1.2531,
+     "avg_MFE_R": 1.4436,
+     "edge_ratio_MFE_over_MAE": 1.152,
+     "avg_duration_min": 560.9,
+     "pct_profitable": 0.639,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.1403,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 13,
+       "expectancy_R": 0.1224,
+       "pct_profitable": 0.923
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": 0.075,
+       "pct_profitable": 0.917
+      }
+     }
+    },
+    "CONFIRM_late0": {
+     "n_strategies": 31,
+     "total_trades": 1295,
+     "median_trades": 43,
+     "win_rate": 0.3478,
+     "avg_win_R": 1.362,
+     "avg_loss_R": -0.8534,
+     "payoff_ratio": 1.574,
+     "profit_factor": 0.862,
+     "expectancy_R": -0.0767,
+     "max_drawdown_R": 14.438,
+     "avg_drawdown_R": 10.169,
+     "sortino": -0.102,
+     "t_stat": -0.448,
+     "avg_MAE_R": 1.1579,
+     "avg_MFE_R": 1.293,
+     "edge_ratio_MFE_over_MAE": 1.117,
+     "avg_duration_min": 630.0,
+     "pct_profitable": 0.129,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 10,
+       "expectancy_R": -0.1381,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0767,
+       "pct_profitable": 0.091
+      },
+      "slice2": {
+       "n_strategies": 10,
+       "expectancy_R": -0.0123,
+       "pct_profitable": 0.3
+      }
+     }
+    },
+    "CONFIRM_late4": {
+     "n_strategies": 26,
+     "total_trades": 642,
+     "median_trades": 23.0,
+     "win_rate": 0.3279,
+     "avg_win_R": 1.3626,
+     "avg_loss_R": -0.807,
+     "payoff_ratio": 1.657,
+     "profit_factor": 0.775,
+     "expectancy_R": -0.1299,
+     "max_drawdown_R": 9.745,
+     "avg_drawdown_R": 5.579,
+     "sortino": -0.171,
+     "t_stat": -0.598,
+     "avg_MAE_R": 1.22,
+     "avg_MFE_R": 1.3926,
+     "edge_ratio_MFE_over_MAE": 1.141,
+     "avg_duration_min": 561.9,
+     "pct_profitable": 0.346,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 9,
+       "expectancy_R": -0.1516,
+       "pct_profitable": 0.111
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": -0.1555,
+       "pct_profitable": 0.1
+      },
+      "slice2": {
+       "n_strategies": 7,
+       "expectancy_R": 0.131,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "EARLY_fresh0": {
+     "n_strategies": 29,
+     "total_trades": 2127,
+     "median_trades": 78,
+     "win_rate": 0.3958,
+     "avg_win_R": 1.2844,
+     "avg_loss_R": -0.894,
+     "payoff_ratio": 1.429,
+     "profit_factor": 0.935,
+     "expectancy_R": -0.0351,
+     "max_drawdown_R": 19.828,
+     "avg_drawdown_R": 14.937,
+     "sortino": -0.048,
+     "t_stat": -0.26,
+     "avg_MAE_R": 1.2812,
+     "avg_MFE_R": 1.4034,
+     "edge_ratio_MFE_over_MAE": 1.095,
+     "avg_duration_min": 392.6,
+     "pct_profitable": 0.207,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 9,
+       "expectancy_R": -0.0712,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 9,
+       "expectancy_R": -0.0361,
+       "pct_profitable": 0.333
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0128,
+       "pct_profitable": 0.273
+      }
+     }
+    },
+    "EARLY_fresh1": {
+     "n_strategies": 32,
+     "total_trades": 2451,
+     "median_trades": 84.5,
+     "win_rate": 0.406,
+     "avg_win_R": 1.2645,
+     "avg_loss_R": -0.8967,
+     "payoff_ratio": 1.408,
+     "profit_factor": 0.954,
+     "expectancy_R": -0.0247,
+     "max_drawdown_R": 22.611,
+     "avg_drawdown_R": 14.657,
+     "sortino": -0.034,
+     "t_stat": -0.21,
+     "avg_MAE_R": 1.2458,
+     "avg_MFE_R": 1.3896,
+     "edge_ratio_MFE_over_MAE": 1.115,
+     "avg_duration_min": 425.5,
+     "pct_profitable": 0.281,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.1135,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": -0.0152,
+       "pct_profitable": 0.4
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0009,
+       "pct_profitable": 0.455
+      }
+     }
+    },
+    "EARLY_fresh3": {
+     "n_strategies": 32,
+     "total_trades": 2641,
+     "median_trades": 92.0,
+     "win_rate": 0.4157,
+     "avg_win_R": 1.2622,
+     "avg_loss_R": -0.9098,
+     "payoff_ratio": 1.415,
+     "profit_factor": 1.011,
+     "expectancy_R": 0.0058,
+     "max_drawdown_R": 16.587,
+     "avg_drawdown_R": 12.29,
+     "sortino": 0.007,
+     "t_stat": 0.043,
+     "avg_MAE_R": 1.2024,
+     "avg_MFE_R": 1.4501,
+     "edge_ratio_MFE_over_MAE": 1.206,
+     "avg_duration_min": 452.4,
+     "pct_profitable": 0.562,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0514,
+       "pct_profitable": 0.091
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": 0.0058,
+       "pct_profitable": 0.7
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": 0.0411,
+       "pct_profitable": 0.909
+      }
+     }
+    },
+    "EARLY_ltf_break_first": {
+     "n_strategies": 34,
+     "total_trades": 2957,
+     "median_trades": 97.0,
+     "win_rate": 0.4081,
+     "avg_win_R": 1.2591,
+     "avg_loss_R": -0.9189,
+     "payoff_ratio": 1.405,
+     "profit_factor": 0.976,
+     "expectancy_R": -0.0133,
+     "max_drawdown_R": 16.897,
+     "avg_drawdown_R": 12.486,
+     "sortino": -0.018,
+     "t_stat": -0.11,
+     "avg_MAE_R": 1.194,
+     "avg_MFE_R": 1.4339,
+     "edge_ratio_MFE_over_MAE": 1.201,
+     "avg_duration_min": 457.6,
+     "pct_profitable": 0.412,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.0569,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": 0.0207,
+       "pct_profitable": 0.545
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": 0.0158,
+       "pct_profitable": 0.667
+      }
+     }
+    },
+    "INCUMBENT_bos_htf_bound": {
+     "n_strategies": 36,
+     "total_trades": 3394,
+     "median_trades": 101.5,
+     "win_rate": 0.4328,
+     "avg_win_R": 1.3153,
+     "avg_loss_R": -0.9048,
+     "payoff_ratio": 1.481,
+     "profit_factor": 1.133,
+     "expectancy_R": 0.0664,
+     "max_drawdown_R": 25.512,
+     "avg_drawdown_R": 12.079,
+     "sortino": 0.091,
+     "t_stat": 0.56,
+     "avg_MAE_R": 1.2531,
+     "avg_MFE_R": 1.4436,
+     "edge_ratio_MFE_over_MAE": 1.152,
+     "avg_duration_min": 560.9,
+     "pct_profitable": 0.639,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.1403,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 13,
+       "expectancy_R": 0.1224,
+       "pct_profitable": 0.923
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": 0.075,
+       "pct_profitable": 0.917
+      }
+     }
+    },
+    "INCUMBENT_bos_ltf": {
+     "n_strategies": 36,
+     "total_trades": 4607,
+     "median_trades": 149.5,
+     "win_rate": 0.4184,
+     "avg_win_R": 1.2749,
+     "avg_loss_R": -0.9051,
+     "payoff_ratio": 1.424,
+     "profit_factor": 1.033,
+     "expectancy_R": 0.0177,
+     "max_drawdown_R": 29.297,
+     "avg_drawdown_R": 15.3,
+     "sortino": 0.024,
+     "t_stat": 0.191,
+     "avg_MAE_R": 1.2786,
+     "avg_MFE_R": 1.4263,
+     "edge_ratio_MFE_over_MAE": 1.116,
+     "avg_duration_min": 458.4,
+     "pct_profitable": 0.528,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 12,
+       "expectancy_R": -0.1023,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 12,
+       "expectancy_R": 0.0177,
+       "pct_profitable": 0.583
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": 0.0842,
+       "pct_profitable": 1.0
+      }
+     }
+    }
+   },
+   "240": {
+    "INCUMBENT240_bos": {
+     "n_strategies": 29,
+     "total_trades": 1134,
+     "median_trades": 40,
+     "win_rate": 0.4048,
+     "avg_win_R": 1.124,
+     "avg_loss_R": -0.9186,
+     "payoff_ratio": 1.305,
+     "profit_factor": 0.895,
+     "expectancy_R": -0.0567,
+     "max_drawdown_R": 13.718,
+     "avg_drawdown_R": 8.341,
+     "sortino": -0.076,
+     "t_stat": -0.285,
+     "avg_MAE_R": 1.0576,
+     "avg_MFE_R": 1.2544,
+     "edge_ratio_MFE_over_MAE": 1.186,
+     "avg_duration_min": 1836.0,
+     "pct_profitable": 0.345,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 9,
+       "expectancy_R": -0.1561,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": 0.2832,
+       "pct_profitable": 1.0
+      },
+      "slice2": {
+       "n_strategies": 10,
+       "expectancy_R": -0.0653,
+       "pct_profitable": 0.0
+      }
+     }
+    },
+    "S240_break_of_structure": {
+     "n_strategies": 29,
+     "total_trades": 1134,
+     "median_trades": 40,
+     "win_rate": 0.4048,
+     "avg_win_R": 1.124,
+     "avg_loss_R": -0.9186,
+     "payoff_ratio": 1.305,
+     "profit_factor": 0.895,
+     "expectancy_R": -0.0567,
+     "max_drawdown_R": 13.718,
+     "avg_drawdown_R": 8.341,
+     "sortino": -0.076,
+     "t_stat": -0.285,
+     "avg_MAE_R": 1.0576,
+     "avg_MFE_R": 1.2544,
+     "edge_ratio_MFE_over_MAE": 1.186,
+     "avg_duration_min": 1836.0,
+     "pct_profitable": 0.345,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 9,
+       "expectancy_R": -0.1561,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": 0.2832,
+       "pct_profitable": 1.0
+      },
+      "slice2": {
+       "n_strategies": 10,
+       "expectancy_R": -0.0653,
+       "pct_profitable": 0.0
+      }
+     }
+    },
+    "S240_pullback_to_support": {
+     "n_strategies": 12,
+     "total_trades": 296,
+     "median_trades": 24.0,
+     "win_rate": 0.4683,
+     "avg_win_R": 1.3075,
+     "avg_loss_R": -0.9275,
+     "payoff_ratio": 1.416,
+     "profit_factor": 1.194,
+     "expectancy_R": 0.1017,
+     "max_drawdown_R": 7.596,
+     "avg_drawdown_R": 5.792,
+     "sortino": 0.136,
+     "t_stat": 0.387,
+     "avg_MAE_R": 0.9759,
+     "avg_MFE_R": 1.4241,
+     "edge_ratio_MFE_over_MAE": 1.459,
+     "avg_duration_min": 1943.8,
+     "pct_profitable": 0.75,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 5,
+       "expectancy_R": 0.1575,
+       "pct_profitable": 1.0
+      },
+      "slice1": {
+       "n_strategies": 3,
+       "expectancy_R": -0.0823,
+       "pct_profitable": 0.0
+      },
+      "slice2": {
+       "n_strategies": 4,
+       "expectancy_R": 0.0768,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "S240_range_position_extreme": {
+     "n_strategies": 26,
+     "total_trades": 792,
+     "median_trades": 29.5,
+     "win_rate": 0.3333,
+     "avg_win_R": 1.1936,
+     "avg_loss_R": -0.8196,
+     "payoff_ratio": 1.584,
+     "profit_factor": 0.792,
+     "expectancy_R": -0.1048,
+     "max_drawdown_R": 12.438,
+     "avg_drawdown_R": 9.855,
+     "sortino": -0.147,
+     "t_stat": -0.538,
+     "avg_MAE_R": 1.1763,
+     "avg_MFE_R": 1.2635,
+     "edge_ratio_MFE_over_MAE": 1.074,
+     "avg_duration_min": 1776.0,
+     "pct_profitable": 0.269,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 8,
+       "expectancy_R": -0.3987,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": 0.0051,
+       "pct_profitable": 0.7
+      },
+      "slice2": {
+       "n_strategies": 8,
+       "expectancy_R": -0.1084,
+       "pct_profitable": 0.0
+      }
+     }
+    },
+    "S240_structure_trend": {
+     "n_strategies": 30,
+     "total_trades": 1395,
+     "median_trades": 44.5,
+     "win_rate": 0.3999,
+     "avg_win_R": 1.309,
+     "avg_loss_R": -0.8628,
+     "payoff_ratio": 1.549,
+     "profit_factor": 0.765,
+     "expectancy_R": -0.1367,
+     "max_drawdown_R": 21.202,
+     "avg_drawdown_R": 10.687,
+     "sortino": -0.179,
+     "t_stat": -0.938,
+     "avg_MAE_R": 1.1095,
+     "avg_MFE_R": 1.3324,
+     "edge_ratio_MFE_over_MAE": 1.201,
+     "avg_duration_min": 1643.2,
+     "pct_profitable": 0.333,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 10,
+       "expectancy_R": -0.1514,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": 0.1303,
+       "pct_profitable": 1.0
+      },
+      "slice2": {
+       "n_strategies": 10,
+       "expectancy_R": -0.1666,
+       "pct_profitable": 0.0
+      }
+     }
+    }
+   }
+  },
+  "MCL": {
+   "60": {
+    "ALIGNED_both_broken": {
+     "n_strategies": 34,
+     "total_trades": 2070,
+     "median_trades": 55.0,
+     "win_rate": 0.3889,
+     "avg_win_R": 1.2752,
+     "avg_loss_R": -0.9825,
+     "payoff_ratio": 1.313,
+     "profit_factor": 0.861,
+     "expectancy_R": -0.0809,
+     "max_drawdown_R": 28.76,
+     "avg_drawdown_R": 10.673,
+     "sortino": -0.098,
+     "t_stat": -0.573,
+     "avg_MAE_R": 1.1784,
+     "avg_MFE_R": 1.3743,
+     "edge_ratio_MFE_over_MAE": 1.166,
+     "avg_duration_min": 538.8,
+     "pct_profitable": 0.265,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.4014,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": 0.1239,
+       "pct_profitable": 0.818
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": -0.063,
+       "pct_profitable": 0.0
+      }
+     }
+    },
+    "CONFIRM_htf_broken_now": {
+     "n_strategies": 35,
+     "total_trades": 3245,
+     "median_trades": 90,
+     "win_rate": 0.3974,
+     "avg_win_R": 1.3112,
+     "avg_loss_R": -0.938,
+     "payoff_ratio": 1.36,
+     "profit_factor": 0.933,
+     "expectancy_R": -0.0389,
+     "max_drawdown_R": 43.786,
+     "avg_drawdown_R": 11.835,
+     "sortino": -0.046,
+     "t_stat": -0.343,
+     "avg_MAE_R": 1.1405,
+     "avg_MFE_R": 1.4284,
+     "edge_ratio_MFE_over_MAE": 1.252,
+     "avg_duration_min": 623.3,
+     "pct_profitable": 0.371,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.3615,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": 0.1217,
+       "pct_profitable": 0.909
+      },
+      "slice2": {
+       "n_strategies": 13,
+       "expectancy_R": -0.0357,
+       "pct_profitable": 0.231
+      }
+     }
+    },
+    "CONFIRM_late0": {
+     "n_strategies": 32,
+     "total_trades": 1419,
+     "median_trades": 43.0,
+     "win_rate": 0.431,
+     "avg_win_R": 1.395,
+     "avg_loss_R": -0.9999,
+     "payoff_ratio": 1.328,
+     "profit_factor": 1.013,
+     "expectancy_R": 0.0077,
+     "max_drawdown_R": 25.249,
+     "avg_drawdown_R": 6.84,
+     "sortino": 0.009,
+     "t_stat": 0.042,
+     "avg_MAE_R": 1.1718,
+     "avg_MFE_R": 1.4776,
+     "edge_ratio_MFE_over_MAE": 1.261,
+     "avg_duration_min": 589.0,
+     "pct_profitable": 0.656,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 10,
+       "expectancy_R": -0.5312,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": 0.2467,
+       "pct_profitable": 0.909
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": 0.0221,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "CONFIRM_late4": {
+     "n_strategies": 30,
+     "total_trades": 928,
+     "median_trades": 32.5,
+     "win_rate": 0.439,
+     "avg_win_R": 1.2479,
+     "avg_loss_R": -1.0516,
+     "payoff_ratio": 1.346,
+     "profit_factor": 1.053,
+     "expectancy_R": 0.0271,
+     "max_drawdown_R": 19.001,
+     "avg_drawdown_R": 4.331,
+     "sortino": 0.037,
+     "t_stat": 0.147,
+     "avg_MAE_R": 1.2001,
+     "avg_MFE_R": 1.4456,
+     "edge_ratio_MFE_over_MAE": 1.205,
+     "avg_duration_min": 525.4,
+     "pct_profitable": 0.667,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 9,
+       "expectancy_R": -0.6565,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": 0.0271,
+       "pct_profitable": 0.909
+      },
+      "slice2": {
+       "n_strategies": 10,
+       "expectancy_R": 0.217,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "EARLY_fresh0": {
+     "n_strategies": 29,
+     "total_trades": 2174,
+     "median_trades": 79,
+     "win_rate": 0.4028,
+     "avg_win_R": 1.3985,
+     "avg_loss_R": -0.9555,
+     "payoff_ratio": 1.317,
+     "profit_factor": 0.954,
+     "expectancy_R": -0.0263,
+     "max_drawdown_R": 31.793,
+     "avg_drawdown_R": 10.238,
+     "sortino": -0.028,
+     "t_stat": -0.179,
+     "avg_MAE_R": 1.1958,
+     "avg_MFE_R": 1.4009,
+     "edge_ratio_MFE_over_MAE": 1.172,
+     "avg_duration_min": 457.1,
+     "pct_profitable": 0.379,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.3078,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 9,
+       "expectancy_R": -0.0038,
+       "pct_profitable": 0.444
+      },
+      "slice2": {
+       "n_strategies": 9,
+       "expectancy_R": 0.0339,
+       "pct_profitable": 0.778
+      }
+     }
+    },
+    "EARLY_fresh1": {
+     "n_strategies": 30,
+     "total_trades": 2363,
+     "median_trades": 86.0,
+     "win_rate": 0.3854,
+     "avg_win_R": 1.3944,
+     "avg_loss_R": -0.9551,
+     "payoff_ratio": 1.305,
+     "profit_factor": 0.933,
+     "expectancy_R": -0.039,
+     "max_drawdown_R": 38.049,
+     "avg_drawdown_R": 10.527,
+     "sortino": -0.05,
+     "t_stat": -0.282,
+     "avg_MAE_R": 1.2102,
+     "avg_MFE_R": 1.3874,
+     "edge_ratio_MFE_over_MAE": 1.146,
+     "avg_duration_min": 456.7,
+     "pct_profitable": 0.233,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.3404,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 9,
+       "expectancy_R": -0.0046,
+       "pct_profitable": 0.333
+      },
+      "slice2": {
+       "n_strategies": 10,
+       "expectancy_R": -0.0252,
+       "pct_profitable": 0.4
+      }
+     }
+    },
+    "EARLY_fresh3": {
+     "n_strategies": 33,
+     "total_trades": 2736,
+     "median_trades": 91,
+     "win_rate": 0.354,
+     "avg_win_R": 1.3828,
+     "avg_loss_R": -0.9635,
+     "payoff_ratio": 1.378,
+     "profit_factor": 0.817,
+     "expectancy_R": -0.1121,
+     "max_drawdown_R": 41.457,
+     "avg_drawdown_R": 11.495,
+     "sortino": -0.14,
+     "t_stat": -0.933,
+     "avg_MAE_R": 1.1807,
+     "avg_MFE_R": 1.3055,
+     "edge_ratio_MFE_over_MAE": 1.106,
+     "avg_duration_min": 425.8,
+     "pct_profitable": 0.303,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.3295,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": 0.0684,
+       "pct_profitable": 0.909
+      },
+      "slice2": {
+       "n_strategies": 11,
+       "expectancy_R": -0.1121,
+       "pct_profitable": 0.0
+      }
+     }
+    },
+    "EARLY_ltf_break_first": {
+     "n_strategies": 36,
+     "total_trades": 3091,
+     "median_trades": 98.5,
+     "win_rate": 0.3605,
+     "avg_win_R": 1.3483,
+     "avg_loss_R": -0.9666,
+     "payoff_ratio": 1.329,
+     "profit_factor": 0.728,
+     "expectancy_R": -0.1754,
+     "max_drawdown_R": 40.249,
+     "avg_drawdown_R": 15.981,
+     "sortino": -0.213,
+     "t_stat": -1.398,
+     "avg_MAE_R": 1.1575,
+     "avg_MFE_R": 1.2393,
+     "edge_ratio_MFE_over_MAE": 1.071,
+     "avg_duration_min": 403.4,
+     "pct_profitable": 0.306,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 12,
+       "expectancy_R": -0.2813,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 12,
+       "expectancy_R": 0.088,
+       "pct_profitable": 0.917
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": -0.203,
+       "pct_profitable": 0.0
+      }
+     }
+    },
+    "INCUMBENT_bos_htf_bound": {
+     "n_strategies": 35,
+     "total_trades": 3245,
+     "median_trades": 90,
+     "win_rate": 0.3974,
+     "avg_win_R": 1.3112,
+     "avg_loss_R": -0.938,
+     "payoff_ratio": 1.36,
+     "profit_factor": 0.933,
+     "expectancy_R": -0.0389,
+     "max_drawdown_R": 43.786,
+     "avg_drawdown_R": 11.835,
+     "sortino": -0.046,
+     "t_stat": -0.343,
+     "avg_MAE_R": 1.1405,
+     "avg_MFE_R": 1.4284,
+     "edge_ratio_MFE_over_MAE": 1.252,
+     "avg_duration_min": 623.3,
+     "pct_profitable": 0.371,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 11,
+       "expectancy_R": -0.3615,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 11,
+       "expectancy_R": 0.1217,
+       "pct_profitable": 0.909
+      },
+      "slice2": {
+       "n_strategies": 13,
+       "expectancy_R": -0.0357,
+       "pct_profitable": 0.231
+      }
+     }
+    },
+    "INCUMBENT_bos_ltf": {
+     "n_strategies": 36,
+     "total_trades": 4622,
+     "median_trades": 144.0,
+     "win_rate": 0.3615,
+     "avg_win_R": 1.3298,
+     "avg_loss_R": -0.9833,
+     "payoff_ratio": 1.325,
+     "profit_factor": 0.708,
+     "expectancy_R": -0.1787,
+     "max_drawdown_R": 45.846,
+     "avg_drawdown_R": 24.555,
+     "sortino": -0.217,
+     "t_stat": -1.627,
+     "avg_MAE_R": 1.1538,
+     "avg_MFE_R": 1.253,
+     "edge_ratio_MFE_over_MAE": 1.086,
+     "avg_duration_min": 422.1,
+     "pct_profitable": 0.306,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 12,
+       "expectancy_R": -0.265,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 12,
+       "expectancy_R": 0.0193,
+       "pct_profitable": 0.917
+      },
+      "slice2": {
+       "n_strategies": 12,
+       "expectancy_R": -0.1956,
+       "pct_profitable": 0.0
+      }
+     }
+    }
+   },
+   "240": {
+    "INCUMBENT240_bos": {
+     "n_strategies": 29,
+     "total_trades": 1186,
+     "median_trades": 42,
+     "win_rate": 0.4286,
+     "avg_win_R": 1.4371,
+     "avg_loss_R": -0.9632,
+     "payoff_ratio": 1.556,
+     "profit_factor": 1.367,
+     "expectancy_R": 0.1688,
+     "max_drawdown_R": 25.126,
+     "avg_drawdown_R": 8.419,
+     "sortino": 0.232,
+     "t_stat": 0.822,
+     "avg_MAE_R": 1.1676,
+     "avg_MFE_R": 1.5134,
+     "edge_ratio_MFE_over_MAE": 1.296,
+     "avg_duration_min": 1893.3,
+     "pct_profitable": 0.69,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 9,
+       "expectancy_R": -0.3999,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": 0.3677,
+       "pct_profitable": 1.0
+      },
+      "slice2": {
+       "n_strategies": 10,
+       "expectancy_R": 0.1832,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "S240_break_of_structure": {
+     "n_strategies": 29,
+     "total_trades": 1186,
+     "median_trades": 42,
+     "win_rate": 0.4286,
+     "avg_win_R": 1.4371,
+     "avg_loss_R": -0.9632,
+     "payoff_ratio": 1.556,
+     "profit_factor": 1.367,
+     "expectancy_R": 0.1688,
+     "max_drawdown_R": 25.126,
+     "avg_drawdown_R": 8.419,
+     "sortino": 0.232,
+     "t_stat": 0.822,
+     "avg_MAE_R": 1.1676,
+     "avg_MFE_R": 1.5134,
+     "edge_ratio_MFE_over_MAE": 1.296,
+     "avg_duration_min": 1893.3,
+     "pct_profitable": 0.69,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 9,
+       "expectancy_R": -0.3999,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": 0.3677,
+       "pct_profitable": 1.0
+      },
+      "slice2": {
+       "n_strategies": 10,
+       "expectancy_R": 0.1832,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "S240_fvg_nearby": {
+     "n_strategies": 6,
+     "total_trades": 147,
+     "median_trades": 25.0,
+     "win_rate": 0.4,
+     "avg_win_R": 3.1805,
+     "avg_loss_R": -1.3028,
+     "payoff_ratio": 2.441,
+     "profit_factor": 1.627,
+     "expectancy_R": 0.4905,
+     "max_drawdown_R": 8.873,
+     "avg_drawdown_R": 8.873,
+     "sortino": 0.464,
+     "t_stat": 0.732,
+     "avg_MAE_R": 1.2776,
+     "avg_MFE_R": 1.9605,
+     "edge_ratio_MFE_over_MAE": 1.535,
+     "avg_duration_min": 1756.8,
+     "pct_profitable": 1.0,
+     "per_disjoint_slice": {
+      "slice1": {
+       "n_strategies": 6,
+       "expectancy_R": 0.4905,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "S240_pullback_to_support": {
+     "n_strategies": 5,
+     "total_trades": 117,
+     "median_trades": 24,
+     "win_rate": 0.5,
+     "avg_win_R": 0.9843,
+     "avg_loss_R": -0.8973,
+     "payoff_ratio": 1.097,
+     "profit_factor": 1.097,
+     "expectancy_R": 0.0435,
+     "max_drawdown_R": 6.587,
+     "avg_drawdown_R": 6.587,
+     "sortino": 0.063,
+     "t_stat": 0.194,
+     "avg_MAE_R": 1.0522,
+     "avg_MFE_R": 1.5631,
+     "edge_ratio_MFE_over_MAE": 1.486,
+     "avg_duration_min": 2290.0,
+     "pct_profitable": 1.0,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 5,
+       "expectancy_R": 0.0435,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "S240_range_position_extreme": {
+     "n_strategies": 26,
+     "total_trades": 763,
+     "median_trades": 27.0,
+     "win_rate": 0.3947,
+     "avg_win_R": 1.3714,
+     "avg_loss_R": -1.0131,
+     "payoff_ratio": 1.324,
+     "profit_factor": 1.208,
+     "expectancy_R": 0.1136,
+     "max_drawdown_R": 10.075,
+     "avg_drawdown_R": 6.387,
+     "sortino": 0.141,
+     "t_stat": 0.432,
+     "avg_MAE_R": 1.0951,
+     "avg_MFE_R": 1.4819,
+     "edge_ratio_MFE_over_MAE": 1.353,
+     "avg_duration_min": 1760.5,
+     "pct_profitable": 0.692,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 8,
+       "expectancy_R": -0.2148,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 8,
+       "expectancy_R": 0.1136,
+       "pct_profitable": 1.0
+      },
+      "slice2": {
+       "n_strategies": 10,
+       "expectancy_R": 0.1447,
+       "pct_profitable": 1.0
+      }
+     }
+    },
+    "S240_structure_trend": {
+     "n_strategies": 30,
+     "total_trades": 1291,
+     "median_trades": 43.0,
+     "win_rate": 0.4236,
+     "avg_win_R": 1.2759,
+     "avg_loss_R": -1.0091,
+     "payoff_ratio": 1.314,
+     "profit_factor": 0.788,
+     "expectancy_R": -0.1228,
+     "max_drawdown_R": 28.445,
+     "avg_drawdown_R": 9.741,
+     "sortino": -0.131,
+     "t_stat": -0.677,
+     "avg_MAE_R": 1.1987,
+     "avg_MFE_R": 1.3155,
+     "edge_ratio_MFE_over_MAE": 1.097,
+     "avg_duration_min": 1977.2,
+     "pct_profitable": 0.367,
+     "per_disjoint_slice": {
+      "slice0": {
+       "n_strategies": 10,
+       "expectancy_R": -0.1738,
+       "pct_profitable": 0.0
+      },
+      "slice1": {
+       "n_strategies": 10,
+       "expectancy_R": -0.2649,
+       "pct_profitable": 0.2
+      },
+      "slice2": {
+       "n_strategies": 10,
+       "expectancy_R": 0.2068,
+       "pct_profitable": 0.9
+      }
+     }
+    }
+   }
+  }
+ }
+}

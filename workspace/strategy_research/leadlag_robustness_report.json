@@ -1,0 +1,2150 @@
+{
+ "scope": "Anti-overfitting audit for the lead-lag study: 5 symbols (MGC, MES, NQ, MNQ, MCL), timeframes 60m and 240m individually and as a 60m/240m pair, 3 disjoint ~107-day slices and a separate 6-block ~53-day partition, 2,520 + 1,260 + 1,050 measured rule-set runs.",
+ "bottom_line": "Ten anti-overfitting checks run, eight clean, two adverse - and the two adverse ones kill the only surviving result. Look-ahead: 10 of 10 causality probes CAUSAL across 5 symbols x 2 timeframes, 0 mismatches. Costs: tripling slippage moves median expectancy by only -0.011R to -0.030R, so costs are not why these arms lose. Parameter sensitivity: FAILS - median expectancy across the freshness parameter is -0.036, -0.046, -0.012, -0.043 for K = 0, 1, 3, unbounded, so the winning K=3 arm is an isolated bump, not a ridge. Deflation: free_t(84) = 2.977 against a best six-block out-of-sample Stouffer of +2.678. Nothing is live-eligible.",
+ "checks": {
+  "look_ahead_bias": {
+   "status": "CHECKED - clean",
+   "how": "Three independent guards. (1) leadlag._audit_causality re-derives the break-direction and bars-since-onset arrays from bars[:i+1] and compares with the full-series value at i, at 10-12 probe points per series: 0 mismatches on MGC/MES/NQ/MNQ/MCL at both 60m and 240m, verdict CAUSAL on 10 of 10. (2) All swing reads go through TimeframeFrame._last_high/_prior_high/_last_low/_prior_low, which _build_swing_pointers fills by walking swings sorted on Swing.confirmed_index and advancing only while confirmed_index <= i - a 3-bar fractal at i is invisible until i+3. (3) Cross-timeframe reads go through SymbolFrame._build_alignment, which maps a base bar to the last COMPLETED higher-timeframe bar; every event in the measurement is stamped with bar.end_ts, not bar.ts, so the 240m bar spanning 12:00-16:00 is compared at 16:00 and can never appear to know something before the 60m bar closing 15:00.",
+   "result": {
+    "MGC": {
+     "60": {
+      "symbol": "MGC",
+      "tf": 60,
+      "probes": 10,
+      "mismatches": 0,
+      "detail": [],
+      "verdict": "CAUSAL"
+     },
+     "240": {
+      "symbol": "MGC",
+      "tf": 240,
+      "probes": 10,
+      "mismatches": 0,
+      "detail": [],
+      "verdict": "CAUSAL"
+     }
+    },
+    "MES": {
+     "60": {
+      "symbol": "MES",
+      "tf": 60,
+      "probes": 10,
+      "mismatches": 0,
+      "detail": [],
+      "verdict": "CAUSAL"
+     },
+     "240": {
+      "symbol": "MES",
+      "tf": 240,
+      "probes": 10,
+      "mismatches": 0,
+      "detail": [],
+      "verdict": "CAUSAL"
+     }
+    },
+    "NQ": {
+     "60": {
+      "symbol": "NQ",
+      "tf": 60,
+      "probes": 10,
+      "mismatches": 0,
+      "detail": [],
+      "verdict": "CAUSAL"
+     },
+     "240": {
+      "symbol": "NQ",
+      "tf": 240,
+      "probes": 10,
+      "mismatches": 0,
+      "detail": [],
+      "verdict": "CAUSAL"
+     }
+    },
+    "MNQ": {
+     "60": {
+      "symbol": "MNQ",
+      "tf": 60,
+      "probes": 10,
+      "mismatches": 0,
+      "detail": [],
+      "verdict": "CAUSAL"
+     },
+     "240": {
+      "symbol": "MNQ",
+      "tf": 240,
+      "probes": 10,
+      "mismatches": 0,
+      "detail": [],
+      "verdict": "CAUSAL"
+     }
+    },
+    "MCL": {
+     "60": {
+      "symbol": "MCL",
+      "tf": 60,
+      "probes": 10,
+      "mismatches": 0,
+      "detail": [],
+      "verdict": "CAUSAL"
+     },
+     "240": {
+      "symbol": "MCL",
+      "tf": 240,
+      "probes": 10,
+      "mismatches": 0,
+      "detail": [],
+      "verdict": "CAUSAL"
+     }
+    }
+   }
+  },
+  "repainting_indicators": {
+   "status": "CHECKED - clean",
+   "how": "Swings are the only repainting-capable input here and they are consumed exclusively through confirmed_index-filtered arrays. Confirmed by the same causality audit: a repainting read would show up as a truncated-vs-full mismatch and there were none."
+  },
+  "future_data_leakage": {
+   "status": "CHECKED - one residual, quantified",
+   "how": "leadlag._history builds its cache from the FULL series rather than per-slice. That cannot leak the future (every stored value is a function of bars[0..i] only, audited above), but it does give a sliced backtest MORE warm-up history than it would have live at the very start of a slice. Direction of the error is toward better-informed early bars, not toward knowing the future."
+  },
+  "engine_fill_realism": {
+   "status": "CHECKED - conservative",
+   "how": "Entry fills at the NEXT bar's open, never the signal close. When a bar contains both stop and target the stop wins. Gaps fill at the open, not at the stop price. This is the engine's documented behaviour and was not modified."
+  },
+  "understated_costs": {
+   "status": "CHECKED - not the cause",
+   "how": "Re-ran all 7 lead-lag arms over 15 disjoint cells with slippage tripled (base 0.5 -> 1.5 ticks, stop extra 1.0 -> 2.0, volatility coefficient 0.6 -> 1.2, thin-book 1.0 -> 2.0). Median expectancy moves by -0.011R to -0.030R and the percentage of profitable strategies falls 4-11 points. Every arm was already negative at base costs, so costs are not what makes these arms lose - but a 1-bar-earlier entry is also a worse-liquidity entry in reality and that is NOT modelled, which means the early arms are if anything flattered here.",
+   "result": {
+    "base": {
+     "CONFIRM_late0": {
+      "n_strategies": 157,
+      "median_exp": -0.0767,
+      "median_win": 0.3585,
+      "median_pf": 0.862,
+      "pct_profitable": 0.306,
+      "median_max_consec_losses": 7,
+      "median_max_consec_wins": 3,
+      "median_trades": 41
+     },
+     "CONFIRM_late4": {
+      "n_strategies": 122,
+      "median_exp": -0.1041,
+      "median_win": 0.375,
+      "median_pf": 0.82,
+      "pct_profitable": 0.311,
+      "median_max_consec_losses": 4.0,
+      "median_max_consec_wins": 3.0,
+      "median_trades": 25.0
+     },
+     "EARLY_fresh0": {
+      "n_strategies": 145,
+      "median_exp": -0.0357,
+      "median_win": 0.3974,
+      "median_pf": 0.935,
+      "pct_profitable": 0.359,
+      "median_max_consec_losses": 7,
+      "median_max_consec_wins": 4,
+      "median_trades": 78
+     },
+     "EARLY_fresh1": {
+      "n_strategies": 158,
+      "median_exp": -0.0456,
+      "median_win": 0.3948,
+      "median_pf": 0.911,
+      "pct_profitable": 0.304,
+      "median_max_consec_losses": 6.0,
+      "median_max_consec_wins": 4.0,
+      "median_trades": 84.0
+     },
+     "EARLY_fresh3": {
+      "n_strategies": 163,
+      "median_exp": -0.0122,
+      "median_win": 0.4,
+      "median_pf": 0.977,
+      "pct_profitable": 0.442,
+      "median_max_consec_losses": 7,
+      "median_max_consec_wins": 4,
+      "median_trades": 92
+     },
+     "EARLY_ltf_break_first": {
+      "n_strategies": 174,
+      "median_exp": -0.0434,
+      "median_win": 0.3935,
+      "median_pf": 0.919,
+      "pct_profitable": 0.385,
+      "median_max_consec_losses": 7.0,
+      "median_max_consec_wins": 4.0,
+      "median_trades": 97.0
+     }
+    },
+    "stress_2x_slippage": {
+     "CONFIRM_late0": {
+      "n_strategies": 157,
+      "median_exp": -0.0991,
+      "median_win": 0.3611,
+      "median_pf": 0.825,
+      "pct_profitable": 0.229,
+      "median_max_consec_losses": 7,
+      "median_max_consec_wins": 3,
+      "median_trades": 41
+     },
+     "CONFIRM_late4": {
+      "n_strategies": 122,
+      "median_exp": -0.1147,
+      "median_win": 0.3727,
+      "median_pf": 0.803,
+      "pct_profitable": 0.279,
+      "median_max_consec_losses": 4.0,
+      "median_max_consec_wins": 2.0,
+      "median_trades": 24.5
+     },
+     "EARLY_fresh0": {
+      "n_strategies": 145,
+      "median_exp": -0.0529,
+      "median_win": 0.3913,
+      "median_pf": 0.902,
+      "pct_profitable": 0.248,
+      "median_max_consec_losses": 7,
+      "median_max_consec_wins": 4,
+      "median_trades": 78
+     },
+     "EARLY_fresh1": {
+      "n_strategies": 158,
+      "median_exp": -0.0758,
+      "median_win": 0.3873,
+      "median_pf": 0.866,
+      "pct_profitable": 0.228,
+      "median_max_consec_losses": 7.0,
+      "median_max_consec_wins": 4.0,
+      "median_trades": 84.0
+     },
+     "EARLY_fresh3": {
+      "n_strategies": 163,
+      "median_exp": -0.036,
+      "median_win": 0.4,
+      "median_pf": 0.929,
+      "pct_profitable": 0.399,
+      "median_max_consec_losses": 7,
+      "median_max_consec_wins": 4,
+      "median_trades": 91
+     },
+     "EARLY_ltf_break_first": {
+      "n_strategies": 173,
+      "median_exp": -0.0552,
+      "median_win": 0.3922,
+      "median_pf": 0.898,
+      "pct_profitable": 0.329,
+      "median_max_consec_losses": 7,
+      "median_max_consec_wins": 4,
+      "median_trades": 97
+     }
+    }
+   }
+  },
+  "parameter_sensitivity": {
+   "status": "CHECKED - FAILS for the one surviving result",
+   "how": "Median expectancy across the freshness parameter K (early break at most K bars old) is K=0 -0.0357, K=1 -0.0456, K=3 -0.0122, K=unbounded -0.0434. Non-monotone and non-smooth: the K=3 arm - the only comparison in this study that survived both the 3-slice and 6-block designs - sits on an isolated bump, not on a ridge. A real effect varies smoothly in its parameter. The lateness parameter N behaves better (N=0 -0.0767, N=4 -0.1041, monotone worse) but N=8 never clears the 20-trade floor and N=16 fires on ~0.0% of bars, so the late end is untestable."
+  },
+  "insufficient_sample": {
+   "status": "CHECKED - reported at both floors",
+   "how": "Every census is reported floor-free and at floor 20. The floor changes conclusions: EARLY_fresh3 vs CONFIRM_late0 goes from +3.93 to +5.98 all-cells and +2.50 to +4.20 OOS, and CONFIRM_late8 vanishes entirely (175 strategies at floor 0, zero at floor 20). Per-cell trade counts: median 40-143 for the 60m arms, 40 for bos@240, 7 for late8."
+  },
+  "data_mining_bias": {
+   "status": "CHECKED - nothing clears deflation",
+   "how": "168 strategy specs screened per cell -> free_t(168) = 3.204. 84 in the walk-forward -> free_t(84) = 2.977. 33 arm comparisons -> free_t(33) = 2.644. The best out-of-sample result in the whole study is EARLY_fresh3 vs CONFIRM_late0 at Stouffer +4.202 over 10 OOS cells (3-slice design) and +2.678 over 22 cells (6-block design). The 6-block figure is BELOW free_t(84). Nothing is announced as clearing deflation."
+  },
+  "survivorship_bias": {
+   "status": "PARTIAL - noted, not eliminated",
+   "how": "All five contracts are continuous front-month CSVs. Roll adjustment is whatever the loader inherited; a roll gap inside a slice would show as a spurious structure break on both timeframes at once, which would inflate the measured co-state rate rather than the lead. Not separately audited. No contracts were dropped for poor performance - MGC and MCL, the two independent units, are reported even where they contradict the index complex."
+  },
+  "degeneracy": {
+   "status": "CHECKED - two conditions dropped",
+   "how": "Firing rates on 4,600-5,000 bars per symbol: ltf_break_first 17.8-20.9%, fresh0 5.6-6.9%, fresh1 9.1-11.1%, fresh3 13.8-16.1%, htf_confirms_late0 6.9-9.3%, late4 3.2-5.0%, late8 0.6-1.2%, late16 0.00-0.04%. late16 is DEGENERATE and was dropped; late8 never clears the trade floor. ltf_break_first_fresh6 is 98.6-99.0% identical to ltf_break_first and htf_confirms_late2 is 98.1-98.4% identical to late0 - both dropped as duplicates.",
+   "result": {
+    "MGC": {
+     "bars": 4800,
+     "rate": {
+      "ltf_break_first": 0.1781,
+      "ltf_break_first_fresh0": 0.056,
+      "ltf_break_first_fresh1": 0.0912,
+      "ltf_break_first_fresh3": 0.1381,
+      "ltf_break_first_fresh6": 0.1673,
+      "htf_confirms_late0": 0.0694,
+      "htf_confirms_late2": 0.0535,
+      "htf_confirms_late4": 0.0321,
+      "htf_confirms_late8": 0.006,
+      "htf_confirms_late16": 0.0,
+      "htf_broken_now": 0.3273,
+      "ltf_and_htf_both_broken": 0.1335,
+      "break_of_structure": 0.3117,
+      "structure_trend": 0.626,
+      "mtf_aligned": 0.3608
+     },
+     "near_identical_pairs_gt98pct": {
+      "ltf_break_first~ltf_break_first_fresh6": 0.9892,
+      "htf_confirms_late0~htf_confirms_late2": 0.9842,
+      "htf_confirms_late16~htf_confirms_late8": 0.994
+     },
+     "vs_break_of_structure_agree": {
+      "ltf_break_first": 0.8665,
+      "ltf_break_first_fresh0": 0.7444,
+      "ltf_break_first_fresh1": 0.7796,
+      "ltf_break_first_fresh3": 0.8265,
+      "ltf_break_first_fresh6": 0.8556,
+      "htf_confirms_late0": 0.7577,
+      "htf_confirms_late2": 0.7419,
+      "htf_confirms_late4": 0.7204,
+      "htf_confirms_late8": 0.6944,
+      "htf_confirms_late16": 0.6883,
+      "htf_broken_now": 0.6369,
+      "ltf_and_htf_both_broken": 0.8219,
+      "structure_trend": 0.3812,
+      "mtf_aligned": 0.5092
+     }
+    },
+    "MES": {
+     "bars": 4800,
+     "rate": {
+      "ltf_break_first": 0.2085,
+      "ltf_break_first_fresh0": 0.066,
+      "ltf_break_first_fresh1": 0.1077,
+      "ltf_break_first_fresh3": 0.1596,
+      "ltf_break_first_fresh6": 0.1948,
+      "htf_confirms_late0": 0.0873,
+      "htf_confirms_late2": 0.0681,
+      "htf_confirms_late4": 0.0431,
+      "htf_confirms_late8": 0.0098,
+      "htf_confirms_late16": 0.0002,
+      "htf_broken_now": 0.3663,
+      "ltf_and_htf_both_broken": 0.1592,
+      "break_of_structure": 0.3677,
+      "structure_trend": 0.5698,
+      "mtf_aligned": 0.3117
+     },
+     "near_identical_pairs_gt98pct": {
+      "ltf_break_first~ltf_break_first_fresh6": 0.9862,
+      "htf_confirms_late0~htf_confirms_late2": 0.9808,
+      "htf_confirms_late16~htf_confirms_late8": 0.9904
+     },
+     "vs_break_of_structure_agree": {
+      "ltf_break_first": 0.8408,
+      "ltf_break_first_fresh0": 0.6983,
+      "ltf_break_first_fresh1": 0.74,
+      "ltf_break_first_fresh3": 0.7919,
+      "ltf_break_first_fresh6": 0.8271,
+      "htf_confirms_late0": 0.7196,
+      "htf_confirms_late2": 0.7004,
+      "htf_confirms_late4": 0.6754,
+      "htf_confirms_late8": 0.6421,
+      "htf_confirms_late16": 0.6325,
+      "htf_broken_now": 0.6008,
+      "ltf_and_htf_both_broken": 0.7915,
+      "structure_trend": 0.3673,
+      "mtf_aligned": 0.4904
+     }
+    },
+    "NQ": {
+     "bars": 4800,
+     "rate": {
+      "ltf_break_first": 0.1904,
+      "ltf_break_first_fresh0": 0.0633,
+      "ltf_break_first_fresh1": 0.1033,
+      "ltf_break_first_fresh3": 0.1492,
+      "ltf_break_first_fresh6": 0.1779,
+      "htf_confirms_late0": 0.0887,
+      "htf_confirms_late2": 0.0721,
+      "htf_confirms_late4": 0.0452,
+      "htf_confirms_late8": 0.0115,
+      "htf_confirms_late16": 0.0004,
+      "htf_broken_now": 0.4102,
+      "ltf_and_htf_both_broken": 0.165,
+      "break_of_structure": 0.3554,
+      "structure_trend": 0.566,
+      "mtf_aligned": 0.2794
+     },
+     "near_identical_pairs_gt98pct": {
+      "ltf_break_first~ltf_break_first_fresh6": 0.9875,
+      "htf_confirms_late0~htf_confirms_late2": 0.9833,
+      "htf_confirms_late16~htf_confirms_late8": 0.989
+     },
+     "vs_break_of_structure_agree": {
+      "ltf_break_first": 0.835,
+      "ltf_break_first_fresh0": 0.7079,
+      "ltf_break_first_fresh1": 0.7479,
+      "ltf_break_first_fresh3": 0.7937,
+      "ltf_break_first_fresh6": 0.8225,
+      "htf_confirms_late0": 0.7333,
+      "htf_confirms_late2": 0.7167,
+      "htf_confirms_late4": 0.6898,
+      "htf_confirms_late8": 0.656,
+      "htf_confirms_late16": 0.645,
+      "htf_broken_now": 0.5813,
+      "ltf_and_htf_both_broken": 0.8096,
+      "structure_trend": 0.3867,
+      "mtf_aligned": 0.4831
+     }
+    },
+    "MNQ": {
+     "bars": 4800,
+     "rate": {
+      "ltf_break_first": 0.1854,
+      "ltf_break_first_fresh0": 0.0627,
+      "ltf_break_first_fresh1": 0.1023,
+      "ltf_break_first_fresh3": 0.1462,
+      "ltf_break_first_fresh6": 0.1746,
+      "htf_confirms_late0": 0.0873,
+      "htf_confirms_late2": 0.0717,
+      "htf_confirms_late4": 0.0446,
+      "htf_confirms_late8": 0.0121,
+      "htf_confirms_late16": 0.0004,
+      "htf_broken_now": 0.4115,
+      "ltf_and_htf_both_broken": 0.1671,
+      "break_of_structure": 0.3525,
+      "structure_trend": 0.5633,
+      "mtf_aligned": 0.2815
+     },
+     "near_identical_pairs_gt98pct": {
+      "ltf_break_first~ltf_break_first_fresh6": 0.9892,
+      "htf_confirms_late0~htf_confirms_late2": 0.9844,
+      "htf_confirms_late16~htf_confirms_late8": 0.9883
+     },
+     "vs_break_of_structure_agree": {
+      "ltf_break_first": 0.8329,
+      "ltf_break_first_fresh0": 0.7102,
+      "ltf_break_first_fresh1": 0.7498,
+      "ltf_break_first_fresh3": 0.7937,
+      "ltf_break_first_fresh6": 0.8221,
+      "htf_confirms_late0": 0.7348,
+      "htf_confirms_late2": 0.7192,
+      "htf_confirms_late4": 0.6921,
+      "htf_confirms_late8": 0.6596,
+      "htf_confirms_late16": 0.6479,
+      "htf_broken_now": 0.5852,
+      "ltf_and_htf_both_broken": 0.8146,
+      "structure_trend": 0.3879,
+      "mtf_aligned": 0.4883
+     }
+    },
+    "MCL": {
+     "bars": 4800,
+     "rate": {
+      "ltf_break_first": 0.2004,
+      "ltf_break_first_fresh0": 0.0685,
+      "ltf_break_first_fresh1": 0.1113,
+      "ltf_break_first_fresh3": 0.1613,
+      "ltf_break_first_fresh6": 0.1902,
+      "htf_confirms_late0": 0.0925,
+      "htf_confirms_late2": 0.0767,
+      "htf_confirms_late4": 0.0498,
+      "htf_confirms_late8": 0.0123,
+      "htf_confirms_late16": 0.0002,
+      "htf_broken_now": 0.3683,
+      "ltf_and_htf_both_broken": 0.1462,
+      "break_of_structure": 0.3467,
+      "structure_trend": 0.5604,
+      "mtf_aligned": 0.349
+     },
+     "near_identical_pairs_gt98pct": {
+      "ltf_break_first~ltf_break_first_fresh6": 0.9898,
+      "htf_confirms_late0~htf_confirms_late2": 0.9842,
+      "htf_confirms_late16~htf_confirms_late8": 0.9879
+     },
+     "vs_break_of_structure_agree": {
+      "ltf_break_first": 0.8538,
+      "ltf_break_first_fresh0": 0.7219,
+      "ltf_break_first_fresh1": 0.7646,
+      "ltf_break_first_fresh3": 0.8146,
+      "ltf_break_first_fresh6": 0.8435,
+      "htf_confirms_late0": 0.7458,
+      "htf_confirms_late2": 0.73,
+      "htf_confirms_late4": 0.7031,
+      "htf_confirms_late8": 0.6656,
+      "htf_confirms_late16": 0.6535,
+      "htf_broken_now": 0.5998,
+      "ltf_and_htf_both_broken": 0.7996,
+      "structure_trend": 0.3881,
+      "mtf_aligned": 0.486
+     }
+    }
+   }
+  },
+  "duplicate_of_existing_condition": {
+   "status": "CHECKED",
+   "how": "No lead-lag condition exceeds 86.7% verdict agreement with break_of_structure@60. One deliberate identity: htf_broken_now IS break_of_structure bound to 240m - identical trade sets, 15,698 trades each - which is the intended proof that leadlag.break_dir() reproduces the library predicate exactly, not an accidental clone."
+  },
+  "pooling_inflation": {
+   "status": "AVOIDED",
+   "how": "Every significance figure is a per-cell rank-sum z combined by Stouffer over cells. No trade pools, no cross-cell strategy pools. Where the two designs disagree - EARLY vs CONFIRM_htf_broken_now was -4.61 over 10 OOS cells in the 3-slice design and -0.903 over 30 cells in the 6-block design - the finer design is taken as the answer and the coarser one is downgraded."
+  },
+  "nested_windows": {
+   "status": "AVOIDED",
+   "how": "T.disjoint_slices only. No trailing windows, nothing nested. 3-slice and 6-block designs are different partitions of the same history, and that is stated rather than counted as replication."
+  }
+ },
+ "out_of_sample": {
+  "design_1": "slice0 (oldest) in sample, slices 1+2 out of sample, T.disjoint_slices n=3",
+  "design_2": "6 sequential disjoint blocks, every comparison recomputed per block",
+  "headline_claims_and_their_oos_result": {
+   "the lower timeframe leads the higher one": "HOLDS. Median lead 6-17 60m bars in the first 60% of the sample and 7-21 bars in the last 40%; false-positive rate 0.73-0.83 then 0.78-0.93. Stable.",
+   "early entry beats the incumbent break_of_structure@60": "FAILS. z=-1.17 over 10 OOS cells (3-slice), +0.112 over 30 cells (6-block), 15+/15-. Null.",
+   "early entry beats entering at the higher timeframe's own break": "FAILS. -4.61 over 10 OOS cells in the 3-slice design does NOT replicate: -0.903 over 30 cells, 15+/15-.",
+   "early beats aligned (the two halves of break_of_structure@60)": "FAILS. +3.83 in sample, -4.44 out of sample in the 3-slice design; +1.231 and 14+/15- over 6 blocks. Sign flip was noise at both ends.",
+   "ltf_break_first_fresh3 beats htf_confirms_late0": "SURVIVES both designs (+4.20 OOS 3-slice, +2.678 6-block) but is below free_t(84)=2.977 and fails parameter sensitivity.",
+   "break_of_structure@240 is the most promising untested thread": "FAILS. Median expectancy -0.0364R over 142 strategies, 37% profitable. Versus structure_trend@240: +1.061 over 15 cells (8+/7-), IS -0.876, OOS +1.919 - the previous +4.4 to +5.0 does not reproduce. Per slice: negative on 5/5 symbols in slice0, positive on 4/5 in slice1, negative on 4/5 in slice2. 5+/5- across OOS cells, 3/6 on independent units."
+  }
+ },
+ "walk_forward": {
+  "EARLY_ltf_break_first__vs__INCUMBENT_bos_ltf": {
+   "cells": 30,
+   "stouffer": 0.112,
+   "pos": 15,
+   "neg": 15,
+   "detail": {
+    "MCL/blk0": {
+     "z": 0.569,
+     "med_a": -0.3405,
+     "med_b": -0.3445,
+     "n_a": 9,
+     "n_b": 12
+    },
+    "MCL/blk1": {
+     "z": -0.68,
+     "med_a": -0.1371,
+     "med_b": -0.126,
+     "n_a": 10,
+     "n_b": 10
+    },
+    "MCL/blk2": {
+     "z": 1.569,
+     "med_a": 0.1445,
+     "med_b": 0.0616,
+     "n_a": 8,
+     "n_b": 11
+    },
+    "MCL/blk3": {
+     "z": 1.406,
+     "med_a": 0.0522,
+     "med_b": 0.0204,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MCL/blk4": {
+     "z": 2.176,
+     "med_a": -0.2021,
+     "med_b": -0.2623,
+     "n_a": 10,
+     "n_b": 12
+    },
+    "MCL/blk5": {
+     "z": -2.629,
+     "med_a": -0.2252,
+     "med_b": -0.1303,
+     "n_a": 9,
+     "n_b": 12
+    },
+    "MES/blk0": {
+     "z": -0.342,
+     "med_a": -0.1924,
+     "med_b": -0.1869,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MES/blk1": {
+     "z": 1.937,
+     "med_a": -0.1671,
+     "med_b": -0.2307,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MES/blk2": {
+     "z": -0.462,
+     "med_a": 0.0092,
+     "med_b": 0.0121,
+     "n_a": 10,
+     "n_b": 12
+    },
+    "MES/blk3": {
+     "z": -2.773,
+     "med_a": -0.2586,
+     "med_b": -0.1635,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MES/blk4": {
+     "z": -0.798,
+     "med_a": -0.1797,
+     "med_b": -0.1563,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MES/blk5": {
+     "z": -1.319,
+     "med_a": 0.0489,
+     "med_b": 0.0777,
+     "n_a": 10,
+     "n_b": 12
+    },
+    "MGC/blk0": {
+     "z": 1.633,
+     "med_a": -0.0821,
+     "med_b": -0.124,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MGC/blk1": {
+     "z": -3.674,
+     "med_a": -0.3322,
+     "med_b": -0.0165,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MGC/blk2": {
+     "z": -0.342,
+     "med_a": 0.028,
+     "med_b": 0.014,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MGC/blk3": {
+     "z": 0.19,
+     "med_a": 0.0226,
+     "med_b": 0.0263,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MGC/blk4": {
+     "z": 1.408,
+     "med_a": 0.0965,
+     "med_b": 0.0612,
+     "n_a": 10,
+     "n_b": 11
+    },
+    "MGC/blk5": {
+     "z": 2.176,
+     "med_a": 0.0428,
+     "med_b": -0.052,
+     "n_a": 10,
+     "n_b": 12
+    },
+    "MNQ/blk0": {
+     "z": 3.511,
+     "med_a": 0.0189,
+     "med_b": -0.108,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MNQ/blk1": {
+     "z": -0.494,
+     "med_a": -0.1158,
+     "med_b": -0.1011,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MNQ/blk2": {
+     "z": 0.95,
+     "med_a": 0.1364,
+     "med_b": 0.0528,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MNQ/blk3": {
+     "z": -2.165,
+     "med_a": -0.1237,
+     "med_b": -0.0501,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MNQ/blk4": {
+     "z": 0.775,
+     "med_a": 0.0933,
+     "med_b": 0.0702,
+     "n_a": 10,
+     "n_b": 11
+    },
+    "MNQ/blk5": {
+     "z": -3.553,
+     "med_a": -0.0129,
+     "med_b": 0.0862,
+     "n_a": 9,
+     "n_b": 12
+    },
+    "NQ/blk0": {
+     "z": 2.694,
+     "med_a": 0.0678,
+     "med_b": -0.0615,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "NQ/blk1": {
+     "z": -0.494,
+     "med_a": -0.1473,
+     "med_b": -0.1186,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "NQ/blk2": {
+     "z": 1.406,
+     "med_a": 0.0595,
+     "med_b": -0.0078,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "NQ/blk3": {
+     "z": 2.605,
+     "med_a": 0.0701,
+     "med_b": -0.0049,
+     "n_a": 10,
+     "n_b": 11
+    },
+    "NQ/blk4": {
+     "z": -1.056,
+     "med_a": 0.1255,
+     "med_b": 0.1564,
+     "n_a": 10,
+     "n_b": 11
+    },
+    "NQ/blk5": {
+     "z": -3.609,
+     "med_a": -0.1295,
+     "med_b": -0.0221,
+     "n_a": 9,
+     "n_b": 11
+    }
+   },
+   "per_block_sign": {
+    "blk0": [
+     4,
+     1
+    ],
+    "blk1": [
+     1,
+     4
+    ],
+    "blk2": [
+     3,
+     2
+    ],
+    "blk3": [
+     3,
+     2
+    ],
+    "blk4": [
+     3,
+     2
+    ],
+    "blk5": [
+     1,
+     4
+    ]
+   }
+  },
+  "EARLY_ltf_break_first__vs__ALIGNED_both_broken": {
+   "cells": 30,
+   "stouffer": 1.231,
+   "pos": 14,
+   "neg": 15,
+   "detail": {
+    "MCL/blk0": {
+     "z": 2.87,
+     "med_a": -0.3405,
+     "med_b": -0.5085,
+     "n_a": 9,
+     "n_b": 9
+    },
+    "MCL/blk1": {
+     "z": 3.78,
+     "med_a": -0.1371,
+     "med_b": -0.3435,
+     "n_a": 10,
+     "n_b": 10
+    },
+    "MCL/blk2": {
+     "z": 0.0,
+     "med_a": 0.1445,
+     "med_b": 0.1728,
+     "n_a": 8,
+     "n_b": 10
+    },
+    "MCL/blk3": {
+     "z": -1.861,
+     "med_a": 0.0522,
+     "med_b": 0.1425,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MCL/blk4": {
+     "z": -2.535,
+     "med_a": -0.2021,
+     "med_b": -0.1198,
+     "n_a": 10,
+     "n_b": 11
+    },
+    "MCL/blk5": {
+     "z": -3.761,
+     "med_a": -0.2252,
+     "med_b": -0.0061,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MES/blk0": {
+     "z": -1.388,
+     "med_a": -0.1924,
+     "med_b": -0.1515,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MES/blk1": {
+     "z": 2.593,
+     "med_a": -0.1671,
+     "med_b": -0.3483,
+     "n_a": 9,
+     "n_b": 6
+    },
+    "MES/blk2": {
+     "z": -2.605,
+     "med_a": 0.0092,
+     "med_b": 0.2214,
+     "n_a": 10,
+     "n_b": 11
+    },
+    "MES/blk3": {
+     "z": -2.286,
+     "med_a": -0.2586,
+     "med_b": -0.1635,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MES/blk4": {
+     "z": -0.481,
+     "med_a": -0.1797,
+     "med_b": -0.1661,
+     "n_a": 9,
+     "n_b": 8
+    },
+    "MES/blk5": {
+     "z": 2.368,
+     "med_a": 0.0489,
+     "med_b": -0.1582,
+     "n_a": 10,
+     "n_b": 9
+    },
+    "MGC/blk0": {
+     "z": 1.96,
+     "med_a": -0.0821,
+     "med_b": -0.153,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MGC/blk1": {
+     "z": -3.464,
+     "med_a": -0.3322,
+     "med_b": 0.2471,
+     "n_a": 9,
+     "n_b": 8
+    },
+    "MGC/blk2": {
+     "z": -0.082,
+     "med_a": 0.028,
+     "med_b": 0.0088,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MGC/blk3": {
+     "z": 3.457,
+     "med_a": 0.0226,
+     "med_b": -0.0751,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MGC/blk4": {
+     "z": -1.965,
+     "med_a": 0.0965,
+     "med_b": 0.1852,
+     "n_a": 10,
+     "n_b": 10
+    },
+    "MGC/blk5": {
+     "z": 3.674,
+     "med_a": 0.0428,
+     "med_b": -0.3481,
+     "n_a": 10,
+     "n_b": 9
+    },
+    "MNQ/blk0": {
+     "z": 2.449,
+     "med_a": 0.0189,
+     "med_b": -0.063,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MNQ/blk1": {
+     "z": -0.927,
+     "med_a": -0.1158,
+     "med_b": -0.1177,
+     "n_a": 9,
+     "n_b": 9
+    },
+    "MNQ/blk2": {
+     "z": -0.494,
+     "med_a": 0.1364,
+     "med_b": 0.1357,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MNQ/blk3": {
+     "z": -2.469,
+     "med_a": -0.1237,
+     "med_b": -0.0377,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MNQ/blk4": {
+     "z": 3.593,
+     "med_a": 0.0933,
+     "med_b": -0.1169,
+     "n_a": 10,
+     "n_b": 9
+    },
+    "MNQ/blk5": {
+     "z": -3.674,
+     "med_a": -0.0129,
+     "med_b": 0.203,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "NQ/blk0": {
+     "z": 3.488,
+     "med_a": 0.0678,
+     "med_b": -0.0774,
+     "n_a": 9,
+     "n_b": 9
+    },
+    "NQ/blk1": {
+     "z": 0.49,
+     "med_a": -0.1473,
+     "med_b": -0.1646,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "NQ/blk2": {
+     "z": 0.57,
+     "med_a": 0.0595,
+     "med_b": 0.0347,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "NQ/blk3": {
+     "z": 3.521,
+     "med_a": 0.0701,
+     "med_b": -0.136,
+     "n_a": 10,
+     "n_b": 11
+    },
+    "NQ/blk4": {
+     "z": 3.593,
+     "med_a": 0.1255,
+     "med_b": -0.0165,
+     "n_a": 10,
+     "n_b": 9
+    },
+    "NQ/blk5": {
+     "z": -3.674,
+     "med_a": -0.1295,
+     "med_b": 0.2153,
+     "n_a": 9,
+     "n_b": 10
+    }
+   },
+   "per_block_sign": {
+    "blk0": [
+     4,
+     1
+    ],
+    "blk1": [
+     3,
+     2
+    ],
+    "blk2": [
+     1,
+     3
+    ],
+    "blk3": [
+     2,
+     3
+    ],
+    "blk4": [
+     2,
+     3
+    ],
+    "blk5": [
+     2,
+     3
+    ]
+   }
+  },
+  "EARLY_ltf_break_first__vs__CONFIRM_htf_broken_now": {
+   "cells": 30,
+   "stouffer": -0.903,
+   "pos": 15,
+   "neg": 15,
+   "detail": {
+    "MCL/blk0": {
+     "z": 3.021,
+     "med_a": -0.3405,
+     "med_b": -0.458,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MCL/blk1": {
+     "z": 3.45,
+     "med_a": -0.1371,
+     "med_b": -0.2786,
+     "n_a": 10,
+     "n_b": 11
+    },
+    "MCL/blk2": {
+     "z": -0.578,
+     "med_a": 0.1445,
+     "med_b": 0.1944,
+     "n_a": 8,
+     "n_b": 11
+    },
+    "MCL/blk3": {
+     "z": -1.937,
+     "med_a": 0.0522,
+     "med_b": 0.1465,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MCL/blk4": {
+     "z": -3.169,
+     "med_a": -0.2021,
+     "med_b": 0.0474,
+     "n_a": 10,
+     "n_b": 11
+    },
+    "MCL/blk5": {
+     "z": -3.457,
+     "med_a": -0.2252,
+     "med_b": 0.005,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MES/blk0": {
+     "z": -2.317,
+     "med_a": -0.1924,
+     "med_b": -0.0683,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MES/blk1": {
+     "z": -0.044,
+     "med_a": -0.1671,
+     "med_b": -0.1808,
+     "n_a": 9,
+     "n_b": 9
+    },
+    "MES/blk2": {
+     "z": -1.972,
+     "med_a": 0.0092,
+     "med_b": 0.0429,
+     "n_a": 10,
+     "n_b": 11
+    },
+    "MES/blk3": {
+     "z": -3.229,
+     "med_a": -0.2586,
+     "med_b": -0.1108,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MES/blk4": {
+     "z": 0.082,
+     "med_a": -0.1797,
+     "med_b": -0.1767,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MES/blk5": {
+     "z": 0.151,
+     "med_a": 0.0489,
+     "med_b": 0.008,
+     "n_a": 10,
+     "n_b": 10
+    },
+    "MGC/blk0": {
+     "z": 2.286,
+     "med_a": -0.0821,
+     "med_b": -0.2692,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MGC/blk1": {
+     "z": -3.674,
+     "med_a": -0.3322,
+     "med_b": 0.1446,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MGC/blk2": {
+     "z": -0.95,
+     "med_a": 0.028,
+     "med_b": 0.016,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MGC/blk3": {
+     "z": 1.785,
+     "med_a": 0.0226,
+     "med_b": -0.0573,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MGC/blk4": {
+     "z": 2.113,
+     "med_a": 0.0965,
+     "med_b": 0.0055,
+     "n_a": 10,
+     "n_b": 11
+    },
+    "MGC/blk5": {
+     "z": 3.628,
+     "med_a": 0.0428,
+     "med_b": -0.142,
+     "n_a": 10,
+     "n_b": 10
+    },
+    "MNQ/blk0": {
+     "z": 3.429,
+     "med_a": 0.0189,
+     "med_b": -0.093,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MNQ/blk1": {
+     "z": -2.368,
+     "med_a": -0.1158,
+     "med_b": -0.0719,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MNQ/blk2": {
+     "z": 0.798,
+     "med_a": 0.1364,
+     "med_b": 0.0509,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MNQ/blk3": {
+     "z": -3.305,
+     "med_a": -0.1237,
+     "med_b": 0.1476,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MNQ/blk4": {
+     "z": 2.948,
+     "med_a": 0.0933,
+     "med_b": -0.1079,
+     "n_a": 10,
+     "n_b": 10
+    },
+    "MNQ/blk5": {
+     "z": -3.761,
+     "med_a": -0.0129,
+     "med_b": 0.2571,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "NQ/blk0": {
+     "z": 3.674,
+     "med_a": 0.0678,
+     "med_b": -0.1528,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "NQ/blk1": {
+     "z": -1.785,
+     "med_a": -0.1473,
+     "med_b": -0.0688,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "NQ/blk2": {
+     "z": 0.038,
+     "med_a": 0.0595,
+     "med_b": 0.0304,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "NQ/blk3": {
+     "z": 0.704,
+     "med_a": 0.0701,
+     "med_b": 0.024,
+     "n_a": 10,
+     "n_b": 11
+    },
+    "NQ/blk4": {
+     "z": 2.797,
+     "med_a": 0.1255,
+     "med_b": -0.095,
+     "n_a": 10,
+     "n_b": 10
+    },
+    "NQ/blk5": {
+     "z": -3.305,
+     "med_a": -0.1295,
+     "med_b": 0.1288,
+     "n_a": 9,
+     "n_b": 11
+    }
+   },
+   "per_block_sign": {
+    "blk0": [
+     4,
+     1
+    ],
+    "blk1": [
+     1,
+     4
+    ],
+    "blk2": [
+     2,
+     3
+    ],
+    "blk3": [
+     2,
+     3
+    ],
+    "blk4": [
+     4,
+     1
+    ],
+    "blk5": [
+     2,
+     3
+    ]
+   }
+  },
+  "EARLY_fresh3__vs__CONFIRM_late0": {
+   "cells": 22,
+   "stouffer": 2.678,
+   "pos": 14,
+   "neg": 8,
+   "detail": {
+    "MCL/blk0": {
+     "z": 2.333,
+     "med_a": -0.3775,
+     "med_b": -0.5534,
+     "n_a": 9,
+     "n_b": 5
+    },
+    "MCL/blk2": {
+     "z": -2.928,
+     "med_a": 0.1445,
+     "med_b": 0.5742,
+     "n_a": 8,
+     "n_b": 5
+    },
+    "MCL/blk3": {
+     "z": -2.858,
+     "med_a": 0.0266,
+     "med_b": 0.2043,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MCL/blk4": {
+     "z": -3.674,
+     "med_a": -0.062,
+     "med_b": 0.2861,
+     "n_a": 10,
+     "n_b": 9
+    },
+    "MCL/blk5": {
+     "z": -2.791,
+     "med_a": -0.1815,
+     "med_b": -0.0711,
+     "n_a": 9,
+     "n_b": 8
+    },
+    "MES/blk0": {
+     "z": -2.163,
+     "med_a": -0.2416,
+     "med_b": -0.143,
+     "n_a": 9,
+     "n_b": 9
+    },
+    "MES/blk2": {
+     "z": -2.021,
+     "med_a": -0.0853,
+     "med_b": 0.0348,
+     "n_a": 9,
+     "n_b": 8
+    },
+    "MES/blk3": {
+     "z": 2.867,
+     "med_a": -0.1336,
+     "med_b": -0.2581,
+     "n_a": 9,
+     "n_b": 5
+    },
+    "MES/blk4": {
+     "z": 2.593,
+     "med_a": -0.2026,
+     "med_b": -0.327,
+     "n_a": 9,
+     "n_b": 6
+    },
+    "MES/blk5": {
+     "z": 3.318,
+     "med_a": 0.1959,
+     "med_b": -0.4032,
+     "n_a": 10,
+     "n_b": 7
+    },
+    "MGC/blk2": {
+     "z": 0.733,
+     "med_a": 0.0511,
+     "med_b": 0.0448,
+     "n_a": 9,
+     "n_b": 5
+    },
+    "MGC/blk3": {
+     "z": 3.182,
+     "med_a": 0.1378,
+     "med_b": -0.0032,
+     "n_a": 9,
+     "n_b": 6
+    },
+    "MGC/blk5": {
+     "z": 3.145,
+     "med_a": 0.0415,
+     "med_b": -0.1794,
+     "n_a": 10,
+     "n_b": 6
+    },
+    "MNQ/blk0": {
+     "z": 0.471,
+     "med_a": 0.0337,
+     "med_b": 0.0046,
+     "n_a": 9,
+     "n_b": 6
+    },
+    "MNQ/blk1": {
+     "z": 1.323,
+     "med_a": -0.1443,
+     "med_b": -0.1935,
+     "n_a": 9,
+     "n_b": 7
+    },
+    "MNQ/blk3": {
+     "z": 2.333,
+     "med_a": -0.1108,
+     "med_b": -0.2733,
+     "n_a": 9,
+     "n_b": 5
+    },
+    "MNQ/blk4": {
+     "z": 3.674,
+     "med_a": 0.0726,
+     "med_b": -0.3664,
+     "n_a": 10,
+     "n_b": 9
+    },
+    "MNQ/blk5": {
+     "z": -3.182,
+     "med_a": -0.0303,
+     "med_b": 0.2574,
+     "n_a": 9,
+     "n_b": 6
+    },
+    "NQ/blk1": {
+     "z": 2.791,
+     "med_a": -0.1601,
+     "med_b": -0.2498,
+     "n_a": 9,
+     "n_b": 8
+    },
+    "NQ/blk3": {
+     "z": 3.334,
+     "med_a": -0.015,
+     "med_b": -0.1847,
+     "n_a": 9,
+     "n_b": 7
+    },
+    "NQ/blk4": {
+     "z": 3.416,
+     "med_a": 0.111,
+     "med_b": -0.3533,
+     "n_a": 10,
+     "n_b": 7
+    },
+    "NQ/blk5": {
+     "z": -3.334,
+     "med_a": -0.0561,
+     "med_b": 0.2729,
+     "n_a": 9,
+     "n_b": 7
+    }
+   },
+   "per_block_sign": {
+    "blk0": [
+     2,
+     1
+    ],
+    "blk1": [
+     2,
+     0
+    ],
+    "blk2": [
+     1,
+     2
+    ],
+    "blk3": [
+     4,
+     1
+    ],
+    "blk4": [
+     3,
+     1
+    ],
+    "blk5": [
+     2,
+     3
+    ]
+   }
+  },
+  "EARLY_fresh3__vs__INCUMBENT_bos_ltf": {
+   "cells": 30,
+   "stouffer": 1.827,
+   "pos": 16,
+   "neg": 14,
+   "detail": {
+    "MCL/blk0": {
+     "z": -1.137,
+     "med_a": -0.3775,
+     "med_b": -0.3445,
+     "n_a": 9,
+     "n_b": 12
+    },
+    "MCL/blk1": {
+     "z": -2.939,
+     "med_a": -0.2078,
+     "med_b": -0.126,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MCL/blk2": {
+     "z": 1.569,
+     "med_a": 0.1445,
+     "med_b": 0.0616,
+     "n_a": 8,
+     "n_b": 11
+    },
+    "MCL/blk3": {
+     "z": 0.722,
+     "med_a": 0.0266,
+     "med_b": 0.0204,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MCL/blk4": {
+     "z": 3.89,
+     "med_a": -0.062,
+     "med_b": -0.2623,
+     "n_a": 10,
+     "n_b": 12
+    },
+    "MCL/blk5": {
+     "z": -1.421,
+     "med_a": -0.1815,
+     "med_b": -0.1303,
+     "n_a": 9,
+     "n_b": 12
+    },
+    "MES/blk0": {
+     "z": -1.633,
+     "med_a": -0.2416,
+     "med_b": -0.1869,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MES/blk1": {
+     "z": 2.013,
+     "med_a": -0.1412,
+     "med_b": -0.2307,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MES/blk2": {
+     "z": -1.421,
+     "med_a": -0.0853,
+     "med_b": 0.0121,
+     "n_a": 9,
+     "n_b": 12
+    },
+    "MES/blk3": {
+     "z": 1.861,
+     "med_a": -0.1336,
+     "med_b": -0.1635,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MES/blk4": {
+     "z": -1.178,
+     "med_a": -0.2026,
+     "med_b": -0.1563,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MES/blk5": {
+     "z": 2.11,
+     "med_a": 0.1959,
+     "med_b": 0.0777,
+     "n_a": 10,
+     "n_b": 12
+    },
+    "MGC/blk0": {
+     "z": 2.697,
+     "med_a": -0.0354,
+     "med_b": -0.124,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MGC/blk1": {
+     "z": -3.674,
+     "med_a": -0.311,
+     "med_b": -0.0165,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MGC/blk2": {
+     "z": 1.254,
+     "med_a": 0.0511,
+     "med_b": 0.014,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MGC/blk3": {
+     "z": 3.761,
+     "med_a": 0.1378,
+     "med_b": 0.0263,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MGC/blk4": {
+     "z": 3.45,
+     "med_a": 0.184,
+     "med_b": 0.0612,
+     "n_a": 10,
+     "n_b": 11
+    },
+    "MGC/blk5": {
+     "z": 2.176,
+     "med_a": 0.0415,
+     "med_b": -0.052,
+     "n_a": 10,
+     "n_b": 12
+    },
+    "MNQ/blk0": {
+     "z": 3.674,
+     "med_a": 0.0337,
+     "med_b": -0.108,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "MNQ/blk1": {
+     "z": -1.178,
+     "med_a": -0.1443,
+     "med_b": -0.1011,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MNQ/blk2": {
+     "z": 1.178,
+     "med_a": 0.0971,
+     "med_b": 0.0528,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MNQ/blk3": {
+     "z": -2.393,
+     "med_a": -0.1108,
+     "med_b": -0.0501,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MNQ/blk4": {
+     "z": 0.423,
+     "med_a": 0.0726,
+     "med_b": 0.0702,
+     "n_a": 10,
+     "n_b": 11
+    },
+    "MNQ/blk5": {
+     "z": -3.767,
+     "med_a": -0.0303,
+     "med_b": 0.0862,
+     "n_a": 9,
+     "n_b": 12
+    },
+    "NQ/blk0": {
+     "z": 3.511,
+     "med_a": 0.1071,
+     "med_b": -0.0615,
+     "n_a": 9,
+     "n_b": 10
+    },
+    "NQ/blk1": {
+     "z": -0.57,
+     "med_a": -0.1601,
+     "med_b": -0.1186,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "NQ/blk2": {
+     "z": 0.874,
+     "med_a": 0.0349,
+     "med_b": -0.0078,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "NQ/blk3": {
+     "z": -0.494,
+     "med_a": -0.015,
+     "med_b": -0.0049,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "NQ/blk4": {
+     "z": -1.338,
+     "med_a": 0.111,
+     "med_b": 0.1564,
+     "n_a": 10,
+     "n_b": 11
+    },
+    "NQ/blk5": {
+     "z": -2.013,
+     "med_a": -0.0561,
+     "med_b": -0.0221,
+     "n_a": 9,
+     "n_b": 11
+    }
+   },
+   "per_block_sign": {
+    "blk0": [
+     3,
+     2
+    ],
+    "blk1": [
+     1,
+     4
+    ],
+    "blk2": [
+     4,
+     1
+    ],
+    "blk3": [
+     3,
+     2
+    ],
+    "blk4": [
+     3,
+     2
+    ],
+    "blk5": [
+     2,
+     3
+    ]
+   }
+  },
+  "CONFIRM_late0__vs__INCUMBENT_bos_ltf": {
+   "cells": 22,
+   "stouffer": -2.221,
+   "pos": 10,
+   "neg": 12,
+   "detail": {
+    "MCL/blk0": {
+     "z": -2.635,
+     "med_a": -0.5534,
+     "med_b": -0.3445,
+     "n_a": 5,
+     "n_b": 12
+    },
+    "MCL/blk2": {
+     "z": 3.115,
+     "med_a": 0.5742,
+     "med_b": 0.0616,
+     "n_a": 5,
+     "n_b": 11
+    },
+    "MCL/blk3": {
+     "z": 2.605,
+     "med_a": 0.2043,
+     "med_b": 0.0204,
+     "n_a": 10,
+     "n_b": 11
+    },
+    "MCL/blk4": {
+     "z": 3.838,
+     "med_a": 0.2861,
+     "med_b": -0.2623,
+     "n_a": 9,
+     "n_b": 12
+    },
+    "MCL/blk5": {
+     "z": 2.392,
+     "med_a": -0.0711,
+     "med_b": -0.1303,
+     "n_a": 8,
+     "n_b": 12
+    },
+    "MES/blk0": {
+     "z": 2.165,
+     "med_a": -0.143,
+     "med_b": -0.1869,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MES/blk2": {
+     "z": 1.157,
+     "med_a": 0.0348,
+     "med_b": 0.0121,
+     "n_a": 8,
+     "n_b": 12
+    },
+    "MES/blk3": {
+     "z": -2.889,
+     "med_a": -0.2581,
+     "med_b": -0.1635,
+     "n_a": 5,
+     "n_b": 11
+    },
+    "MES/blk4": {
+     "z": -2.714,
+     "med_a": -0.327,
+     "med_b": -0.1563,
+     "n_a": 6,
+     "n_b": 11
+    },
+    "MES/blk5": {
+     "z": -3.465,
+     "med_a": -0.4032,
+     "med_b": 0.0777,
+     "n_a": 7,
+     "n_b": 12
+    },
+    "MGC/blk2": {
+     "z": 0.623,
+     "med_a": 0.0448,
+     "med_b": 0.014,
+     "n_a": 5,
+     "n_b": 11
+    },
+    "MGC/blk3": {
+     "z": -1.809,
+     "med_a": -0.0032,
+     "med_b": 0.0263,
+     "n_a": 6,
+     "n_b": 11
+    },
+    "MGC/blk5": {
+     "z": -2.716,
+     "med_a": -0.1794,
+     "med_b": -0.052,
+     "n_a": 6,
+     "n_b": 12
+    },
+    "MNQ/blk0": {
+     "z": 3.254,
+     "med_a": 0.0046,
+     "med_b": -0.108,
+     "n_a": 6,
+     "n_b": 10
+    },
+    "MNQ/blk1": {
+     "z": -1.404,
+     "med_a": -0.1935,
+     "med_b": -0.1011,
+     "n_a": 7,
+     "n_b": 11
+    },
+    "MNQ/blk3": {
+     "z": -3.115,
+     "med_a": -0.2733,
+     "med_b": -0.0501,
+     "n_a": 5,
+     "n_b": 11
+    },
+    "MNQ/blk4": {
+     "z": -3.761,
+     "med_a": -0.3664,
+     "med_b": 0.0702,
+     "n_a": 9,
+     "n_b": 11
+    },
+    "MNQ/blk5": {
+     "z": 1.78,
+     "med_a": 0.2574,
+     "med_b": 0.0862,
+     "n_a": 6,
+     "n_b": 12
+    },
+    "NQ/blk1": {
+     "z": -2.807,
+     "med_a": -0.2498,
+     "med_b": -0.1186,
+     "n_a": 8,
+     "n_b": 11
+    },
+    "NQ/blk3": {
+     "z": -3.487,
+     "med_a": -0.1847,
+     "med_b": -0.0049,
+     "n_a": 7,
+     "n_b": 11
+    },
+    "NQ/blk4": {
+     "z": -3.487,
+     "med_a": -0.3533,
+     "med_b": 0.1564,
+     "n_a": 7,
+     "n_b": 11
+    },
+    "NQ/blk5": {
+     "z": 2.943,
+     "med_a": 0.2729,
+     "med_b": -0.0221,
+     "n_a": 7,
+     "n_b": 11
+    }
+   },
+   "per_block_sign": {
+    "blk0": [
+     2,
+     1
+    ],
+    "blk1": [
+     0,
+     2
+    ],
+    "blk2": [
+     3,
+     0
+    ],
+    "blk3": [
+     1,
+     4
+    ],
+    "blk4": [
+     1,
+     3
+    ],
+    "blk5": [
+     3,
+     2
+    ]
+   }
+  }
+ },
+ "firing_rates": {
+  "MGC": {
+   "bars": 4800,
+   "rate": {
+    "ltf_break_first": 0.1781,
+    "ltf_break_first_fresh0": 0.056,
+    "ltf_break_first_fresh1": 0.0912,
+    "ltf_break_first_fresh3": 0.1381,
+    "ltf_break_first_fresh6": 0.1673,
+    "htf_confirms_late0": 0.0694,
+    "htf_confirms_late2": 0.0535,
+    "htf_confirms_late4": 0.0321,
+    "htf_confirms_late8": 0.006,
+    "htf_confirms_late16": 0.0,
+    "htf_broken_now": 0.3273,
+    "ltf_and_htf_both_broken": 0.1335,
+    "break_of_structure": 0.3117,
+    "structure_trend": 0.626,
+    "mtf_aligned": 0.3608
+   },
+   "near_identical_pairs_gt98pct": {
+    "ltf_break_first~ltf_break_first_fresh6": 0.9892,
+    "htf_confirms_late0~htf_confirms_late2": 0.9842,
+    "htf_confirms_late16~htf_confirms_late8": 0.994
+   },
+   "vs_break_of_structure_agree": {
+    "ltf_break_first": 0.8665,
+    "ltf_break_first_fresh0": 0.7444,
+    "ltf_break_first_fresh1": 0.7796,
+    "ltf_break_first_fresh3": 0.8265,
+    "ltf_break_first_fresh6": 0.8556,
+    "htf_confirms_late0": 0.7577,
+    "htf_confirms_late2": 0.7419,
+    "htf_confirms_late4": 0.7204,
+    "htf_confirms_late8": 0.6944,
+    "htf_confirms_late16": 0.6883,
+    "htf_broken_now": 0.6369,
+    "ltf_and_htf_both_broken": 0.8219,
+    "structure_trend": 0.3812,
+    "mtf_aligned": 0.5092
+   }
+  },
+  "MES": {
+   "bars": 4800,
+   "rate": {
+    "ltf_break_first": 0.2085,
+    "ltf_break_first_fresh0": 0.066,
+    "ltf_break_first_fresh1": 0.1077,
+    "ltf_break_first_fresh3": 0.1596,
+    "ltf_break_first_fresh6": 0.1948,
+    "htf_confirms_late0": 0.0873,
+    "htf_confirms_late2": 0.0681,
+    "htf_confirms_late4": 0.0431,
+    "htf_confirms_late8": 0.0098,
+    "htf_confirms_late16": 0.0002,
+    "htf_broken_now": 0.3663,
+    "ltf_and_htf_both_broken": 0.1592,
+    "break_of_structure": 0.3677,
+    "structure_trend": 0.5698,
+    "mtf_aligned": 0.3117
+   },
+   "near_identical_pairs_gt98pct": {
+    "ltf_break_first~ltf_break_first_fresh6": 0.9862,
+    "htf_confirms_late0~htf_confirms_late2": 0.9808,
+    "htf_confirms_late16~htf_confirms_late8": 0.9904
+   },
+   "vs_break_of_structure_agree": {
+    "ltf_break_first": 0.8408,
+    "ltf_break_first_fresh0": 0.6983,
+    "ltf_break_first_fresh1": 0.74,
+    "ltf_break_first_fresh3": 0.7919,
+    "ltf_break_first_fresh6": 0.8271,
+    "htf_confirms_late0": 0.7196,
+    "htf_confirms_late2": 0.7004,
+    "htf_confirms_late4": 0.6754,
+    "htf_confirms_late8": 0.6421,
+    "htf_confirms_late16": 0.6325,
+    "htf_broken_now": 0.6008,
+    "ltf_and_htf_both_broken": 0.7915,
+    "structure_trend": 0.3673,
+    "mtf_aligned": 0.4904
+   }
+  },
+  "NQ": {
+   "bars": 4800,
+   "rate": {
+    "ltf_break_first": 0.1904,
+    "ltf_break_first_fresh0": 0.0633,
+    "ltf_break_first_fresh1": 0.1033,
+    "ltf_break_first_fresh3": 0.1492,
+    "ltf_break_first_fresh6": 0.1779,
+    "htf_confirms_late0": 0.0887,
+    "htf_confirms_late2": 0.0721,
+    "htf_confirms_late4": 0.0452,
+    "htf_confirms_late8": 0.0115,
+    "htf_confirms_late16": 0.0004,
+    "htf_broken_now": 0.4102,
+    "ltf_and_htf_both_broken": 0.165,
+    "break_of_structure": 0.3554,
+    "structure_trend": 0.566,
+    "mtf_aligned": 0.2794
+   },
+   "near_identical_pairs_gt98pct": {
+    "ltf_break_first~ltf_break_first_fresh6": 0.9875,
+    "htf_confirms_late0~htf_confirms_late2": 0.9833,
+    "htf_confirms_late16~htf_confirms_late8": 0.989
+   },
+   "vs_break_of_structure_agree": {
+    "ltf_break_first": 0.835,
+    "ltf_break_first_fresh0": 0.7079,
+    "ltf_break_first_fresh1": 0.7479,
+    "ltf_break_first_fresh3": 0.7937,
+    "ltf_break_first_fresh6": 0.8225,
+    "htf_confirms_late0": 0.7333,
+    "htf_confirms_late2": 0.7167,
+    "htf_confirms_late4": 0.6898,
+    "htf_confirms_late8": 0.656,
+    "htf_confirms_late16": 0.645,
+    "htf_broken_now": 0.5813,
+    "ltf_and_htf_both_broken": 0.8096,
+    "structure_trend": 0.3867,
+    "mtf_aligned": 0.4831
+   }
+  },
+  "MNQ": {
+   "bars": 4800,
+   "rate": {
+    "ltf_break_first": 0.1854,
+    "ltf_break_first_fresh0": 0.0627,
+    "ltf_break_first_fresh1": 0.1023,
+    "ltf_break_first_fresh3": 0.1462,
+    "ltf_break_first_fresh6": 0.1746,
+    "htf_confirms_late0": 0.0873,
+    "htf_confirms_late2": 0.0717,
+    "htf_confirms_late4": 0.0446,
+    "htf_confirms_late8": 0.0121,
+    "htf_confirms_late16": 0.0004,
+    "htf_broken_now": 0.4115,
+    "ltf_and_htf_both_broken": 0.1671,
+    "break_of_structure": 0.3525,
+    "structure_trend": 0.5633,
+    "mtf_aligned": 0.2815
+   },
+   "near_identical_pairs_gt98pct": {
+    "ltf_break_first~ltf_break_first_fresh6": 0.9892,
+    "htf_confirms_late0~htf_confirms_late2": 0.9844,
+    "htf_confirms_late16~htf_confirms_late8": 0.9883
+   },
+   "vs_break_of_structure_agree": {
+    "ltf_break_first": 0.8329,
+    "ltf_break_first_fresh0": 0.7102,
+    "ltf_break_first_fresh1": 0.7498,
+    "ltf_break_first_fresh3": 0.7937,
+    "ltf_break_first_fresh6": 0.8221,
+    "htf_confirms_late0": 0.7348,
+    "htf_confirms_late2": 0.7192,
+    "htf_confirms_late4": 0.6921,
+    "htf_confirms_late8": 0.6596,
+    "htf_confirms_late16": 0.6479,
+    "htf_broken_now": 0.5852,
+    "ltf_and_htf_both_broken": 0.8146,
+    "structure_trend": 0.3879,
+    "mtf_aligned": 0.4883
+   }
+  },
+  "MCL": {
+   "bars": 4800,
+   "rate": {
+    "ltf_break_first": 0.2004,
+    "ltf_break_first_fresh0": 0.0685,
+    "ltf_break_first_fresh1": 0.1113,
+    "ltf_break_first_fresh3": 0.1613,
+    "ltf_break_first_fresh6": 0.1902,
+    "htf_confirms_late0": 0.0925,
+    "htf_confirms_late2": 0.0767,
+    "htf_confirms_late4": 0.0498,
+    "htf_confirms_late8": 0.0123,
+    "htf_confirms_late16": 0.0002,
+    "htf_broken_now": 0.3683,
+    "ltf_and_htf_both_broken": 0.1462,
+    "break_of_structure": 0.3467,
+    "structure_trend": 0.5604,
+    "mtf_aligned": 0.349
+   },
+   "near_identical_pairs_gt98pct": {
+    "ltf_break_first~ltf_break_first_fresh6": 0.9898,
+    "htf_confirms_late0~htf_confirms_late2": 0.9842,
+    "htf_confirms_late16~htf_confirms_late8": 0.9879
+   },
+   "vs_break_of_structure_agree": {
+    "ltf_break_first": 0.8538,
+    "ltf_break_first_fresh0": 0.7219,
+    "ltf_break_first_fresh1": 0.7646,
+    "ltf_break_first_fresh3": 0.8146,
+    "ltf_break_first_fresh6": 0.8435,
+    "htf_confirms_late0": 0.7458,
+    "htf_confirms_late2": 0.73,
+    "htf_confirms_late4": 0.7031,
+    "htf_confirms_late8": 0.6656,
+    "htf_confirms_late16": 0.6535,
+    "htf_broken_now": 0.5998,
+    "ltf_and_htf_both_broken": 0.7996,
+    "structure_trend": 0.3881,
+    "mtf_aligned": 0.486
+   }
+  }
+ },
+ "causality_audit": {
+  "MGC": {
+   "60": {
+    "symbol": "MGC",
+    "tf": 60,
+    "probes": 10,
+    "mismatches": 0,
+    "detail": [],
+    "verdict": "CAUSAL"
+   },
+   "240": {
+    "symbol": "MGC",
+    "tf": 240,
+    "probes": 10,
+    "mismatches": 0,
+    "detail": [],
+    "verdict": "CAUSAL"
+   }
+  },
+  "MES": {
+   "60": {
+    "symbol": "MES",
+    "tf": 60,
+    "probes": 10,
+    "mismatches": 0,
+    "detail": [],
+    "verdict": "CAUSAL"
+   },
+   "240": {
+    "symbol": "MES",
+    "tf": 240,
+    "probes": 10,
+    "mismatches": 0,
+    "detail": [],
+    "verdict": "CAUSAL"
+   }
+  },
+  "NQ": {
+   "60": {
+    "symbol": "NQ",
+    "tf": 60,
+    "probes": 10,
+    "mismatches": 0,
+    "detail": [],
+    "verdict": "CAUSAL"
+   },
+   "240": {
+    "symbol": "NQ",
+    "tf": 240,
+    "probes": 10,
+    "mismatches": 0,
+    "detail": [],
+    "verdict": "CAUSAL"
+   }
+  },
+  "MNQ": {
+   "60": {
+    "symbol": "MNQ",
+    "tf": 60,
+    "probes": 10,
+    "mismatches": 0,
+    "detail": [],
+    "verdict": "CAUSAL"
+   },
+   "240": {
+    "symbol": "MNQ",
+    "tf": 240,
+    "probes": 10,
+    "mismatches": 0,
+    "detail": [],
+    "verdict": "CAUSAL"
+   }
+  },
+  "MCL": {
+   "60": {
+    "symbol": "MCL",
+    "tf": 60,
+    "probes": 10,
+    "mismatches": 0,
+    "detail": [],
+    "verdict": "CAUSAL"
+   },
+   "240": {
+    "symbol": "MCL",
+    "tf": 240,
+    "probes": 10,
+    "mismatches": 0,
+    "detail": [],
+    "verdict": "CAUSAL"
+   }
+  }
+ },
+ "live_eligible": [],
+ "what_would_change_this": "A longer history. 321 days gives 34-57 confirmed 240m structure changes per symbol; the lead measurement is comfortable at that size but the strategy comparisons are not. The measurement finding does not need more data - it is stable across symbols, across the 15m/60m pair and across the temporal split."
+}

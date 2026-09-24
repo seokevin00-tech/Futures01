@@ -51,6 +51,9 @@ from futures_agents.strategies.base import Condition, ConditionKind, ConditionRe
 
 LONG, SHORT, FLAT = Direction.LONG, Direction.SHORT, Direction.NEUTRAL
 
+#: Defaults; the sensitivity sweep reassigns these module globals.
+SYM_LEGS = 4
+
 #: Our own registry. We deliberately do NOT write into
 #: ``library.CONDITIONS`` - five agents sharing that dict is how name
 #: collisions and cross-study contamination happen.
@@ -122,8 +125,9 @@ class Geo:
             out.append(cur.size / prev.size)
         return out
 
-    def symmetry(self, up: bool, n_legs: int = 4) -> Optional[float]:
+    def symmetry(self, up: bool, n_legs: Optional[int] = None) -> Optional[float]:
         """Share of recent time spent in impulse rather than in retracement."""
+        n_legs = SYM_LEGS if n_legs is None else n_legs
         legs = self.legs[-n_legs:]
         if len(legs) < n_legs:
             return None
@@ -256,8 +260,15 @@ MIN_ATR = 0.5          # an impulse smaller than half an ATR is noise
 N_IMPULSE = 3          # three impulses => two comparisons
 
 
-def _leg_trend(g: Geo, up: bool, atr: float, n: int = N_IMPULSE):
-    """``(sizes_in_atr, expanding, contracting)`` for the last ``n`` impulses."""
+def _leg_trend(g: Geo, up: bool, atr: float, n: Optional[int] = None):
+    """``(sizes_in_atr, expanding, contracting)`` for the last ``n`` impulses.
+
+    ``n`` and the size gate are read from the module globals at CALL time, not
+    bound as default arguments: a default argument is evaluated once at
+    definition, so a sensitivity sweep that reassigns ``G.N_IMPULSE`` would
+    silently re-run the baseline eight times and report perfect stability.
+    """
+    n = N_IMPULSE if n is None else n
     imp = g.impulses(up)[-n:]
     if len(imp) < n:
         return None
@@ -324,7 +335,8 @@ def _legs_contracting_fade(snap, tf):
 N_RATIO = 3            # three retracements => two comparisons
 
 
-def _ratio_trend(g: Geo, up: bool, n: int = N_RATIO):
+def _ratio_trend(g: Geo, up: bool, n: Optional[int] = None):
+    n = N_RATIO if n is None else n
     rr = [r for r in g.retrace_ratios(up) if 0.0 < r < 2.0][-n:]
     if len(rr) < n:
         return None

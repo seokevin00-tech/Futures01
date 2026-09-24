@@ -65,9 +65,9 @@ def run(symbol, tf, lo, hi, fractal):
     return out
 
 
-def sweep(fractal, n_imp, min_atr, sym_hi, sym_lo, n_ratio):
+def sweep(fractal, n_imp, min_atr, sym_hi, sym_lo, n_ratio, sym_legs=4):
     G.MIN_ATR, G.N_IMPULSE, G.N_RATIO = min_atr, n_imp, n_ratio
-    G.SYM_HI, G.SYM_LO = sym_hi, sym_lo
+    G.SYM_HI, G.SYM_LO, G.SYM_LEGS = sym_hi, sym_lo, sym_legs
     per = {}
     for sym in SYMBOLS:
         for tf in TFS:
@@ -95,14 +95,9 @@ def contest(per, a, b, slices, ex="atr1.0", min_n=8):
 
 
 GRID = [
-    ("baseline   f=3 n=3 atr=0.5", dict(fractal=3, n_imp=3, min_atr=0.5, sym_hi=0.55, sym_lo=0.45, n_ratio=3)),
-    ("fractal 2  f=2 n=3 atr=0.5", dict(fractal=2, n_imp=3, min_atr=0.5, sym_hi=0.55, sym_lo=0.45, n_ratio=3)),
-    ("fractal 5  f=5 n=3 atr=0.5", dict(fractal=5, n_imp=3, min_atr=0.5, sym_hi=0.55, sym_lo=0.45, n_ratio=3)),
-    ("legs 2     f=3 n=2 atr=0.5", dict(fractal=3, n_imp=2, min_atr=0.5, sym_hi=0.55, sym_lo=0.45, n_ratio=2)),
-    ("legs 4     f=3 n=4 atr=0.5", dict(fractal=3, n_imp=4, min_atr=0.5, sym_hi=0.55, sym_lo=0.45, n_ratio=4)),
-    ("no size gate atr=0.0", dict(fractal=3, n_imp=3, min_atr=0.0, sym_hi=0.55, sym_lo=0.45, n_ratio=3)),
-    ("size gate atr=1.5", dict(fractal=3, n_imp=3, min_atr=1.5, sym_hi=0.55, sym_lo=0.45, n_ratio=3)),
-    ("symmetry 0.65/0.35", dict(fractal=3, n_imp=3, min_atr=0.5, sym_hi=0.65, sym_lo=0.35, n_ratio=3)),
+    ("legs 2  f=3 n=2 atr=0.5", dict(fractal=3, n_imp=2, min_atr=0.5, sym_hi=0.55, sym_lo=0.45, n_ratio=2)),
+    ("legs 4  f=3 n=4 atr=0.5", dict(fractal=3, n_imp=4, min_atr=0.5, sym_hi=0.55, sym_lo=0.45, n_ratio=4)),
+    ("symmetry window 6 legs", dict(fractal=3, n_imp=3, min_atr=0.5, sym_hi=0.55, sym_lo=0.45, n_ratio=3, sym_legs=6)),
 ]
 
 if __name__ == "__main__":
@@ -123,5 +118,5 @@ if __name__ == "__main__":
             print(f"   {k:46s} IS {v['IS_S1S2']['stouffer']} d={v['IS_S1S2']['median_delta_exp']}"
                   f"  | OOS {v['OOS_S3']['stouffer']} d={v['OOS_S3']['median_delta_exp']}")
         print(flush=True)
-    json.dump(out, open("workspace/strategy_research/scratch/sensitivity.json", "w"),
+    json.dump(out, open("workspace/strategy_research/scratch/sensitivity2.json", "w"),
               default=str)
