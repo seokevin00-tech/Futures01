@@ -274,3 +274,73 @@ archive independently.
 `orb_touch_*` (Crabel's stop-order entry), `orb_retest_*`, `orb_fade_*`. Unresolvable cells return
 `no()` and are counted in `orb.INERT`, so **"unmeasurable" can never again be read as "no
 signal"** — which is precisely the mistake that hid this for weeks.
+
+---
+
+## `ict_killzones_ote` — time of day, and Optimal Trade Entry
+
+### Kill zones have more range and volume, and no more direction
+
+Bar level, 60m, 222–224 trading days per symbol, day-paired, 3 disjoint slices. Directional
+efficiency `|close−open|/range` is **flat across the entire clock** — 0.37–0.50 every hour, zone
+ratios 0.92–1.12 — and next-bar continuation has |t| ≤ 2.7 in all 96 hour × symbol tests with no
+consistent sign.
+
+**London open (02:00–05:00) is *below* average**, not above: range ratio 0.80 MNQ, 0.80 MES, 0.88
+MGC (volume 0.36/0.26/0.79). Only MCL exceeds it (1.15, +12.4t, replicated). The day's extreme is
+**less** likely during London open — 0.45–0.65× other overnight hours.
+
+Since the exit is ATR-scaled, **more range buys no R**, which predicted the filter result before
+it was run.
+
+### The kill-zone effect is trade thinning, not time of day
+
+At 60m the zones look convincing: silver_bullet Stouffer **+5.15**, london_close +4.54, asian
++3.68. Then the controls:
+
+- **18 of 24 single-hour filters** beat no filter at all, mean +1.58.
+- **A placebo keeping every 24th bar *by index*, with zero clock content, scores mean +2.25, max
+  +4.77.**
+
+So any hour-shaped filter scores positive, because fewer trades is the whole effect.
+
+The methodology's own designations come out inverted: **21:00 ET — ICT's Asian range, explicitly a
+non-entry window — scores +4.52 (11/12 cells)**, while **08:00 ET, inside ICT's New York kill
+zone, is the single worst hour at −3.41** (it is the 08:30 release hour).
+
+The Silver Bullet specifically: hour 10 versus other RTH hours is +3.02 IS → **+0.63 OOS**;
+removing the engine's non-RTH slippage tick drops it from rank 1 to rank 3 behind 21:00 and 20:00;
+and it is a **spike, not a plateau** — ±1 hour swings z by 3.7. At 15m and 5m the same filters
+**invert sign** (kz_union −3.54, asian −6.18).
+
+### OTE is `fib_golden_pocket` under another name — seventh alias
+
+**Jaccard 0.938–1.000 across 8 symbol-timeframe cells (mean 0.97), direction-aware identical.**
+Swapping one for the other in matched arms: Stouffer +0.47 at 240m, −1.62 at 60m. ICT's own extra
+qualifiers (≥2 ATR displacement + HTF agreement) still leave J = 0.70–0.91, and the 0.705 "sweet
+spot" (J = 0.28) changes nothing. **OTE was already tested here and already failed.**
+
+### The last untested lead in the programme: refuted, and it was wrong in both directions
+
+`fib_golden_pocket` vs `fib_shallow_retrace` was the only surviving lead from the 22-study
+programme. Tested:
+
+- **Bar level, no exit model, direction-matched forward return: neither band predicts anything**
+  (best |t| vs zero = 1.80). Golden-vs-shallow at 240m is Welch z −0.69/+2.15/+0.93/+0.51 — noise.
+- Matched strategy arms at 240m: Stouffer **+1.93 against free_t 2.70**, and **zero matched pairs
+  reach 20 trades in any disjoint slice**. Per symbol MNQ −1.37, MES +5.99, MGC +1.14, MCL −1.90 —
+  one symbol positive, and **MNQ contradicts its own index-complex twin**.
+- **The claimed 60m loss has the wrong sign.** The earlier programme reported golden pocket
+  *losing* at 60m on all three symbols; it is actually **+4.01**, again carried by MES alone.
+
+So the original "suggestive pattern" was wrong in both directions. Lead closed as refuted.
+
+### Reward for risk: none
+
+6-fold anchored walk-forward, 24 cells, 206 rule sets: **0 live-eligible**, best deflated t
+**−0.80** against free_t 3.311. Look-ahead clean (10:00 signals fill 11:00, 161/162); repainting
+clean. Cost asymmetry is **material** (±0.4 z, and it reorders the hours). Sample is a real limit
+(15m = 41 days, 5m = 20). Roll artefacts not checked.
+
+Independently corroborates D30: `opening_range_breakout` fires 0.14%/0.16%/0.00% on MNQ/MES/MGC
+but **17.3% on MCL 60m** — the one contract whose RTH opens on the hour.
