@@ -436,3 +436,147 @@ def long_series(symbol: str, tf: int):
         raise KeyError(f"no 1-minute archive for {symbol}; have {sorted(LONG_1M)}")
     base = load_csv(path, symbol, 1)
     return base if tf == 1 else base.resample(tf, keep_partial=False)
+
+
+# ------------------------------------------------- fast firing-rate census
+class _Stub:
+    """Minimal stand-in for a FeatureSnapshot.
+
+    Every condition in this module reads exactly four things: ``symbol``,
+    ``ts``, ``price`` and ``tf(tf).bar``. Building a real ``FeatureSnapshot``
+    computes regime, swings, volume profiles and FVGs for every bar, which on
+    the 470k-bar 1-minute archive takes hours and changes no answer here.
+    ``fast_rates`` is validated against ``firing_rates`` in
+    :func:`validate_fast` - it must agree on every condition, exactly.
+    """
+    __slots__ = ("symbol", "ts", "price", "_tf", "_s")
+
+    def __init__(self, symbol, bar, tf):
+        self.symbol, self.ts, self.price = symbol, bar.ts, bar.close
+        self._tf = tf
+        self._s = _TFStub(bar)
+
+    def tf(self, tf):
+        return self._s
+
+
+class _TFStub:
+    __slots__ = ("bar", "close")
+
+    def __init__(self, bar):
+        self.bar, self.close = bar, bar.close
+
+
+def fast_rates(symbol: str, series, *, extra_days: bool = True) -> List[dict]:
+    """Per-bar firing rate of every condition, without building indicators.
+
+    Reports three denominators, because for a once-per-session signal the
+    per-bar rate is mostly a statement about how many overnight bars are in the
+    file. ``rate`` is per bar, ``per_day`` is signals per RTH trading day, and
+    ``rate_eligible`` is per bar on which the condition COULD fire (in session,
+    range complete, and for FIRST_ONLY, no earlier break that day).
+    """
+    class _F:
+        pass
+    frame = _F()
+    frame.base, frame.spec, frame.symbol = series, get_contract(symbol), symbol.upper()
+    register_frame(frame)
+    tf = int(series.minutes)
+    spec = get_contract(symbol)
+    bars = list(series.bars)
+    rth_days = {trading_day(b.ts) for b in bars
+                if is_rth(b.ts, spec.rth_open, spec.rth_close)}
+    nd = max(len(rth_days), 1)
+    snaps = [_Stub(symbol.upper(), b, tf) for b in bars]
+    n = len(snaps)
+    rows = []
+    for nm in names():
+        INERT[nm] = 0
+        c = CONDITIONS[nm]
+        L = int(nm.rsplit("_", 1)[-1][:-1])
+        fired = longs = shorts = 0
+        elig = 0
+        for s in snaps:
+            st, inert = _st(s, L)
+            if _gate(st, inert, nm):
+                if not (FIRST_ONLY and nm.startswith(("orb_break", "orb_touch"))
+                        and st.prior_break is not None):
+                    elig += 1
+            r = c.fn(s, tf)
+            if r.triggered:
+                fired += 1
+                longs += r.direction is LONG
+                shorts += r.direction is SHORT
+        rows.append(dict(symbol=symbol.upper(), tf=tf, condition=nm, or_len=L,
+                         n_bars=n, rth_days=nd, fired=fired,
+                         rate=round(fired / n, 5) if n else 0.0,
+                         per_day=round(fired / nd, 4),
+                         rate_eligible=round(fired / elig, 4) if elig else 0.0,
+                         eligible_bars=elig, longs=longs, shorts=shorts,
+                         resolvable=_RESOLVABLE[(symbol.upper(), tf)][L],
+                         inert_bars=INERT[nm]))
+    return rows
+
+
+def validate_fast(frame) -> List[Tuple[str, int, int]]:
+    """Disagreements between ``fast_rates`` and the real-snapshot census.
+
+    Empty list means the stub is exact on this cell.
+    """
+    real = {r["condition"]: r["fired"] for r in firing_rates(frame)}
+    fast = {r["condition"]: r["fired"]
+            for r in fast_rates(frame.symbol, frame.base)}
+    return [(k, real[k], fast[k]) for k in sorted(real) if real[k] != fast[k]]
+
+
+# ------------------------------------------------------------ measurement
+def build_frame(symbol: str, tf: int, series=None, *, long: bool = True):
+    """Frame with ORB state registered. Always get a frame from here.
+
+    ``register_frame`` must run on the SAME frame the backtest runs on, because
+    state is keyed by bar timestamp. ``toolkit.measure_custom`` builds its own
+    frame internally and never calls it, so calling that directly with these
+    conditions silently yields zero signals. Use :func:`run` instead.
+    """
+    from futures_agents.features import build_symbol_frame
+    from futures_agents.scout import FRAMES
+    if series is None:
+        if long and symbol.upper() in LONG_1M:
+            series = long_series(symbol, tf)
+        else:
+            import sys
+            sys.path.insert(0, "workspace/studies")
+            import toolkit as _T
+            series = _T._series(symbol, tf, None)
+    frame = build_symbol_frame(series, FRAMES[tf])
+    register_frame(frame)
+    return frame
+
+
+def run(symbol: str, tf: int, strategies, *, series=None, long: bool = True,
+        floor: int = 20, frame=None) -> List[dict]:
+    """Run explicit strategies on an ORB-registered frame.
+
+    Same row shape as ``toolkit.measure_custom``, plus ``resolvable`` so a cell
+    that could not carry the range is never mistaken for a cell that could and
+    did not trade.
+    """
+    from futures_agents.backtest.engine import run_portfolio
+    from futures_agents.backtest.metrics import compute_metrics
+    sys_path_key = (symbol.upper(), int(tf))
+    frame = frame or build_frame(symbol, tf, series, long=long)
+    res = run_portfolio(frame, list(strategies))
+    out = []
+    for s in strategies:
+        trades = res[s.strategy_id].trades
+        if len(trades) < floor:
+            continue
+        m = compute_metrics(trades)
+        out.append(dict(symbol=symbol.upper(), tf=tf, name=s.name,
+                        conditions=[c.name for c in s.conditions],
+                        n=m.trades, win=round(m.win_rate, 4),
+                        exp=round(m.expectancy_r, 4), rr=round(m.payoff_ratio, 4),
+                        pf=round(m.profit_factor, 4), t=round(m.t_statistic, 3),
+                        maxdd=round(m.max_drawdown_r, 3),
+                        resolvable=dict(_RESOLVABLE.get(sys_path_key, {}))))
+    return out

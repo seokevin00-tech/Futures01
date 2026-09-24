@@ -262,12 +262,21 @@ def _find_fvg(bars, lo: int, hi: int, side: Direction, atr: List[Optional[float]
     return best
 
 
-def build(symbol: str, tf: int, bars, cfg: Cfg = Cfg()) -> Built:
-    """Detect every stage of the sequence over one bar series."""
+def build(symbol: str, tf: int, bars, cfg: Cfg = Cfg(),
+          extra_levels: Optional[List[Dict[str, Optional[float]]]] = None) -> Built:
+    """Detect every stage of the sequence over one bar series.
+
+    ``extra_levels`` is a per-bar dict of additional liquidity pools - the hook the
+    multi-timeframe test uses to hand a 60m chain the 240m chart's confirmed swing levels.
+    Whatever is passed must already be causal; this function does not re-check it.
+    """
     bars = list(bars)
     n = len(bars)
     atr = _atr(bars)
     lv = _levels(bars)
+    if extra_levels is not None:
+        for i in range(n):
+            lv[i].update(extra_levels[i])
     highs, lows = _confirmed_swings(bars, cfg)
     HI, LO = _latest_by_index(highs, n), _latest_by_index(lows, n)
     right = cfg.swing_right

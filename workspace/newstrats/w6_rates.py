@@ -21,7 +21,7 @@ sys.path.insert(0, "/home/user/Futures01")
 sys.path.insert(0, "/home/user/Futures01/workspace/studies")
 sys.path.insert(0, "/home/user/Futures01/workspace/newstrats")
 
-import ict_time as K                                   # noqa: E402
+import w6_ict_time as K                                   # noqa: E402
 import toolkit as T                                    # noqa: E402
 from futures_agents.features import build_symbol_frame  # noqa: E402
 from futures_agents.scout import FRAMES                # noqa: E402

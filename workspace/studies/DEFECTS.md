@@ -493,3 +493,21 @@ Every ICT source retrieved is a broker blog, indicator vendor or teaching site. 
 peer-reviewed, none with an auditable record.** Two circulating backtest claims flatly
 contradict each other ("0 of 648 backtests beat the index" versus "FVG 64.8% mitigation vs
 standalone OB 43.1% bounce"). Recorded as claims, not priors.
+
+## D33 — SUPPLY_DEMAND's emptiness is its detector, not the concept (found by `ict_blocks_fvg`)
+
+Corrects `g_supply_demand`, which concluded the group was "unusable as built and the freshness
+question cannot be answered with this data". The first half stands; the second does not. The
+library's SDZone requires a base, a departure, an ATR gate and freshness, and fires on
+**0.56–1.38%** of bars. A base-free order block — the ICT definition — fires on **40.5–51.5%**.
+With that definition there are 191–634 first touches and 1,372–2,180 later touches per cell,
+10–100× what the library's detector could supply, and the freshness question becomes answerable.
+(The answer is still no, but for a real reason rather than for lack of sample.)
+
+## D34 — `fvg_nearby` is a much narrower statement than "an FVG is in play" (found by `ict_blocks_fvg`)
+
+Not a bug, but a definitional trap worth recording. The library declares an FVG **filled at its
+midpoint** and tests the **close**; the standard reading keeps the gap live to its **far edge**
+and tests the **bar range**. A deliberate re-implementation of the library's bookkeeping matches
+it at Jaccard 0.785–0.966, so the machinery is sound — but the rates differ ~8×. Anyone reading
+`fvg_nearby` as "the ICT fair value gap" is measuring something much stricter.

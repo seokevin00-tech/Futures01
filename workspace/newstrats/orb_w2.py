@@ -302,14 +302,26 @@ def simulate(symbol: str, tf: int, or_minutes: int, entry: str, stop: str,
         reason = "eod"
         mae = mfe = 0.0
         nb = 0
-        for b in elig[start_i:]:
+        for bi, b in enumerate(elig[start_i:]):
             nb += 1
+            # A RETEST fills mid-bar, at the bar's own extreme. The rest of that
+            # bar's path is unknown, and crediting the opposite extreme as a
+            # target hit is intrabar look-ahead: it fills you at the low and
+            # pays you at the high of the same bar with no evidence the low came
+            # first. Measured cost of getting this wrong: 51% of trades in the
+            # best configuration "hit target" on the entry bar, and expectancy
+            # fell from +0.354R to +0.001R once they were removed. So on a
+            # limit-fill entry bar the STOP may fill (pessimistic) but the
+            # TARGET may not, and favourable excursion is not credited either.
+            entry_bar_limit = (bi == 0 and entry == "retest")
             adv = (b.high - entry_px) if direction > 0 else (entry_px - b.low)
             adv_bad = (entry_px - b.low) if direction > 0 else (b.high - entry_px)
-            mfe = max(mfe, adv)
+            if not entry_bar_limit:
+                mfe = max(mfe, adv)
             mae = max(mae, adv_bad)
             hit_stop = (b.low <= stop_px) if direction > 0 else (b.high >= stop_px)
-            hit_tgt = (b.high >= tgt_px) if direction > 0 else (b.low <= tgt_px)
+            hit_tgt = ((b.high >= tgt_px) if direction > 0 else (b.low <= tgt_px)) \
+                and not entry_bar_limit
             if hit_stop:                       # pessimistic: stop first
                 gap = (b.open <= stop_px) if direction > 0 else (b.open >= stop_px)
                 fill = b.open if gap else stop_px

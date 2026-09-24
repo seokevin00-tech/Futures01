@@ -30,8 +30,8 @@ sys.path.insert(0, "/home/user/Futures01")
 sys.path.insert(0, "/home/user/Futures01/workspace/studies")
 sys.path.insert(0, "/home/user/Futures01/workspace/newstrats")
 
-import ict_bars as B                                   # noqa: E402
-import ict_time as K                                   # noqa: E402
+import w6_bars as B                                   # noqa: E402
+import w6_ict_time as K                                   # noqa: E402
 from futures_agents.config import get_contract         # noqa: E402
 
 OUT = "/home/user/Futures01/workspace/strategy_research/scratch/ict"

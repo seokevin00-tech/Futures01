@@ -567,37 +567,59 @@ def _ifvg(snap, tf):
 # price wandering, not about order blocks.
 # --------------------------------------------------------------------------
 
-_PLACEBO: Dict[Tuple[str, int], List[Optional[str]]] = {}
+#: (which, symbol, tf, ts) -> direction. Keyed on the TIMESTAMP, not the bar
+#: index, because the in-sample and out-of-sample frames are slices with
+#: different indices and an index key would silently shift the whole arm.
+_PLACEBO: Dict[Tuple[str, str, int, object], str] = {}
+
+#: Which BarState attribute each placebo is matched to.
+PLACEBO_SRC = {"ob": "ob_fresh_dir", "fvg": "fvg_fresh_dir"}
+
+
+def _fresh_dir(st: BarState, which: str) -> Optional[str]:
+    slot = st.ob if which == "ob" else st.fvg
+    return slot[0] if slot and slot[1] else None
 
 
 def register_placebo(symbol: str, tf: int, seed: int = 7) -> None:
-    """A shuffled copy of the real firing pattern: same count, same direction
-    mix, different bars. Any 'edge' this arm shows is search, not structure."""
+    """Sham arms matched to the real firing pattern.
+
+    Same number of firings, same long/short mix, drawn from bars with a valid
+    ATR - only the *locations* are random. This is the control that separates
+    "the order block did something" from "any condition that fires this often
+    and this directionally would have".
+    """
     key = (symbol.upper(), tf)
     bars, a, obs, fvgs, states = CACHE[key]
-    rng = random.Random(seed)
     n = len(bars)
-    fired = [(i, st.fvg[0]) for i, st in enumerate(states) if st.fvg]
-    slots = [None] * n
     valid = [i for i in range(30, n - 5) if a[i]]
-    picks = rng.sample(valid, min(len(fired), len(valid)))
-    for (i, d), j in zip(fired, picks):
-        slots[j] = d
-    _PLACEBO[key] = slots
+    for off, which in enumerate(("ob", "fvg")):
+        rng = random.Random(seed + off)
+        dirs = [_fresh_dir(st, which) for st in states]
+        fired = [d for d in dirs if d]
+        picks = rng.sample(valid, min(len(fired), len(valid)))
+        for d, j in zip(fired, picks):
+            _PLACEBO[(which, symbol.upper(), tf, bars[j].ts)] = d
 
 
-@_reg("ict_placebo", "ict", description="Matched sham location - the control arm")
-def _placebo(snap, tf):
-    s = snap.tf(tf)
-    if s is None:
-        return ConditionResult.no()
-    slots = _PLACEBO.get((snap.symbol.upper(), tf))
-    if slots is None or s.index >= len(slots):
-        return ConditionResult.no()
-    d = slots[s.index]
-    if d is None:
-        return ConditionResult.no()
-    return ConditionResult.yes(_dir(d), "placebo")
+def _placebo_fn(which: str):
+    def fn(snap, tf):
+        s = snap.tf(tf)
+        if s is None:
+            return ConditionResult.no()
+        d = _PLACEBO.get((which, snap.symbol.upper(), tf, s.bar.ts))
+        if d is None:
+            return ConditionResult.no()
+        return ConditionResult.yes(_dir(d), f"{which} placebo")
+    return fn
+
+
+_reg("ict_placebo_ob", "ict",
+     description="Sham locations matched to ict_ob_fresh - the control arm")(
+    _placebo_fn("ob"))
+_reg("ict_placebo_fvg", "ict",
+     description="Sham locations matched to ict_fvg_fresh - the control arm")(
+    _placebo_fn("fvg"))
 
 
 @_reg("ict_breaker_fresh", "ict", description="FIRST retest of a failed order block")

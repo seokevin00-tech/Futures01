@@ -1,0 +1,1230 @@
+{
+ "scope": "The ICT sequence: liquidity sweep -> market structure shift -> retrace into the resulting imbalance. Built explicitly as an ordered chain, not as a conjunction of independently sampled signals.",
+ "study_id": "ict_sweep_mss",
+ "bottom_line": "The sequence is real, common and useless. It occurs 77-106 times per 10.5 months per symbol at 60m - so the earlier sweep-family starvation was the min_signals=2 conjunction, not the phenomenon - but the first link does not cause the second, the chain is not more than its parts, the order does not matter, and the whole thing loses money net of realistic costs. NOT live-eligible.",
+ "checks_performed": {},
+ "look_ahead_and_repainting": {
+  "MES|60": {
+   "mismatched": 0,
+   "compared": 230,
+   "mismatch_rate": 0.0
+  },
+  "MES|240": {
+   "mismatched": 0,
+   "compared": 120,
+   "mismatch_rate": 0.0
+  },
+  "MGC|60": {
+   "mismatched": 0,
+   "compared": 239,
+   "mismatch_rate": 0.0
+  },
+  "MGC|240": {
+   "mismatched": 0,
+   "compared": 83,
+   "mismatch_rate": 0.0
+  },
+  "MCL|60": {
+   "mismatched": 0,
+   "compared": 242,
+   "mismatch_rate": 0.0
+  },
+  "MCL|240": {
+   "mismatched": 0,
+   "compared": 130,
+   "mismatch_rate": 0.0
+  },
+  "MNQ|60": {
+   "mismatched": 0,
+   "compared": 238,
+   "mismatch_rate": 0.0
+  },
+  "MNQ|240": {
+   "mismatched": 0,
+   "compared": 112,
+   "mismatch_rate": 0.0
+  }
+ },
+ "cost_and_fill_realism": {
+  "full": {
+   "zero": 0.0516,
+   "x1": -0.0169,
+   "x2": -0.0465,
+   "x4": -0.0624
+  },
+  "sweep_mss": {
+   "zero": 0.0514,
+   "x1": 0.0207,
+   "x2": 0.0119,
+   "x4": 0.0154
+  },
+  "mss_only": {
+   "zero": -0.0183,
+   "x1": -0.0312,
+   "x2": -0.044,
+   "x4": -0.068
+  }
+ },
+ "bar_level_identity_vs_library": {
+  "MES|60": {
+   "bars": 4750,
+   "mine_rates": {
+    "sweep_only": 0.34716,
+    "mss_only": 0.084,
+    "sweep_mss": 0.052,
+    "mss_fvg_retrace": 0.02611,
+    "full": 0.01284,
+    "wrong_order": 0.01032
+   },
+   "lib_rates": {
+    "prior_day_sweep": 0.12568,
+    "overnight_sweep": 0.04926,
+    "session_extreme_sweep": 0.00589,
+    "break_of_structure": 0.368,
+    "fvg_nearby": 0.05768,
+    "imbalance_pullback": 0.41663,
+    "prior_day_breakout": 0.41516,
+    "pullback_to_support": 0.24421,
+    "zone_touch": 0.01558,
+    "fresh_zone_approach": 0.00653,
+    "fib_golden_pocket": 0.09116
+   },
+   "jaccard": {
+    "sweep_only~prior_day_sweep": 0.2975,
+    "sweep_only~overnight_sweep": 0.1182,
+    "sweep_only~session_extreme_sweep": 0.0145,
+    "sweep_only~break_of_structure": 0.2016,
+    "sweep_only~fvg_nearby": 0.0462,
+    "sweep_only~imbalance_pullback": 0.2328,
+    "sweep_only~prior_day_breakout": 0.1837,
+    "sweep_only~pullback_to_support": 0.1953,
+    "sweep_only~zone_touch": 0.0141,
+    "sweep_only~fresh_zone_approach": 0.0072,
+    "sweep_only~fib_golden_pocket": 0.0993,
+    "mss_only~prior_day_sweep": 0.0573,
+    "mss_only~overnight_sweep": 0.0276,
+    "mss_only~session_extreme_sweep": 0.0023,
+    "mss_only~break_of_structure": 0.2283,
+    "mss_only~fvg_nearby": 0.0402,
+    "mss_only~imbalance_pullback": 0.0485,
+    "mss_only~prior_day_breakout": 0.1242,
+    "mss_only~pullback_to_support": 0.0584,
+    "mss_only~zone_touch": 0.015,
+    "mss_only~fresh_zone_approach": 0.0118,
+    "mss_only~fib_golden_pocket": 0.0,
+    "sweep_mss~prior_day_sweep": 0.0752,
+    "sweep_mss~overnight_sweep": 0.0457,
+    "sweep_mss~session_extreme_sweep": 0.0036,
+    "sweep_mss~break_of_structure": 0.14,
+    "sweep_mss~fvg_nearby": 0.0256,
+    "sweep_mss~imbalance_pullback": 0.0431,
+    "sweep_mss~prior_day_breakout": 0.0632,
+    "sweep_mss~pullback_to_support": 0.0368,
+    "sweep_mss~zone_touch": 0.019,
+    "sweep_mss~fresh_zone_approach": 0.0072,
+    "sweep_mss~fib_golden_pocket": 0.0,
+    "mss_fvg_retrace~prior_day_sweep": 0.0541,
+    "mss_fvg_retrace~overnight_sweep": 0.0347,
+    "mss_fvg_retrace~session_extreme_sweep": 0.0,
+    "mss_fvg_retrace~break_of_structure": 0.0168,
+    "mss_fvg_retrace~fvg_nearby": 0.0338,
+    "mss_fvg_retrace~imbalance_pullback": 0.0169,
+    "mss_fvg_retrace~prior_day_breakout": 0.028,
+    "mss_fvg_retrace~pullback_to_support": 0.0313,
+    "mss_fvg_retrace~zone_touch": 0.0102,
+    "mss_fvg_retrace~fresh_zone_approach": 0.0065,
+    "mss_fvg_retrace~fib_golden_pocket": 0.0353,
+    "full~prior_day_sweep": 0.033,
+    "full~overnight_sweep": 0.0387,
+    "full~session_extreme_sweep": 0.0114,
+    "full~break_of_structure": 0.0117,
+    "full~fvg_nearby": 0.0245,
+    "full~imbalance_pullback": 0.0139,
+    "full~prior_day_breakout": 0.0089,
+    "full~pullback_to_support": 0.0141,
+    "full~zone_touch": 0.0075,
+    "full~fresh_zone_approach": 0.0,
+    "full~fib_golden_pocket": 0.0228,
+    "wrong_order~prior_day_sweep": 0.0205,
+    "wrong_order~overnight_sweep": 0.0107,
+    "wrong_order~session_extreme_sweep": 0.0132,
+    "wrong_order~break_of_structure": 0.0084,
+    "wrong_order~fvg_nearby": 0.0157,
+    "wrong_order~imbalance_pullback": 0.0145,
+    "wrong_order~prior_day_breakout": 0.01,
+    "wrong_order~pullback_to_support": 0.0092,
+    "wrong_order~zone_touch": 0.0082,
+    "wrong_order~fresh_zone_approach": 0.0127,
+    "wrong_order~fib_golden_pocket": 0.0105
+   }
+  },
+  "MES|240": {
+   "bars": 1097,
+   "mine_rates": {
+    "sweep_only": 0.42206,
+    "mss_only": 0.08113,
+    "sweep_mss": 0.08842,
+    "mss_fvg_retrace": 0.03191,
+    "full": 0.0237,
+    "wrong_order": 0.02552
+   },
+   "lib_rates": {
+    "prior_day_sweep": 0.24613,
+    "overnight_sweep": 0.05652,
+    "session_extreme_sweep": 0.05105,
+    "break_of_structure": 0.36098,
+    "fvg_nearby": 0.05561,
+    "imbalance_pullback": 0.48131,
+    "prior_day_breakout": 0.62534,
+    "pullback_to_support": 0.2361,
+    "zone_touch": 0.05378,
+    "fresh_zone_approach": 0.03646,
+    "fib_golden_pocket": 0.08751
+   },
+   "jaccard": {
+    "sweep_only~prior_day_sweep": 0.3962,
+    "sweep_only~overnight_sweep": 0.1123,
+    "sweep_only~session_extreme_sweep": 0.0996,
+    "sweep_only~break_of_structure": 0.1671,
+    "sweep_only~fvg_nearby": 0.048,
+    "sweep_only~imbalance_pullback": 0.282,
+    "sweep_only~prior_day_breakout": 0.2613,
+    "sweep_only~pullback_to_support": 0.2094,
+    "sweep_only~zone_touch": 0.0398,
+    "sweep_only~fresh_zone_approach": 0.035,
+    "sweep_only~fib_golden_pocket": 0.0833,
+    "mss_only~prior_day_sweep": 0.0376,
+    "mss_only~overnight_sweep": 0.0203,
+    "mss_only~session_extreme_sweep": 0.014,
+    "mss_only~break_of_structure": 0.2247,
+    "mss_only~fvg_nearby": 0.0345,
+    "mss_only~imbalance_pullback": 0.0565,
+    "mss_only~prior_day_breakout": 0.1281,
+    "mss_only~pullback_to_support": 0.0388,
+    "mss_only~zone_touch": 0.0963,
+    "mss_only~fresh_zone_approach": 0.0574,
+    "mss_only~fib_golden_pocket": 0.0,
+    "sweep_mss~prior_day_sweep": 0.0426,
+    "sweep_mss~overnight_sweep": 0.0392,
+    "sweep_mss~session_extreme_sweep": 0.02,
+    "sweep_mss~break_of_structure": 0.2387,
+    "sweep_mss~fvg_nearby": 0.026,
+    "sweep_mss~imbalance_pullback": 0.0684,
+    "sweep_mss~prior_day_breakout": 0.1266,
+    "sweep_mss~pullback_to_support": 0.0471,
+    "sweep_mss~zone_touch": 0.0612,
+    "sweep_mss~fresh_zone_approach": 0.0458,
+    "sweep_mss~fib_golden_pocket": 0.0,
+    "mss_fvg_retrace~prior_day_sweep": 0.0664,
+    "mss_fvg_retrace~overnight_sweep": 0.0211,
+    "mss_fvg_retrace~session_extreme_sweep": 0.0111,
+    "mss_fvg_retrace~break_of_structure": 0.0094,
+    "mss_fvg_retrace~fvg_nearby": 0.0435,
+    "mss_fvg_retrace~imbalance_pullback": 0.0274,
+    "mss_fvg_retrace~prior_day_breakout": 0.0271,
+    "mss_fvg_retrace~pullback_to_support": 0.0463,
+    "mss_fvg_retrace~zone_touch": 0.033,
+    "mss_fvg_retrace~fresh_zone_approach": 0.0274,
+    "mss_fvg_retrace~fib_golden_pocket": 0.065,
+    "full~prior_day_sweep": 0.0423,
+    "full~overnight_sweep": 0.0,
+    "full~session_extreme_sweep": 0.025,
+    "full~break_of_structure": 0.0144,
+    "full~fvg_nearby": 0.0482,
+    "full~imbalance_pullback": 0.0203,
+    "full~prior_day_breakout": 0.0215,
+    "full~pullback_to_support": 0.0289,
+    "full~zone_touch": 0.0119,
+    "full~fresh_zone_approach": 0.0154,
+    "full~fib_golden_pocket": 0.0427,
+    "wrong_order~prior_day_sweep": 0.0456,
+    "wrong_order~overnight_sweep": 0.0465,
+    "wrong_order~session_extreme_sweep": 0.012,
+    "wrong_order~break_of_structure": 0.0192,
+    "wrong_order~fvg_nearby": 0.023,
+    "wrong_order~imbalance_pullback": 0.0239,
+    "wrong_order~prior_day_breakout": 0.0215,
+    "wrong_order~pullback_to_support": 0.025,
+    "wrong_order~zone_touch": 0.0116,
+    "wrong_order~fresh_zone_approach": 0.0149,
+    "wrong_order~fib_golden_pocket": 0.0081
+   }
+  },
+  "MGC|60": {
+   "bars": 4750,
+   "mine_rates": {
+    "sweep_only": 0.33747,
+    "mss_only": 0.07368,
+    "sweep_mss": 0.03895,
+    "mss_fvg_retrace": 0.02253,
+    "full": 0.01221,
+    "wrong_order": 0.008
+   },
+   "lib_rates": {
+    "prior_day_sweep": 0.12905,
+    "overnight_sweep": 0.04274,
+    "session_extreme_sweep": 0.01874,
+    "break_of_structure": 0.31221,
+    "fvg_nearby": 0.03558,
+    "imbalance_pullback": 0.37726,
+    "prior_day_breakout": 0.52695,
+    "pullback_to_support": 0.19474,
+    "zone_touch": 0.03684,
+    "fresh_zone_approach": 0.01368,
+    "fib_golden_pocket": 0.09768
+   },
+   "jaccard": {
+    "sweep_only~prior_day_sweep": 0.2352,
+    "sweep_only~overnight_sweep": 0.0972,
+    "sweep_only~session_extreme_sweep": 0.0432,
+    "sweep_only~break_of_structure": 0.1747,
+    "sweep_only~fvg_nearby": 0.035,
+    "sweep_only~imbalance_pullback": 0.1988,
+    "sweep_only~prior_day_breakout": 0.1974,
+    "sweep_only~pullback_to_support": 0.1802,
+    "sweep_only~zone_touch": 0.0325,
+    "sweep_only~fresh_zone_approach": 0.0158,
+    "sweep_only~fib_golden_pocket": 0.0925,
+    "mss_only~prior_day_sweep": 0.049,
+    "mss_only~overnight_sweep": 0.0222,
+    "mss_only~session_extreme_sweep": 0.0139,
+    "mss_only~break_of_structure": 0.236,
+    "mss_only~fvg_nearby": 0.0039,
+    "mss_only~imbalance_pullback": 0.0378,
+    "mss_only~prior_day_breakout": 0.0986,
+    "mss_only~pullback_to_support": 0.0528,
+    "mss_only~zone_touch": 0.0458,
+    "mss_only~fresh_zone_approach": 0.0147,
+    "mss_only~fib_golden_pocket": 0.0,
+    "sweep_mss~prior_day_sweep": 0.0431,
+    "sweep_mss~overnight_sweep": 0.0292,
+    "sweep_mss~session_extreme_sweep": 0.0186,
+    "sweep_mss~break_of_structure": 0.1217,
+    "sweep_mss~fvg_nearby": 0.0085,
+    "sweep_mss~imbalance_pullback": 0.0292,
+    "sweep_mss~prior_day_breakout": 0.0415,
+    "sweep_mss~pullback_to_support": 0.0297,
+    "sweep_mss~zone_touch": 0.0286,
+    "sweep_mss~fresh_zone_approach": 0.0081,
+    "sweep_mss~fib_golden_pocket": 0.0,
+    "mss_fvg_retrace~prior_day_sweep": 0.0542,
+    "mss_fvg_retrace~overnight_sweep": 0.0299,
+    "mss_fvg_retrace~session_extreme_sweep": 0.0208,
+    "mss_fvg_retrace~break_of_structure": 0.0153,
+    "mss_fvg_retrace~fvg_nearby": 0.0415,
+    "mss_fvg_retrace~imbalance_pullback": 0.0139,
+    "mss_fvg_retrace~prior_day_breakout": 0.0183,
+    "mss_fvg_retrace~pullback_to_support": 0.0279,
+    "mss_fvg_retrace~zone_touch": 0.0071,
+    "mss_fvg_retrace~fresh_zone_approach": 0.0058,
+    "mss_fvg_retrace~fib_golden_pocket": 0.0477,
+    "full~prior_day_sweep": 0.0339,
+    "full~overnight_sweep": 0.0276,
+    "full~session_extreme_sweep": 0.0,
+    "full~break_of_structure": 0.0138,
+    "full~fvg_nearby": 0.0413,
+    "full~imbalance_pullback": 0.0093,
+    "full~prior_day_breakout": 0.0079,
+    "full~pullback_to_support": 0.0197,
+    "full~zone_touch": 0.013,
+    "full~fresh_zone_approach": 0.0165,
+    "full~fib_golden_pocket": 0.0156,
+    "wrong_order~prior_day_sweep": 0.0124,
+    "wrong_order~overnight_sweep": 0.0084,
+    "wrong_order~session_extreme_sweep": 0.016,
+    "wrong_order~break_of_structure": 0.0073,
+    "wrong_order~fvg_nearby": 0.0147,
+    "wrong_order~imbalance_pullback": 0.0127,
+    "wrong_order~prior_day_breakout": 0.0099,
+    "wrong_order~pullback_to_support": 0.0084,
+    "wrong_order~zone_touch": 0.0095,
+    "wrong_order~fresh_zone_approach": 0.0,
+    "wrong_order~fib_golden_pocket": 0.0121
+   }
+  },
+  "MGC|240": {
+   "bars": 1098,
+   "mine_rates": {
+    "sweep_only": 0.43443,
+    "mss_only": 0.07468,
+    "sweep_mss": 0.07377,
+    "mss_fvg_retrace": 0.02368,
+    "full": 0.02004,
+    "wrong_order": 0.02186
+   },
+   "lib_rates": {
+    "prior_day_sweep": 0.25319,
+    "overnight_sweep": 0.03461,
+    "session_extreme_sweep": 0.05464,
+    "break_of_structure": 0.33515,
+    "fvg_nearby": 0.02823,
+    "imbalance_pullback": 0.40893,
+    "prior_day_breakout": 0.69854,
+    "pullback_to_support": 0.12568,
+    "zone_touch": 0.0337,
+    "fresh_zone_approach": 0.02095,
+    "fib_golden_pocket": 0.08652
+   },
+   "jaccard": {
+    "sweep_only~prior_day_sweep": 0.3904,
+    "sweep_only~overnight_sweep": 0.0707,
+    "sweep_only~session_extreme_sweep": 0.1118,
+    "sweep_only~break_of_structure": 0.1591,
+    "sweep_only~fvg_nearby": 0.018,
+    "sweep_only~imbalance_pullback": 0.2413,
+    "sweep_only~prior_day_breakout": 0.2905,
+    "sweep_only~pullback_to_support": 0.1368,
+    "sweep_only~zone_touch": 0.0219,
+    "sweep_only~fresh_zone_approach": 0.0142,
+    "sweep_only~fib_golden_pocket": 0.0854,
+    "mss_only~prior_day_sweep": 0.0286,
+    "mss_only~overnight_sweep": 0.0169,
+    "mss_only~session_extreme_sweep": 0.0,
+    "mss_only~break_of_structure": 0.2228,
+    "mss_only~fvg_nearby": 0.0367,
+    "mss_only~imbalance_pullback": 0.0557,
+    "mss_only~prior_day_breakout": 0.0997,
+    "mss_only~pullback_to_support": 0.0377,
+    "mss_only~zone_touch": 0.0917,
+    "mss_only~fresh_zone_approach": 0.0096,
+    "mss_only~fib_golden_pocket": 0.0,
+    "sweep_mss~prior_day_sweep": 0.0346,
+    "sweep_mss~overnight_sweep": 0.0171,
+    "sweep_mss~session_extreme_sweep": 0.0,
+    "sweep_mss~break_of_structure": 0.207,
+    "sweep_mss~fvg_nearby": 0.0275,
+    "sweep_mss~imbalance_pullback": 0.0707,
+    "sweep_mss~prior_day_breakout": 0.0942,
+    "sweep_mss~pullback_to_support": 0.0186,
+    "sweep_mss~zone_touch": 0.0727,
+    "sweep_mss~fresh_zone_approach": 0.0097,
+    "sweep_mss~fib_golden_pocket": 0.0,
+    "mss_fvg_retrace~prior_day_sweep": 0.0201,
+    "mss_fvg_retrace~overnight_sweep": 0.0,
+    "mss_fvg_retrace~session_extreme_sweep": 0.0,
+    "mss_fvg_retrace~break_of_structure": 0.0077,
+    "mss_fvg_retrace~fvg_nearby": 0.0179,
+    "mss_fvg_retrace~imbalance_pullback": 0.0171,
+    "mss_fvg_retrace~prior_day_breakout": 0.0259,
+    "mss_fvg_retrace~pullback_to_support": 0.038,
+    "mss_fvg_retrace~zone_touch": 0.0161,
+    "mss_fvg_retrace~fresh_zone_approach": 0.0208,
+    "mss_fvg_retrace~fib_golden_pocket": 0.0168,
+    "full~prior_day_sweep": 0.0169,
+    "full~overnight_sweep": 0.0,
+    "full~session_extreme_sweep": 0.0123,
+    "full~break_of_structure": 0.0156,
+    "full~fvg_nearby": 0.0,
+    "full~imbalance_pullback": 0.0217,
+    "full~prior_day_breakout": 0.0194,
+    "full~pullback_to_support": 0.0323,
+    "full~zone_touch": 0.0172,
+    "full~fresh_zone_approach": 0.0227,
+    "full~fib_golden_pocket": 0.0263,
+    "wrong_order~prior_day_sweep": 0.0342,
+    "wrong_order~overnight_sweep": 0.0164,
+    "wrong_order~session_extreme_sweep": 0.0,
+    "wrong_order~break_of_structure": 0.0155,
+    "wrong_order~fvg_nearby": 0.0185,
+    "wrong_order~imbalance_pullback": 0.0216,
+    "wrong_order~prior_day_breakout": 0.022,
+    "wrong_order~pullback_to_support": 0.0125,
+    "wrong_order~zone_touch": 0.0,
+    "wrong_order~fresh_zone_approach": 0.0,
+    "wrong_order~fib_golden_pocket": 0.0259
+   }
+  },
+  "MCL|60": {
+   "bars": 4750,
+   "mine_rates": {
+    "sweep_only": 0.34884,
+    "mss_only": 0.08274,
+    "sweep_mss": 0.05074,
+    "mss_fvg_retrace": 0.02526,
+    "full": 0.01453,
+    "wrong_order": 0.01011
+   },
+   "lib_rates": {
+    "prior_day_sweep": 0.12779,
+    "overnight_sweep": 0.04189,
+    "session_extreme_sweep": 0.01179,
+    "break_of_structure": 0.34863,
+    "fvg_nearby": 0.068,
+    "imbalance_pullback": 0.39958,
+    "prior_day_breakout": 0.48674,
+    "pullback_to_support": 0.14042,
+    "zone_touch": 0.01811,
+    "fresh_zone_approach": 0.01095,
+    "fib_golden_pocket": 0.09032
+   },
+   "jaccard": {
+    "sweep_only~prior_day_sweep": 0.2543,
+    "sweep_only~overnight_sweep": 0.086,
+    "sweep_only~session_extreme_sweep": 0.0245,
+    "sweep_only~break_of_structure": 0.1719,
+    "sweep_only~fvg_nearby": 0.0471,
+    "sweep_only~imbalance_pullback": 0.2112,
+    "sweep_only~prior_day_breakout": 0.1858,
+    "sweep_only~pullback_to_support": 0.1331,
+    "sweep_only~zone_touch": 0.0169,
+    "sweep_only~fresh_zone_approach": 0.0142,
+    "sweep_only~fib_golden_pocket": 0.0899,
+    "mss_only~prior_day_sweep": 0.0549,
+    "mss_only~overnight_sweep": 0.0172,
+    "mss_only~session_extreme_sweep": 0.0045,
+    "mss_only~break_of_structure": 0.2373,
+    "mss_only~fvg_nearby": 0.0332,
+    "mss_only~imbalance_pullback": 0.0367,
+    "mss_only~prior_day_breakout": 0.0987,
+    "mss_only~pullback_to_support": 0.0331,
+    "mss_only~zone_touch": 0.0235,
+    "mss_only~fresh_zone_approach": 0.0091,
+    "mss_only~fib_golden_pocket": 0.0,
+    "sweep_mss~prior_day_sweep": 0.0574,
+    "sweep_mss~overnight_sweep": 0.0304,
+    "sweep_mss~session_extreme_sweep": 0.0068,
+    "sweep_mss~break_of_structure": 0.1428,
+    "sweep_mss~fvg_nearby": 0.0217,
+    "sweep_mss~imbalance_pullback": 0.0424,
+    "sweep_mss~prior_day_breakout": 0.0498,
+    "sweep_mss~pullback_to_support": 0.0271,
+    "sweep_mss~zone_touch": 0.0155,
+    "sweep_mss~fresh_zone_approach": 0.0138,
+    "sweep_mss~fib_golden_pocket": 0.0,
+    "mss_fvg_retrace~prior_day_sweep": 0.0536,
+    "mss_fvg_retrace~overnight_sweep": 0.0257,
+    "mss_fvg_retrace~session_extreme_sweep": 0.0,
+    "mss_fvg_retrace~break_of_structure": 0.0149,
+    "mss_fvg_retrace~fvg_nearby": 0.0448,
+    "mss_fvg_retrace~imbalance_pullback": 0.0146,
+    "mss_fvg_retrace~prior_day_breakout": 0.0197,
+    "mss_fvg_retrace~pullback_to_support": 0.0301,
+    "mss_fvg_retrace~zone_touch": 0.0098,
+    "mss_fvg_retrace~fresh_zone_approach": 0.0,
+    "mss_fvg_retrace~fib_golden_pocket": 0.0378,
+    "full~prior_day_sweep": 0.0321,
+    "full~overnight_sweep": 0.0268,
+    "full~session_extreme_sweep": 0.0,
+    "full~break_of_structure": 0.0105,
+    "full~fvg_nearby": 0.037,
+    "full~imbalance_pullback": 0.015,
+    "full~prior_day_breakout": 0.0076,
+    "full~pullback_to_support": 0.0265,
+    "full~zone_touch": 0.0,
+    "full~fresh_zone_approach": 0.0,
+    "full~fib_golden_pocket": 0.0226,
+    "wrong_order~prior_day_sweep": 0.0171,
+    "wrong_order~overnight_sweep": 0.0165,
+    "wrong_order~session_extreme_sweep": 0.0196,
+    "wrong_order~break_of_structure": 0.0083,
+    "wrong_order~fvg_nearby": 0.0192,
+    "wrong_order~imbalance_pullback": 0.0141,
+    "wrong_order~prior_day_breakout": 0.0098,
+    "wrong_order~pullback_to_support": 0.0099,
+    "wrong_order~zone_touch": 0.0075,
+    "wrong_order~fresh_zone_approach": 0.0,
+    "wrong_order~fib_golden_pocket": 0.0063
+   }
+  },
+  "MCL|240": {
+   "bars": 1134,
+   "mine_rates": {
+    "sweep_only": 0.41182,
+    "mss_only": 0.09171,
+    "sweep_mss": 0.09612,
+    "mss_fvg_retrace": 0.03263,
+    "full": 0.02734,
+    "wrong_order": 0.03086
+   },
+   "lib_rates": {
+    "prior_day_sweep": 0.24603,
+    "overnight_sweep": 0.03704,
+    "session_extreme_sweep": 0.04497,
+    "break_of_structure": 0.38977,
+    "fvg_nearby": 0.08995,
+    "imbalance_pullback": 0.42328,
+    "prior_day_breakout": 0.68078,
+    "pullback_to_support": 0.09612,
+    "zone_touch": 0.05291,
+    "fresh_zone_approach": 0.0097,
+    "fib_golden_pocket": 0.10141
+   },
+   "jaccard": {
+    "sweep_only~prior_day_sweep": 0.3713,
+    "sweep_only~overnight_sweep": 0.0784,
+    "sweep_only~session_extreme_sweep": 0.0998,
+    "sweep_only~break_of_structure": 0.1609,
+    "sweep_only~fvg_nearby": 0.0557,
+    "sweep_only~imbalance_pullback": 0.2576,
+    "sweep_only~prior_day_breakout": 0.2669,
+    "sweep_only~pullback_to_support": 0.0847,
+    "sweep_only~zone_touch": 0.0394,
+    "sweep_only~fresh_zone_approach": 0.0084,
+    "sweep_only~fib_golden_pocket": 0.0899,
+    "mss_only~prior_day_sweep": 0.0241,
+    "mss_only~overnight_sweep": 0.021,
+    "mss_only~session_extreme_sweep": 0.0,
+    "mss_only~break_of_structure": 0.2353,
+    "mss_only~fvg_nearby": 0.051,
+    "mss_only~imbalance_pullback": 0.0504,
+    "mss_only~prior_day_breakout": 0.1332,
+    "mss_only~pullback_to_support": 0.039,
+    "mss_only~zone_touch": 0.0446,
+    "mss_only~fresh_zone_approach": 0.0177,
+    "mss_only~fib_golden_pocket": 0.0,
+    "sweep_mss~prior_day_sweep": 0.0458,
+    "sweep_mss~overnight_sweep": 0.0067,
+    "sweep_mss~session_extreme_sweep": 0.0,
+    "sweep_mss~break_of_structure": 0.241,
+    "sweep_mss~fvg_nearby": 0.0498,
+    "sweep_mss~imbalance_pullback": 0.0632,
+    "sweep_mss~prior_day_breakout": 0.1223,
+    "sweep_mss~pullback_to_support": 0.0381,
+    "sweep_mss~zone_touch": 0.0432,
+    "sweep_mss~fresh_zone_approach": 0.0169,
+    "sweep_mss~fib_golden_pocket": 0.0,
+    "mss_fvg_retrace~prior_day_sweep": 0.0327,
+    "mss_fvg_retrace~overnight_sweep": 0.026,
+    "mss_fvg_retrace~session_extreme_sweep": 0.0115,
+    "mss_fvg_retrace~break_of_structure": 0.0148,
+    "mss_fvg_retrace~fvg_nearby": 0.0373,
+    "mss_fvg_retrace~imbalance_pullback": 0.0258,
+    "mss_fvg_retrace~prior_day_breakout": 0.0398,
+    "mss_fvg_retrace~pullback_to_support": 0.0429,
+    "mss_fvg_retrace~zone_touch": 0.0319,
+    "mss_fvg_retrace~fresh_zone_approach": 0.0213,
+    "mss_fvg_retrace~fib_golden_pocket": 0.0411,
+    "full~prior_day_sweep": 0.0265,
+    "full~overnight_sweep": 0.0282,
+    "full~session_extreme_sweep": 0.025,
+    "full~break_of_structure": 0.0194,
+    "full~fvg_nearby": 0.0231,
+    "full~imbalance_pullback": 0.02,
+    "full~prior_day_breakout": 0.0348,
+    "full~pullback_to_support": 0.037,
+    "full~zone_touch": 0.0225,
+    "full~fresh_zone_approach": 0.05,
+    "full~fib_golden_pocket": 0.0282,
+    "wrong_order~prior_day_sweep": 0.0432,
+    "wrong_order~overnight_sweep": 0.0132,
+    "wrong_order~session_extreme_sweep": 0.0,
+    "wrong_order~break_of_structure": 0.028,
+    "wrong_order~fvg_nearby": 0.0148,
+    "wrong_order~imbalance_pullback": 0.0279,
+    "wrong_order~prior_day_breakout": 0.0293,
+    "wrong_order~pullback_to_support": 0.0213,
+    "wrong_order~zone_touch": 0.0215,
+    "wrong_order~fresh_zone_approach": 0.0,
+    "wrong_order~fib_golden_pocket": 0.0345
+   }
+  }
+ },
+ "out_of_sample": {
+  "design": "60/40 temporal split plus three contiguous slices per cell; never the nested 274/180/90 windows.",
+  "ablation_is_vs_oos": {
+   "full_vs_sweep_mss|full|anchored": {
+    "median_delta": 0.005,
+    "sign_z": 0.0,
+    "stouffer_z": 0.006
+   },
+   "full_vs_mss_fvg_retrace|full|anchored": {
+    "median_delta": -0.0141,
+    "sign_z": -0.577,
+    "stouffer_z": -0.193
+   },
+   "full_vs_mss_only|full|anchored": {
+    "median_delta": -0.0075,
+    "sign_z": 0.0,
+    "stouffer_z": -0.195
+   },
+   "full_vs_sweep_only|full|anchored": {
+    "median_delta": 0.0326,
+    "sign_z": 1.732,
+    "stouffer_z": 0.521
+   },
+   "full_vs_wrong_order|full|anchored": {
+    "median_delta": 0.1143,
+    "sign_z": 1.155,
+    "stouffer_z": 0.896
+   },
+   "sweep_mss_vs_mss_only|full|anchored": {
+    "median_delta": -0.0154,
+    "sign_z": -0.577,
+    "stouffer_z": -0.232
+   },
+   "mss_fvg_retrace_vs_mss_only|full|anchored": {
+    "median_delta": 0.0054,
+    "sign_z": 0.0,
+    "stouffer_z": -0.036
+   },
+   "sweep_only_vs_mss_only|full|anchored": {
+    "median_delta": -0.0504,
+    "sign_z": -1.155,
+    "stouffer_z": -1.27
+   },
+   "full_vs_sweep_mss|IS|anchored": {
+    "median_delta": -0.0793,
+    "sign_z": -1.155,
+    "stouffer_z": -0.561
+   },
+   "full_vs_mss_fvg_retrace|IS|anchored": {
+    "median_delta": -0.0299,
+    "sign_z": -1.155,
+    "stouffer_z": -0.208
+   },
+   "full_vs_mss_only|IS|anchored": {
+    "median_delta": -0.0915,
+    "sign_z": -1.732,
+    "stouffer_z": -0.659
+   },
+   "full_vs_sweep_only|IS|anchored": {
+    "median_delta": -0.0272,
+    "sign_z": -0.577,
+    "stouffer_z": -0.435
+   },
+   "full_vs_wrong_order|IS|anchored": {
+    "median_delta": 0.0242,
+    "sign_z": 0.0,
+    "stouffer_z": -0.104
+   },
+   "sweep_mss_vs_mss_only|IS|anchored": {
+    "median_delta": 0.0069,
+    "sign_z": 0.577,
+    "stouffer_z": -0.12
+   },
+   "mss_fvg_retrace_vs_mss_only|IS|anchored": {
+    "median_delta": -0.0757,
+    "sign_z": -1.155,
+    "stouffer_z": -0.335
+   },
+   "sweep_only_vs_mss_only|IS|anchored": {
+    "median_delta": 0.0351,
+    "sign_z": 0.577,
+    "stouffer_z": -0.398
+   },
+   "full_vs_sweep_mss|OOS|anchored": {
+    "median_delta": 0.096,
+    "sign_z": 1.155,
+    "stouffer_z": 0.451
+   },
+   "full_vs_mss_fvg_retrace|OOS|anchored": {
+    "median_delta": -0.054,
+    "sign_z": 0.0,
+    "stouffer_z": 0.048
+   },
+   "full_vs_mss_only|OOS|anchored": {
+    "median_delta": 0.064,
+    "sign_z": 0.577,
+    "stouffer_z": 0.21
+   },
+   "full_vs_sweep_only|OOS|anchored": {
+    "median_delta": 0.0732,
+    "sign_z": 1.155,
+    "stouffer_z": 0.988
+   },
+   "full_vs_wrong_order|OOS|anchored": {
+    "median_delta": 0.0763,
+    "sign_z": 0.302,
+    "stouffer_z": 0.863
+   },
+   "sweep_mss_vs_mss_only|OOS|anchored": {
+    "median_delta": -0.0026,
+    "sign_z": -0.577,
+    "stouffer_z": -0.278
+   },
+   "mss_fvg_retrace_vs_mss_only|OOS|anchored": {
+    "median_delta": 0.1292,
+    "sign_z": 0.577,
+    "stouffer_z": -0.029
+   },
+   "sweep_only_vs_mss_only|OOS|anchored": {
+    "median_delta": -0.0473,
+    "sign_z": -1.155,
+    "stouffer_z": -1.334
+   }
+  },
+  "sign_flips": "6 of 8 ablation comparisons change sign between IS and OOS."
+ },
+ "walk_forward": {
+  "MES|60": {
+   "selected_exp_by_fold": [
+    0.2611,
+    -0.1899,
+    -0.0749,
+    0.3317,
+    -0.3173
+   ],
+   "fixed5_exp_by_fold": [
+    0.6561,
+    -0.2227,
+    -0.3899,
+    0.0928,
+    -0.2074
+   ],
+   "oracle_exp_by_fold": [
+    1.3091,
+    -0.0349,
+    -0.0684,
+    0.3317,
+    0.0145
+   ],
+   "mean_selected": 0.0021,
+   "mean_fixed5": -0.0142,
+   "mean_oracle": 0.3104,
+   "datamining_bias_R": 0.3083,
+   "placebo1": [
+    0.0995,
+    0.2806,
+    -0.3759,
+    0.0368,
+    0.2587,
+    -0.6223
+   ],
+   "placebo5": [
+    0.1459,
+    0.2992,
+    -0.3829,
+    0.0828,
+    -0.6396,
+    -0.0572
+   ]
+  },
+  "MES|240": {
+   "selected_exp_by_fold": [
+    -0.0965,
+    -0.7773,
+    1.2397,
+    -0.1059,
+    -0.6951
+   ],
+   "fixed5_exp_by_fold": [
+    0.3869,
+    -0.7773,
+    1.2397,
+    -0.1059,
+    -0.6951
+   ],
+   "oracle_exp_by_fold": [
+    0.5218,
+    -0.7773,
+    1.3236,
+    -0.1059,
+    -0.0889
+   ],
+   "mean_selected": -0.087,
+   "mean_fixed5": 0.0097,
+   "mean_oracle": 0.1747,
+   "datamining_bias_R": 0.2617,
+   "placebo1": [
+    0.7477,
+    -1.0223,
+    -0.2698,
+    0.0851,
+    0.0684,
+    0.6209
+   ],
+   "placebo5": [
+    0.0449,
+    0.3589,
+    -0.2029,
+    0.6111,
+    -0.1634,
+    -0.1094
+   ]
+  },
+  "MNQ|60": {
+   "selected_exp_by_fold": [
+    0.4887,
+    -0.263,
+    -0.5537,
+    0.2939,
+    -1.0187
+   ],
+   "fixed5_exp_by_fold": [
+    0.5171,
+    -0.1477,
+    -0.277,
+    0.2013,
+    -0.8492
+   ],
+   "oracle_exp_by_fold": [
+    0.5171,
+    0.0378,
+    0.1191,
+    0.463,
+    -0.5122
+   ],
+   "mean_selected": -0.2106,
+   "mean_fixed5": -0.1111,
+   "mean_oracle": 0.125,
+   "datamining_bias_R": 0.3355,
+   "placebo1": [
+    -0.3181,
+    0.6784,
+    0.0804,
+    -0.1696,
+    0.3471,
+    -0.7826
+   ],
+   "placebo5": [
+    -0.0422,
+    0.6153,
+    0.0286,
+    0.3782,
+    -0.0074,
+    -0.3906
+   ]
+  },
+  "MNQ|240": {
+   "selected_exp_by_fold": [
+    -1.0083,
+    0.8448,
+    -0.6321,
+    -0.7557,
+    0.6993
+   ],
+   "fixed5_exp_by_fold": [
+    -0.2982,
+    0.8281,
+    -0.2559,
+    -0.5058,
+    0.6993
+   ],
+   "oracle_exp_by_fold": [
+    -0.0311,
+    0.8448,
+    -0.6321,
+    -0.7557,
+    0.9115
+   ],
+   "mean_selected": -0.1704,
+   "mean_fixed5": 0.0935,
+   "mean_oracle": 0.0675,
+   "datamining_bias_R": 0.2379,
+   "placebo1": [
+    0.391,
+    -1.0072,
+    -0.0902,
+    -1.0063,
+    -0.5049,
+    -0.0682
+   ],
+   "placebo5": [
+    0.0931,
+    -0.0685,
+    0.829,
+    -1.0056,
+    0.3702,
+    -0.4589
+   ]
+  },
+  "MGC|60": {
+   "selected_exp_by_fold": [
+    -0.1699,
+    0.1142,
+    -0.6561,
+    -0.0775,
+    -0.0907
+   ],
+   "fixed5_exp_by_fold": [
+    -0.513,
+    0.2166,
+    -0.8192,
+    -0.0528,
+    -0.3797
+   ],
+   "oracle_exp_by_fold": [
+    -0.1699,
+    0.8256,
+    -0.4222,
+    0.4089,
+    -0.0907
+   ],
+   "mean_selected": -0.176,
+   "mean_fixed5": -0.3096,
+   "mean_oracle": 0.1103,
+   "datamining_bias_R": 0.2863,
+   "placebo1": [
+    0.2662,
+    -0.7644,
+    0.2906,
+    -0.319,
+    0.1255,
+    -0.4893
+   ],
+   "placebo5": [
+    0.1567,
+    0.5748,
+    0.2599,
+    -0.3899,
+    0.9158,
+    -0.2909
+   ]
+  },
+  "MGC|240": {
+   "selected_exp_by_fold": [
+    -1.0068,
+    -0.1785,
+    0.87,
+    0.0,
+    -0.385
+   ],
+   "fixed5_exp_by_fold": [
+    0.3702,
+    0.0409,
+    0.2429,
+    1.1202,
+    -0.385
+   ],
+   "oracle_exp_by_fold": [
+    0.829,
+    0.0409,
+    0.6189,
+    0.9313,
+    -0.2597
+   ],
+   "mean_selected": -0.1401,
+   "mean_fixed5": 0.2778,
+   "mean_oracle": 0.4321,
+   "datamining_bias_R": 0.5721,
+   "placebo1": [
+    -0.2587,
+    1.1217,
+    0.3274,
+    0.4099,
+    0.8696,
+    -0.5101
+   ],
+   "placebo5": [
+    -0.1903,
+    1.1221,
+    -0.2981,
+    -0.0907,
+    -1.0113,
+    -0.0587
+   ]
+  },
+  "MCL|60": {
+   "selected_exp_by_fold": [
+    0.0194,
+    -0.5206,
+    0.3567,
+    1.3906,
+    -0.6408
+   ],
+   "fixed5_exp_by_fold": [
+    -0.4292,
+    -0.7238,
+    0.2504,
+    0.7889,
+    -0.3432
+   ],
+   "oracle_exp_by_fold": [
+    0.0841,
+    -0.3137,
+    0.3567,
+    1.4601,
+    -0.0549
+   ],
+   "mean_selected": 0.1211,
+   "mean_fixed5": -0.0914,
+   "mean_oracle": 0.3065,
+   "datamining_bias_R": 0.1854,
+   "placebo1": [
+    -0.317,
+    -0.1326,
+    -0.5227,
+    0.1076,
+    0.3161,
+    0.0923
+   ],
+   "placebo5": [
+    0.1156,
+    -0.2025,
+    0.4856,
+    0.7757,
+    0.4965,
+    -0.2326
+   ]
+  },
+  "MCL|240": {
+   "selected_exp_by_fold": [
+    -0.7686,
+    -0.7473,
+    0.0779,
+    1.7438,
+    0.5543
+   ],
+   "fixed5_exp_by_fold": [
+    -0.7686,
+    -0.6808,
+    -0.0172,
+    1.7438,
+    0.5543
+   ],
+   "oracle_exp_by_fold": [
+    -0.2686,
+    -0.5695,
+    0.0779,
+    0.8226,
+    0.8173
+   ],
+   "mean_selected": 0.172,
+   "mean_fixed5": 0.1663,
+   "mean_oracle": 0.1759,
+   "datamining_bias_R": 0.0039,
+   "placebo1": [
+    -0.4247,
+    -0.6633,
+    0.0537,
+    -0.0134,
+    0.8627,
+    0.556
+   ],
+   "placebo5": [
+    0.1377,
+    -0.213,
+    0.0515,
+    0.1929,
+    0.3565,
+    -0.0571
+   ]
+  }
+ },
+ "statistical_method": {
+  "T_ab_used": false,
+  "why": "T.ab runs an unpaired rank-sum over strategies and these arms share 50-90% of their bars. Defect D28 measures that inflating |z| by ~3.3x, to |z| = 8.7 on null data. Every comparison here is a per-cell paired sign test on delta-expectancy plus a Stouffer combination of per-cell two-sample z.",
+  "independent_unit": "the cell (symbol x timeframe). Trades are never pooled across cells for a significance test; the pooled slice tables in the performance db are descriptive only.",
+  "D27_avoided": "market_structure().events is never read. All structure comes from find_swings filtered on confirmed_index, and each chain resets its own reference - which is the bug D27 describes."
+ },
+ "findings_that_are_negative_and_are_still_findings": [
+  "The 2x sweep->MSS lift is geometry. Unadjusted a sweep nearly doubles the odds of an opposing MSS within 5 bars (Stouffer z = +17.6). Stratify on distance from the close to the swing the MSS must break and the Mantel-Haenszel OR falls to 1.08; against bars that ran no level at all the OR is 0.86 with Stouffer z = -4.03.",
+  "The wrong order performs the same as the right order (median delta +0.11R, sign z +1.16, n.s.; OOS +0.08R, z +0.30).",
+  "Entries displaced 5 bars later outperform the real entries (+0.08R vs -0.02R).",
+  "Walk-forward tuning of the timing tolerance is worse than not tuning (-0.11R vs -0.00R); the hindsight oracle is +0.18R, so the data-mining bias is ~0.29R per fold.",
+  "ICT kill zones are among the worst slices: LONDON -0.149R (n=88), RTH_OPEN -0.096R (n=34). Consistent with the library's earlier finding that no hours filter helps.",
+  "sweep_only is significantly NEGATIVE on its own: median -0.076R over 12 cells, sign z = -2.89, Stouffer t = -4.29."
+ ],
+ "defects_touched": {
+  "D27": "avoided by construction; the per-chain reference reset is the fix.",
+  "D28": "T.ab not used anywhere in this study.",
+  "D29": "the 3-bar confirmation lag is why the MSS reference is pinned to swings formed before the sweep - without that pin the reference drifts to a low made during the drop and the break becomes unfalsifiable.",
+  "NEW - library session_extreme_sweep is self-referential": {
+   "detail": "session_levels() builds session_high from bars where b.ts <= cutoff, which INCLUDES the bar being tested, so _level_sweep's b.high > session_high is arithmetically impossible. Its measured 0.61% firing rate is not a rare event, it is a near-degenerate condition.",
+   "same_for": "overnight_sweep while price is still in the overnight session; the library's 4.7% is an RTH-only rate for that reason.",
+   "verified": "my causal reimplementation, using only bars strictly before the test bar, fires at 2.7-3.9% (SESH/SESL) and 9.3-12.3% (ONH/ONL) at 60m. The PDH/PDL union reproduces the library's 12.4% exactly (12.2%), which is the control showing the difference is real and not mine."
+  },
+  "NEW - the combinator cannot express a sequence": {
+   "detail": "min_signals=2 demands two conditions fire on ONE bar. A sweep and its consequence never do. That, not rarity, is why 0 sweep rule sets ever reached 20 trades: built as an explicit ordered chain the same primitives yield 57-68 trades per cell at 60m.",
+   "status": "the fix works and the strategy still fails. Worth recording so nobody spends the effort again expecting the population to be the problem."
+  }
+ },
+ "sample_size_bound": "20-68 full-chain trades per cell; per-cell expectancy SE near 0.2R. This study can exclude effects larger than about 0.4R and cannot resolve anything smaller. Stated as a limit, not a result.",
+ "live_eligible": false,
+ "multi_timeframe": {
+  "tested": true,
+  "pairs": [
+   [
+    60,
+    240
+   ],
+   [
+    15,
+    60
+   ]
+  ],
+  "summary": {
+   "ltf_pools|full": {
+    "cells": 8,
+    "median_exp": -0.0602,
+    "trades": 390,
+    "sign_vs_zero": {
+     "pos": 0,
+     "n": 8,
+     "z": -2.828
+    }
+   },
+   "htf_pools|full": {
+    "cells": 8,
+    "median_exp": -0.1991,
+    "trades": 109,
+    "sign_vs_zero": {
+     "pos": 0,
+     "n": 8,
+     "z": -2.828
+    }
+   },
+   "both_pools|full": {
+    "cells": 8,
+    "median_exp": -0.0908,
+    "trades": 422,
+    "sign_vs_zero": {
+     "pos": 0,
+     "n": 8,
+     "z": -2.828
+    }
+   },
+   "ltf_pools|IS": {
+    "cells": 8,
+    "median_exp": -0.0769,
+    "trades": 223,
+    "sign_vs_zero": {
+     "pos": 1,
+     "n": 8,
+     "z": -2.121
+    }
+   },
+   "htf_pools|IS": {
+    "cells": 6,
+    "median_exp": -0.2772,
+    "trades": 52,
+    "sign_vs_zero": {
+     "pos": 3,
+     "n": 6,
+     "z": 0.0
+    }
+   },
+   "both_pools|IS": {
+    "cells": 8,
+    "median_exp": -0.156,
+    "trades": 239,
+    "sign_vs_zero": {
+     "pos": 1,
+     "n": 8,
+     "z": -2.121
+    }
+   },
+   "ltf_pools|OOS": {
+    "cells": 8,
+    "median_exp": -0.0837,
+    "trades": 167,
+    "sign_vs_zero": {
+     "pos": 2,
+     "n": 8,
+     "z": -1.414
+    }
+   },
+   "htf_pools|OOS": {
+    "cells": 2,
+    "median_exp": 0.0091,
+    "trades": 16,
+    "sign_vs_zero": {
+     "pos": 1,
+     "n": 2,
+     "z": 0.0
+    }
+   },
+   "both_pools|OOS": {
+    "cells": 8,
+    "median_exp": -0.09,
+    "trades": 183,
+    "sign_vs_zero": {
+     "pos": 3,
+     "n": 8,
+     "z": -0.707
+    }
+   }
+  },
+  "verdict": "higher-timeframe liquidity pools are worse (-0.199R vs -0.060R median, 8/8 cells negative) and starve the population to 9-17 trades per cell. Individual timeframes 5/15/30/60/240/1440 were censused separately and 15/60/240 backtested separately; no timeframe is exempt from the negative verdict."
+ }
+}
