@@ -296,3 +296,35 @@ def _make_hour_condition(h: int) -> None:
 
 for _h in range(24):
     _make_hour_condition(_h)
+
+
+# ==========================================================================
+# Count-matched placebos.
+#
+# The 24-hour census showed that restricting entries to ANY single hour beats
+# not restricting them (mean Stouffer z = +1.58 over 24 hours, 18 of 24
+# positive). That could be a time-of-day effect or it could be a
+# trade-frequency effect: a filter keeping 1/24 of bars turns ~180 clustered
+# re-entries per slice into ~30 spaced ones. These placebos keep exactly 1/24
+# of bars with no relation to the clock, so the two explanations separate.
+# ==========================================================================
+
+def _make_stride(phase: int, stride: int = 24) -> None:
+    @condition(f"stride{stride}_p{phase:02d}", "ict_placebo",
+               description=f"Placebo: every {stride}th bar, phase {phase}. "
+                           f"Same firing rate as a one-hour filter, no clock content.")
+    def _fn(snap, tf, _p=phase, _s=stride):
+        if snap.base_index % _s == _p:
+            return ConditionResult.yes(FLAT, f"stride {_s} phase {_p}")
+        return ConditionResult.no()
+
+
+for _p in (0, 5, 11, 17, 23):
+    _make_stride(_p)
+
+
+#: Rate-matched placebos for the FIB comparison. fib_golden_pocket fires on
+#: 8.0-9.9% of bars, i.e. about one bar in eleven, so a stride-11 filter is the
+#: count-matched null for "does adding the golden pocket to a rule set help".
+for _p in (0, 3, 7):
+    _make_stride(_p, 11)
