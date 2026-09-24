@@ -545,3 +545,37 @@ never co-occur by definition. So every ordered-chain idea — the whole of ICT's
 any "A then B" setup — is inexpressible in the template system, and attempting one produces the
 starvation that was previously misread as the idea failing. This is an architectural limitation,
 not a tuning problem, and it explains the sweep family's "0 rule sets ever reached 20 trades".
+
+## D38 — `toolkit.measure_custom` silently zeroes custom conditions (found by `orb_define`)
+
+**Mine, and the worst failure mode there is: it returns zero rather than raising.**
+`measure_custom` builds its own frame and never calls `register_frame`, so any condition needing
+frame registration returns `no()` on every bar and the strategy reports zero trades. Indistinguishable
+from "the idea does not work". Workers who built their own runners were unaffected; anyone calling
+`measure_custom` with custom conditions got silent nulls.
+
+## D39 — library ORB is a state, not an event, and silently widens (found by `orb_define`)
+
+Three distinct faults in `opening_range_breakout`, on top of D30:
+
+1. **No first-break gate and no session gate.** It fires on **18.5% of MES 15m bars, ~7 per day**,
+   including overnight bars hours after the close. It reports "price is beyond the range", not
+   "the range broke". Even where the range exists, it was never measuring ORB.
+2. **Silent widening.** MCL opens 09:00 and *is* on the hourly grid, so its "30-minute OR" is
+   built **60 minutes wide**. The condition fires on 17.3% of MCL 60m bars off a mislabelled
+   range — and is a **Jaccard 0.993 duplicate of `initial_balance_break`** there (0.841 MCL 15m,
+   0.686 MES 15m). **Sixth alias for the M1 list.**
+3. **The resolvability rule**, which generalises D30 and D31 to a single arithmetic statement:
+
+   > An L-minute opening range is resolvable on a T-minute frame **iff `T | L` and
+   > `T | (RTH open in minutes from midnight)`.**
+
+   09:30 = 570 is not divisible by 60; 08:20 = 500 is not divisible by 15, 30 or 60. **240m
+   divides no OR length at all, so 4-hour ORB is arithmetically impossible** — the same
+   statement as D20 at daily.
+
+| symbol | 5m | 15m | 30m | 60m | 240m |
+|---|---|---|---|---|---|
+| MES/MNQ/NQ | 5/15/30/60 | 15/30/60 | 30/60 | **none** | **none** |
+| MGC | 5/15/30/60 | **none** | **none** | **none** | **none** |
+| MCL | all | 15/30/60 | 30/60 | 60 only | **none** |

@@ -244,3 +244,33 @@ trades per cell, SE ≈ 0.2R, so effects under ~0.4R are unresolvable here.
 
 Multi-timeframe made it worse: 240m levels into a 60m chain gives −0.199R against −0.060R,
 **8/8 cells negative**, starved to 9–17 trades per cell.
+
+---
+
+## `orb_define` — what ORB is, and why the library never measured it
+
+**Definitions.** Fetched (WebSearch snippets; several primary sources egress-blocked): Crabel's
+ORB places a resting stop a "stretch" (≈0.8 × the 10-day range) beyond the opening range high or
+low, with NR4/NR7 compression as the conditioning filter; Zarattini/Barbon/Aziz 2024 (SSRN
+4729284) test a 5-minute ORB on ~7,000 stocks 2016–23 and claim Sharpe ≈2.4, finding 5m the best
+OR length; Holmberg/Lönnbark/Lundström find some ORB returns above zero. **Recalled, not
+fetched:** the axis taxonomy itself (close vs touch entry, retest vs immediate, stop at opposite
+edge / mid / ATR, targets in range-heights vs R vs session extremes, the fade variant).
+**No performance claim above is independently verified**, and all are on equities, not futures.
+
+**The repair.** See D30 and D39. The headline is that the library's ORB was never an ORB: no
+first-break gate and no session gate, so it fires on 18.5% of MES 15m bars — about 7 per day,
+including overnight bars hours after the close — and on MCL it is a **Jaccard 0.993 duplicate of
+`initial_balance_break`** off a range that is silently built 60 minutes wide instead of 30.
+
+**The way out of the sample trap.** `data/{MES,MGC,MNQ}_1m.csv` holds 404k–470k genuine 1-minute
+bars covering **352 RTH trading days** (2019-01-01 → 2020-05-14) and resamples to any grid,
+including MGC's 08:20 open — about 350 ORB signals per symbol, enough for a 60/40 split and
+disjoint slices. Exposed as `orb.long_series(sym, tf)`. It contains the Feb–Mar 2020 crash and is
+a different era from `csv/raw`, so **the two cannot be pooled**. Worker 2 found and used the same
+archive independently.
+
+**Corrected conditions** are in `workspace/newstrats/orb.py`: `orb_break_{5,15,30,60}m`,
+`orb_touch_*` (Crabel's stop-order entry), `orb_retest_*`, `orb_fade_*`. Unresolvable cells return
+`no()` and are counted in `orb.INERT`, so **"unmeasurable" can never again be read as "no
+signal"** — which is precisely the mistake that hid this for weeks.
