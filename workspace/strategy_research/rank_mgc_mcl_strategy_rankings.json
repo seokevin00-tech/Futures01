@@ -1,32 +1,32 @@
 {
- "headline": "A placebo landed inside the top 10 in 21 of 28 cells (expected 13.6 under the no-edge null). Best placebo rank by cell: MCL_240_180=6/21, MCL_240_274=8/45, MCL_240_30=None/0, MCL_240_90=1/17, MCL_240_slice0=1/15, MCL_240_slice1=1/18, MCL_240_slice2=3/19, MCL_60_180=1/169, MCL_60_274=2/207, MCL_60_30=1/37, MCL_60_90=3/114, MCL_60_slice0=12/120, MCL_60_slice1=1/106, MCL_60_slice2=3/121, MGC_240_180=1/16, MGC_240_274=3/25, MGC_240_30=None/0, MGC_240_90=None/0, MGC_240_slice0=None/0, MGC_240_slice1=None/0, MGC_240_slice2=1/3, MGC_60_180=12/218, MGC_60_274=4/264, MGC_60_30=3/37, MGC_60_90=2/128, MGC_60_slice0=6/140, MGC_60_slice1=8/99, MGC_60_slice2=1/146. 0 rows cleared free_t anywhere; 11 of the 9-month top-10 rows were positive in all three disjoint thirds.",
+ "headline": "A placebo landed inside the top 10 in 20 of 23 non-empty cells (expected 12.4 under the no-edge null), and at RANK 1 in 8 of them.  MCL_240_180=1/22, MCL_240_274=8/47, MCL_240_30=None/0, MCL_240_90=1/17, MCL_240_slice0=1/15, MCL_240_slice1=1/17, MCL_240_slice2=2/19, MCL_60_180=3/165, MCL_60_274=55/205, MCL_60_30=1/37, MCL_60_90=5/107, MCL_60_slice0=1/118, MCL_60_slice1=2/103, MCL_60_slice2=9/117, MGC_240_180=1/16, MGC_240_274=2/25, MGC_240_30=None/0, MGC_240_90=None/0, MGC_240_slice0=None/0, MGC_240_slice1=None/0, MGC_240_slice2=1/2, MGC_60_180=6/210, MGC_60_274=23/251, MGC_60_30=2/39, MGC_60_90=24/121, MGC_60_slice0=6/138, MGC_60_slice1=7/97, MGC_60_slice2=5/141. 0 rows cleared free_t anywhere; 11 of the 9-month top-10 rows were positive in all three disjoint thirds.",
  "placebo_ranks": [
   {
    "cell": "MCL_240_180",
-   "n_rows": 21,
-   "n_placebo_rows": 10,
-   "best_placebo_rank": 6,
+   "n_rows": 22,
+   "n_placebo_rows": 11,
+   "best_placebo_rank": 1,
    "by_kind": {
     "placebo_random": 12,
     "placebo_shift": 11,
-    "placebo_shuffle": 6
+    "placebo_shuffle": 1
    },
-   "null_expected": 2.0,
+   "null_expected": 1.92,
    "p_top10_under_null": 1.0,
    "placebo_in_top10": true
   },
   {
    "cell": "MCL_240_274",
-   "n_rows": 45,
-   "n_placebo_rows": 9,
+   "n_rows": 47,
+   "n_placebo_rows": 11,
    "best_placebo_rank": 8,
    "by_kind": {
-    "placebo_random": 31,
-    "placebo_shift": 42,
-    "placebo_shuffle": 8
+    "placebo_random": 15,
+    "placebo_shift": 8,
+    "placebo_shuffle": 20
    },
-   "null_expected": 4.6,
-   "p_top10_under_null": 0.9203,
+   "null_expected": 4.0,
+   "p_top10_under_null": 0.9509,
    "placebo_in_top10": true
   },
   {
@@ -49,8 +49,8 @@
    "n_placebo_rows": 12,
    "best_placebo_rank": 1,
    "by_kind": {
-    "placebo_random": 4,
-    "placebo_shift": 10,
+    "placebo_random": 3,
+    "placebo_shift": 11,
     "placebo_shuffle": 1
    },
    "null_expected": 1.38,
@@ -63,7 +63,7 @@
    "n_placebo_rows": 11,
    "best_placebo_rank": 1,
    "by_kind": {
-    "placebo_random": 6,
+    "placebo_random": 4,
     "placebo_shift": 1,
     "placebo_shuffle": 3
    },
@@ -73,15 +73,15 @@
   },
   {
    "cell": "MCL_240_slice1",
-   "n_rows": 18,
-   "n_placebo_rows": 12,
+   "n_rows": 17,
+   "n_placebo_rows": 11,
    "best_placebo_rank": 1,
    "by_kind": {
     "placebo_random": 1,
-    "placebo_shift": 4,
-    "placebo_shuffle": 2
+    "placebo_shift": 3,
+    "placebo_shuffle": 8
    },
-   "null_expected": 1.46,
+   "null_expected": 1.5,
    "p_top10_under_null": 0.0,
    "placebo_in_top10": true
   },
@@ -89,11 +89,11 @@
    "cell": "MCL_240_slice2",
    "n_rows": 19,
    "n_placebo_rows": 12,
-   "best_placebo_rank": 3,
+   "best_placebo_rank": 2,
    "by_kind": {
-    "placebo_random": 3,
-    "placebo_shift": 9,
-    "placebo_shuffle": 8
+    "placebo_random": 2,
+    "placebo_shift": 10,
+    "placebo_shuffle": 4
    },
    "null_expected": 1.54,
    "p_top10_under_null": 0.0,
@@ -101,31 +101,31 @@
   },
   {
    "cell": "MCL_60_180",
-   "n_rows": 169,
-   "n_placebo_rows": 18,
-   "best_placebo_rank": 1,
+   "n_rows": 165,
+   "n_placebo_rows": 14,
+   "best_placebo_rank": 3,
    "by_kind": {
-    "placebo_random": 3,
-    "placebo_shift": 71,
-    "placebo_shuffle": 1
+    "placebo_random": 29,
+    "placebo_shift": 13,
+    "placebo_shuffle": 3
    },
-   "null_expected": 8.95,
-   "p_top10_under_null": 0.6863,
+   "null_expected": 11.07,
+   "p_top10_under_null": 0.5987,
    "placebo_in_top10": true
   },
   {
    "cell": "MCL_60_274",
-   "n_rows": 207,
-   "n_placebo_rows": 21,
-   "best_placebo_rank": 2,
+   "n_rows": 205,
+   "n_placebo_rows": 19,
+   "best_placebo_rank": 55,
    "by_kind": {
-    "placebo_random": 11,
-    "placebo_shift": 89,
-    "placebo_shuffle": 2
+    "placebo_random": 137,
+    "placebo_shift": 56,
+    "placebo_shuffle": 55
    },
-   "null_expected": 9.45,
-   "p_top10_under_null": 0.6655,
-   "placebo_in_top10": true
+   "null_expected": 10.3,
+   "p_top10_under_null": 0.6306,
+   "placebo_in_top10": false
   },
   {
    "cell": "MCL_60_30",
@@ -133,9 +133,9 @@
    "n_placebo_rows": 9,
    "best_placebo_rank": 1,
    "by_kind": {
-    "placebo_random": 1,
-    "placebo_shift": 9,
-    "placebo_shuffle": 2
+    "placebo_random": 32,
+    "placebo_shift": 1,
+    "placebo_shuffle": 26
    },
    "null_expected": 3.8,
    "p_top10_under_null": 0.9623,
@@ -143,58 +143,58 @@
   },
   {
    "cell": "MCL_60_90",
-   "n_rows": 114,
-   "n_placebo_rows": 18,
-   "best_placebo_rank": 3,
+   "n_rows": 107,
+   "n_placebo_rows": 11,
+   "best_placebo_rank": 5,
    "by_kind": {
-    "placebo_random": 33,
-    "placebo_shift": 6,
-    "placebo_shuffle": 3
+    "placebo_random": 10,
+    "placebo_shift": 5,
+    "placebo_shuffle": 36
    },
-   "null_expected": 6.05,
-   "p_top10_under_null": 0.8343,
+   "null_expected": 9.0,
+   "p_top10_under_null": 0.679,
    "placebo_in_top10": true
   },
   {
    "cell": "MCL_60_slice0",
-   "n_rows": 120,
-   "n_placebo_rows": 13,
-   "best_placebo_rank": 12,
+   "n_rows": 118,
+   "n_placebo_rows": 11,
+   "best_placebo_rank": 1,
    "by_kind": {
-    "placebo_random": 22,
-    "placebo_shift": 12,
-    "placebo_shuffle": 25
+    "placebo_random": 5,
+    "placebo_shift": 13,
+    "placebo_shuffle": 1
    },
-   "null_expected": 8.64,
-   "p_top10_under_null": 0.6973,
-   "placebo_in_top10": false
+   "null_expected": 9.92,
+   "p_top10_under_null": 0.6395,
+   "placebo_in_top10": true
   },
   {
    "cell": "MCL_60_slice1",
-   "n_rows": 106,
-   "n_placebo_rows": 14,
-   "best_placebo_rank": 1,
+   "n_rows": 103,
+   "n_placebo_rows": 11,
+   "best_placebo_rank": 2,
    "by_kind": {
-    "placebo_random": 1,
-    "placebo_shift": 34,
-    "placebo_shuffle": 10
+    "placebo_random": 34,
+    "placebo_shift": 36,
+    "placebo_shuffle": 2
    },
-   "null_expected": 7.13,
-   "p_top10_under_null": 0.7736,
+   "null_expected": 8.67,
+   "p_top10_under_null": 0.6944,
    "placebo_in_top10": true
   },
   {
    "cell": "MCL_60_slice2",
-   "n_rows": 121,
-   "n_placebo_rows": 15,
-   "best_placebo_rank": 3,
+   "n_rows": 117,
+   "n_placebo_rows": 11,
+   "best_placebo_rank": 9,
    "by_kind": {
-    "placebo_random": 30,
-    "placebo_shift": 3,
-    "placebo_shuffle": 32
+    "placebo_random": 22,
+    "placebo_shift": 9,
+    "placebo_shuffle": 12
    },
-   "null_expected": 7.62,
-   "p_top10_under_null": 0.7482,
+   "null_expected": 9.83,
+   "p_top10_under_null": 0.6429,
    "placebo_in_top10": true
   },
   {
@@ -203,8 +203,8 @@
    "n_placebo_rows": 10,
    "best_placebo_rank": 1,
    "by_kind": {
-    "placebo_random": 2,
-    "placebo_shift": 11,
+    "placebo_random": 3,
+    "placebo_shift": 4,
     "placebo_shuffle": 1
    },
    "null_expected": 1.55,
@@ -215,11 +215,11 @@
    "cell": "MGC_240_274",
    "n_rows": 25,
    "n_placebo_rows": 8,
-   "best_placebo_rank": 3,
+   "best_placebo_rank": 2,
    "by_kind": {
     "placebo_random": 4,
-    "placebo_shift": 12,
-    "placebo_shuffle": 3
+    "placebo_shift": 15,
+    "placebo_shuffle": 2
    },
    "null_expected": 2.89,
    "p_top10_under_null": 0.9941,
@@ -283,125 +283,125 @@
   },
   {
    "cell": "MGC_240_slice2",
-   "n_rows": 3,
-   "n_placebo_rows": 2,
+   "n_rows": 2,
+   "n_placebo_rows": 1,
    "best_placebo_rank": 1,
    "by_kind": {
     "placebo_random": 1,
     "placebo_shift": null,
     "placebo_shuffle": null
    },
-   "null_expected": 1.33,
+   "null_expected": 1.5,
    "p_top10_under_null": 0.0,
    "placebo_in_top10": true
   },
   {
    "cell": "MGC_60_180",
-   "n_rows": 218,
-   "n_placebo_rows": 26,
-   "best_placebo_rank": 12,
+   "n_rows": 210,
+   "n_placebo_rows": 18,
+   "best_placebo_rank": 6,
    "by_kind": {
-    "placebo_random": 12,
-    "placebo_shift": 23,
-    "placebo_shuffle": 114
+    "placebo_random": 42,
+    "placebo_shift": 6,
+    "placebo_shuffle": 30
    },
-   "null_expected": 8.11,
-   "p_top10_under_null": 0.7272,
-   "placebo_in_top10": false
-  },
-  {
-   "cell": "MGC_60_274",
-   "n_rows": 264,
-   "n_placebo_rows": 33,
-   "best_placebo_rank": 4,
-   "by_kind": {
-    "placebo_random": 59,
-    "placebo_shift": 54,
-    "placebo_shuffle": 4
-   },
-   "null_expected": 7.79,
-   "p_top10_under_null": 0.7434,
+   "null_expected": 11.11,
+   "p_top10_under_null": 0.6002,
    "placebo_in_top10": true
   },
   {
-   "cell": "MGC_60_30",
-   "n_rows": 37,
-   "n_placebo_rows": 7,
-   "best_placebo_rank": 3,
+   "cell": "MGC_60_274",
+   "n_rows": 251,
+   "n_placebo_rows": 20,
+   "best_placebo_rank": 23,
    "by_kind": {
-    "placebo_random": 3,
-    "placebo_shift": 5,
-    "placebo_shuffle": 6
+    "placebo_random": 55,
+    "placebo_shift": 23,
+    "placebo_shuffle": 60
    },
-   "null_expected": 4.75,
-   "p_top10_under_null": 0.9137,
+   "null_expected": 12.0,
+   "p_top10_under_null": 0.571,
+   "placebo_in_top10": false
+  },
+  {
+   "cell": "MGC_60_30",
+   "n_rows": 39,
+   "n_placebo_rows": 9,
+   "best_placebo_rank": 2,
+   "by_kind": {
+    "placebo_random": 2,
+    "placebo_shift": 24,
+    "placebo_shuffle": 3
+   },
+   "null_expected": 4.0,
+   "p_top10_under_null": 0.9527,
    "placebo_in_top10": true
   },
   {
    "cell": "MGC_60_90",
-   "n_rows": 128,
-   "n_placebo_rows": 17,
-   "best_placebo_rank": 2,
+   "n_rows": 121,
+   "n_placebo_rows": 10,
+   "best_placebo_rank": 24,
    "by_kind": {
-    "placebo_random": 2,
-    "placebo_shift": 39,
-    "placebo_shuffle": 10
+    "placebo_random": 24,
+    "placebo_shift": 41,
+    "placebo_shuffle": 40
    },
-   "null_expected": 7.17,
-   "p_top10_under_null": 0.7728,
-   "placebo_in_top10": true
+   "null_expected": 11.09,
+   "p_top10_under_null": 0.5926,
+   "placebo_in_top10": false
   },
   {
    "cell": "MGC_60_slice0",
-   "n_rows": 140,
-   "n_placebo_rows": 14,
+   "n_rows": 138,
+   "n_placebo_rows": 12,
    "best_placebo_rank": 6,
    "by_kind": {
-    "placebo_random": 33,
-    "placebo_shift": 6,
-    "placebo_shuffle": 35
+    "placebo_random": 15,
+    "placebo_shift": 20,
+    "placebo_shuffle": 6
    },
-   "null_expected": 9.4,
-   "p_top10_under_null": 0.6642,
+   "null_expected": 10.69,
+   "p_top10_under_null": 0.6103,
    "placebo_in_top10": true
   },
   {
    "cell": "MGC_60_slice1",
-   "n_rows": 99,
-   "n_placebo_rows": 13,
-   "best_placebo_rank": 8,
+   "n_rows": 97,
+   "n_placebo_rows": 10,
+   "best_placebo_rank": 7,
    "by_kind": {
-    "placebo_random": 8,
-    "placebo_shift": 87,
-    "placebo_shuffle": 11
+    "placebo_random": 17,
+    "placebo_shift": 9,
+    "placebo_shuffle": 7
    },
-   "null_expected": 7.14,
-   "p_top10_under_null": 0.7727,
+   "null_expected": 8.91,
+   "p_top10_under_null": 0.6819,
    "placebo_in_top10": true
   },
   {
    "cell": "MGC_60_slice2",
-   "n_rows": 146,
-   "n_placebo_rows": 18,
-   "best_placebo_rank": 1,
+   "n_rows": 141,
+   "n_placebo_rows": 13,
+   "best_placebo_rank": 5,
    "by_kind": {
-    "placebo_random": 1,
-    "placebo_shift": 73,
-    "placebo_shuffle": 7
+    "placebo_random": 80,
+    "placebo_shift": 44,
+    "placebo_shuffle": 5
    },
-   "null_expected": 7.74,
-   "p_top10_under_null": 0.7437,
+   "null_expected": 10.14,
+   "p_top10_under_null": 0.6326,
    "placebo_in_top10": true
   }
  ],
  "pooled_placebo_rank_uniformity": {
-  "n": 322,
+  "n": 265,
   "ks_vs_uniform": {
-   "d": 0.1629,
-   "p": 0.0,
-   "n": 322
+   "d": 0.0962,
+   "p": 0.0137,
+   "n": 265
   },
-  "mean_normalised_rank": 0.5664,
+  "mean_normalised_rank": 0.5337,
   "reading": "Under the project's standing null - no rule set here has an edge - the controls' normalised ranks should be uniform. Systematically high (near 1.0) would mean the matching handicaps them and every real row above them is flattered; systematically low would mean the reals are worse than noise."
  },
  "replication_disjoint_thirds": {
@@ -470,7 +470,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 5,
+     "rank": 4,
      "name": "momentum_delta_confirms_bar_macd_directional_range_position_",
      "id": "MGC-60m-1aff9c4f5e20",
      "n_full": 37,
@@ -490,7 +490,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 6,
+     "rank": 5,
      "name": "vwap_delta_confirms_bar_ema_fast_above_slow_range_position_e",
      "id": "MGC-60m-d7d0aa01bc51",
      "n_full": 26,
@@ -510,7 +510,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 7,
+     "rank": 6,
      "name": "fibonacci_cvd_directional_fib_shallow_retrace_price_above_em",
      "id": "MGC-60m-b5d87162e5f0",
      "n_full": 32,
@@ -530,7 +530,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 8,
+     "rank": 7,
      "name": "volume_profile_di_direction_range_position_extreme_stoch_dir",
      "id": "MGC-60m-198134f5622b",
      "n_full": 35,
@@ -550,7 +550,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 9,
+     "rank": 8,
      "name": "momentum_delta_confirms_bar_macd_directional_range_position_",
      "id": "MGC-60m-1116b5c6a2b8",
      "n_full": 32,
@@ -570,7 +570,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 10,
+     "rank": 9,
      "name": "fibonacci_cvd_directional_di_direction_fib_shallow_retrace_r",
      "id": "MGC-60m-5d8ed94e4f6d",
      "n_full": 32,
@@ -590,7 +590,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 11,
+     "rank": 10,
      "name": "momentum_ema_stack_mtf_strongly_aligned_range_position_extre",
      "id": "MGC-60m-8011ecd2cd98",
      "n_full": 23,
@@ -636,7 +636,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 2,
+     "rank": 3,
      "name": "vwap_di_direction_vwap_reclaim__f_vwap_proximity",
      "id": "MGC-240m-9dc42ff65c88",
      "n_full": 20,
@@ -696,7 +696,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 7,
+     "rank": 8,
      "name": "momentum_break_of_structure_cvd_directional_macd_directional",
      "id": "MGC-240m-d8af5fa250bf",
      "n_full": 36,
@@ -736,7 +736,7 @@
      "n_slices_traded": 2
     },
     {
-     "rank": 10,
+     "rank": 11,
      "name": "vwap_above_vwap_ema_fast_above_slow_range_position_extreme_r",
      "id": "MGC-240m-201109b09000",
      "n_full": 33,
@@ -756,7 +756,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 13,
+     "rank": 12,
      "name": "momentum_macd_directional_slope_directional",
      "id": "MGC-240m-3572f8567d3e",
      "n_full": 26,
@@ -796,7 +796,7 @@
      "n_slices_traded": 2
     },
     {
-     "rank": 15,
+     "rank": 16,
      "name": "vwap_di_direction_vwap_reclaim__f_no_imminent_release",
      "id": "MGC-240m-02ee130b38c3",
      "n_full": 22,
@@ -842,7 +842,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 4,
+     "rank": 2,
      "name": "momentum_imbalance_bar_price_above_ema50_rsi_directional__f_",
      "id": "MCL-60m-d8415e605e57",
      "n_full": 96,
@@ -862,7 +862,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 5,
+     "rank": 3,
      "name": "momentum_break_of_structure_ema_stack_regime_matches_directi",
      "id": "MCL-60m-3a9787714352",
      "n_full": 39,
@@ -882,7 +882,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 6,
+     "rank": 4,
      "name": "momentum_break_of_structure_ema_stack_regime_matches_directi",
      "id": "MCL-60m-b093bbbac64b",
      "n_full": 21,
@@ -902,7 +902,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 7,
+     "rank": 5,
      "name": "momentum_cvd_directional_macd_directional_mtf_aligned",
      "id": "MCL-60m-3b75cc2c36cb",
      "n_full": 70,
@@ -922,7 +922,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 8,
+     "rank": 6,
      "name": "multi_timeframe_delta_confirms_bar_mtf_aligned_structure_tre",
      "id": "MCL-60m-d0b85eafa9b3",
      "n_full": 39,
@@ -942,7 +942,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 9,
+     "rank": 7,
      "name": "breakout_break_of_structure_initial_balance_break_rsi_direct",
      "id": "MCL-60m-0f098a8bb6e1",
      "n_full": 20,
@@ -962,7 +962,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 10,
+     "rank": 8,
      "name": "momentum_di_direction_fvg_nearby_macd_directional__f_outside",
      "id": "MCL-60m-4796eda0e4fe",
      "n_full": 20,
@@ -982,7 +982,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 12,
+     "rank": 9,
      "name": "momentum_imbalance_bar_price_above_ema50_rsi_directional__f_",
      "id": "MCL-60m-237da30fd0c0",
      "n_full": 116,
@@ -1002,7 +1002,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 13,
+     "rank": 10,
      "name": "momentum_mtf_strongly_aligned_price_above_ema200_range_posit",
      "id": "MCL-60m-c36b830a503e",
      "n_full": 25,
@@ -1208,7 +1208,7 @@
      "n_slices_traded": 3
     },
     {
-     "rank": 11,
+     "rank": 12,
      "name": "momentum_break_of_structure_ema_fast_above_slow_imbalance_pu",
      "id": "MCL-240m-464d26328c3a",
      "n_full": 30,
@@ -1235,14 +1235,31 @@
    "cell": "MCL_240_180",
    "bars": 760,
    "screened": 3455,
-   "rows": 21,
+   "rows": 22,
    "free_t": 4.037,
    "clear_free_t": 0,
-   "positive": 11,
-   "best_placebo_rank": 6,
+   "positive": 13,
+   "best_placebo_rank": 1,
    "top10": [
     {
      "rank": 1,
+     "name": "placebo_shuffle__vwap_break_of_structure_delta_confirms_bar_",
+     "group": "VWAP",
+     "n": 25,
+     "exp": 0.40675,
+     "t": 1.264,
+     "win": 0.4,
+     "wilson": [
+      0.234,
+      0.5926
+     ],
+     "payoff": 2.743,
+     "maxdd": 4.405,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shuffle"
+    },
+    {
+     "rank": 2,
      "name": "momentum_delta_confirms_bar_rsi_directional_slope_directiona",
      "group": "MOMENTUM",
      "n": 29,
@@ -1259,7 +1276,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 2,
+     "rank": 3,
      "name": "vwap_above_vwap_delta_confirms_bar_ema_stack_macd_hist_direc",
      "group": "VWAP",
      "n": 30,
@@ -1276,7 +1293,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 3,
+     "rank": 4,
      "name": "vwap_above_vwap_delta_confirms_bar_di_direction_macd_directi",
      "group": "VWAP",
      "n": 43,
@@ -1293,7 +1310,24 @@
      "placebo_kind": null
     },
     {
-     "rank": 4,
+     "rank": 5,
+     "name": "placebo_shuffle__vwap_above_vwap_cvd_directional_ema_fast_ab",
+     "group": "VWAP",
+     "n": 53,
+     "exp": 0.17063,
+     "t": 0.941,
+     "win": 0.3774,
+     "wilson": [
+      0.2594,
+      0.5119
+     ],
+     "payoff": 2.2402,
+     "maxdd": 7.956,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shuffle"
+    },
+    {
+     "rank": 6,
      "name": "momentum_break_of_structure_delta_confirms_bar_rsi_direction",
      "group": "MOMENTUM",
      "n": 31,
@@ -1310,7 +1344,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 5,
+     "rank": 7,
      "name": "momentum_imbalance_pullback_macd_directional_price_above_ema",
      "group": "MOMENTUM",
      "n": 32,
@@ -1327,24 +1361,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 6,
-     "name": "placebo_shuffle__vwap_above_vwap_cvd_directional_ema_fast_ab",
-     "group": "VWAP",
-     "n": 55,
-     "exp": 0.15506,
-     "t": 0.875,
-     "win": 0.4,
-     "wilson": [
-      0.2812,
-      0.5319
-     ],
-     "payoff": 1.9633,
-     "maxdd": 5.21,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
-     "rank": 7,
+     "rank": 8,
      "name": "vwap_above_vwap_cvd_directional_ema_fast_above_slow_rsi_dire",
      "group": "VWAP",
      "n": 52,
@@ -1361,7 +1378,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 8,
+     "rank": 9,
      "name": "momentum_delta_confirms_bar_rsi_directional_slope_directiona",
      "group": "MOMENTUM",
      "n": 62,
@@ -1378,7 +1395,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 9,
+     "rank": 10,
      "name": "momentum_imbalance_pullback_macd_directional_price_above_ema",
      "group": "MOMENTUM",
      "n": 20,
@@ -1393,23 +1410,6 @@
      "maxdd": 5.408,
      "is_placebo": false,
      "placebo_kind": null
-    },
-    {
-     "rank": 10,
-     "name": "placebo_shuffle__momentum_delta_confirms_bar_rsi_directional",
-     "group": "MOMENTUM",
-     "n": 66,
-     "exp": 0.04366,
-     "t": 0.268,
-     "win": 0.3939,
-     "wilson": [
-      0.285,
-      0.5145
-     ],
-     "payoff": 1.6574,
-     "maxdd": 10.735,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
     }
    ]
   },
@@ -1417,10 +1417,10 @@
    "cell": "MCL_240_274",
    "bars": 1087,
    "screened": 3455,
-   "rows": 45,
+   "rows": 47,
    "free_t": 4.037,
    "clear_free_t": 0,
-   "positive": 36,
+   "positive": 39,
    "best_placebo_rank": 8,
    "top10": [
     {
@@ -1544,20 +1544,20 @@
     },
     {
      "rank": 8,
-     "name": "placebo_shuffle__momentum_macd_hist_direction_price_above_em",
+     "name": "placebo_shift__momentum_di_direction_macd_directional_mtf_al",
      "group": "MOMENTUM",
-     "n": 24,
-     "exp": 0.55325,
-     "t": 1.134,
-     "win": 0.4167,
+     "n": 31,
+     "exp": 0.49855,
+     "t": 1.938,
+     "win": 0.5161,
      "wilson": [
-      0.2447,
-      0.6117
+      0.3484,
+      0.6803
      ],
-     "payoff": 2.8505,
-     "maxdd": 2.448,
+     "payoff": 2.1738,
+     "maxdd": 3.112,
      "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
+     "placebo_kind": "placebo_shift"
     },
     {
      "rank": 9,
@@ -1613,7 +1613,7 @@
    "rows": 17,
    "free_t": 4.037,
    "clear_free_t": 0,
-   "positive": 11,
+   "positive": 13,
    "best_placebo_rank": 1,
    "top10": [
     {
@@ -1652,23 +1652,6 @@
     },
     {
      "rank": 3,
-     "name": "placebo_shuffle__vwap_above_vwap_delta_confirms_bar_di_direc",
-     "group": "VWAP",
-     "n": 31,
-     "exp": 0.36055,
-     "t": 1.6,
-     "win": 0.5161,
-     "wilson": [
-      0.3484,
-      0.6803
-     ],
-     "payoff": 1.7832,
-     "maxdd": 3.648,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
-     "rank": 4,
      "name": "placebo_random__momentum_break_of_structure_delta_confirms_b",
      "group": "MOMENTUM",
      "n": 32,
@@ -1685,7 +1668,7 @@
      "placebo_kind": "placebo_random"
     },
     {
-     "rank": 5,
+     "rank": 4,
      "name": "momentum_break_of_structure_delta_confirms_bar_rsi_direction",
      "group": "MOMENTUM",
      "n": 21,
@@ -1702,7 +1685,58 @@
      "placebo_kind": null
     },
     {
+     "rank": 5,
+     "name": "placebo_shuffle__vwap_above_vwap_delta_confirms_bar_di_direc",
+     "group": "VWAP",
+     "n": 32,
+     "exp": 0.28211,
+     "t": 1.218,
+     "win": 0.5,
+     "wilson": [
+      0.3363,
+      0.6637
+     ],
+     "payoff": 1.6204,
+     "maxdd": 3.648,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shuffle"
+    },
+    {
      "rank": 6,
+     "name": "placebo_shuffle__momentum_delta_confirms_bar_rsi_directional",
+     "group": "MOMENTUM",
+     "n": 30,
+     "exp": 0.26583,
+     "t": 1.062,
+     "win": 0.5,
+     "wilson": [
+      0.3315,
+      0.6685
+     ],
+     "payoff": 1.5738,
+     "maxdd": 5.25,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shuffle"
+    },
+    {
+     "rank": 7,
+     "name": "placebo_random__momentum_delta_confirms_bar_rsi_directional_",
+     "group": "MOMENTUM",
+     "n": 37,
+     "exp": 0.21604,
+     "t": 1.023,
+     "win": 0.4324,
+     "wilson": [
+      0.2867,
+      0.5909
+     ],
+     "payoff": 1.9273,
+     "maxdd": 4.636,
+     "is_placebo": true,
+     "placebo_kind": "placebo_random"
+    },
+    {
+     "rank": 8,
      "name": "vwap_above_vwap_delta_confirms_bar_di_direction_macd_directi",
      "group": "VWAP",
      "n": 29,
@@ -1719,7 +1753,24 @@
      "placebo_kind": null
     },
     {
-     "rank": 7,
+     "rank": 9,
+     "name": "placebo_random__momentum_delta_confirms_bar_rsi_directional_",
+     "group": "MOMENTUM",
+     "n": 48,
+     "exp": 0.16069,
+     "t": 0.832,
+     "win": 0.4167,
+     "wilson": [
+      0.2885,
+      0.5572
+     ],
+     "payoff": 1.8271,
+     "maxdd": 9.127,
+     "is_placebo": true,
+     "placebo_kind": "placebo_random"
+    },
+    {
+     "rank": 10,
      "name": "momentum_delta_confirms_bar_rsi_directional_slope_directiona",
      "group": "MOMENTUM",
      "n": 47,
@@ -1734,57 +1785,6 @@
      "maxdd": 7.571,
      "is_placebo": false,
      "placebo_kind": null
-    },
-    {
-     "rank": 8,
-     "name": "placebo_random__momentum_delta_confirms_bar_rsi_directional_",
-     "group": "MOMENTUM",
-     "n": 50,
-     "exp": 0.10952,
-     "t": 0.61,
-     "win": 0.42,
-     "wilson": [
-      0.2937,
-      0.5577
-     ],
-     "payoff": 1.6763,
-     "maxdd": 6.7,
-     "is_placebo": true,
-     "placebo_kind": "placebo_random"
-    },
-    {
-     "rank": 9,
-     "name": "placebo_shuffle__momentum_delta_confirms_bar_rsi_directional",
-     "group": "MOMENTUM",
-     "n": 52,
-     "exp": 0.07641,
-     "t": 0.427,
-     "win": 0.3846,
-     "wilson": [
-      0.2647,
-      0.5204
-     ],
-     "payoff": 1.8303,
-     "maxdd": 10.208,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
-     "rank": 10,
-     "name": "placebo_shift__momentum_break_of_structure_delta_confirms_ba",
-     "group": "MOMENTUM",
-     "n": 28,
-     "exp": 0.03599,
-     "t": 0.131,
-     "win": 0.4286,
-     "wilson": [
-      0.2651,
-      0.6093
-     ],
-     "payoff": 1.4074,
-     "maxdd": 6.841,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shift"
     }
    ]
   },
@@ -1834,23 +1834,6 @@
     },
     {
      "rank": 3,
-     "name": "placebo_shuffle__vwap_above_vwap_cvd_directional_ema_fast_ab",
-     "group": "VWAP",
-     "n": 37,
-     "exp": -0.06035,
-     "t": -0.259,
-     "win": 0.3243,
-     "wilson": [
-      0.1963,
-      0.4854
-     ],
-     "payoff": 1.8854,
-     "maxdd": 6.677,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
-     "rank": 4,
      "name": "placebo_shuffle__vwap_above_vwap_delta_confirms_bar_di_direc",
      "group": "VWAP",
      "n": 28,
@@ -1867,24 +1850,24 @@
      "placebo_kind": "placebo_shuffle"
     },
     {
-     "rank": 5,
-     "name": "placebo_shuffle__momentum_delta_confirms_bar_rsi_directional",
+     "rank": 4,
+     "name": "placebo_random__momentum_delta_confirms_bar_rsi_directional_",
      "group": "MOMENTUM",
-     "n": 38,
-     "exp": -0.12172,
-     "t": -0.657,
-     "win": 0.3947,
+     "n": 32,
+     "exp": -0.12134,
+     "t": -0.651,
+     "win": 0.375,
      "wilson": [
-      0.256,
-      0.5528
+      0.2293,
+      0.5475
      ],
-     "payoff": 1.2063,
-     "maxdd": 10.324,
+     "payoff": 1.266,
+     "maxdd": 8.126,
      "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
+     "placebo_kind": "placebo_random"
     },
     {
-     "rank": 6,
+     "rank": 5,
      "name": "placebo_random__momentum_imbalance_pullback_macd_directional",
      "group": "MOMENTUM",
      "n": 34,
@@ -1901,7 +1884,7 @@
      "placebo_kind": "placebo_random"
     },
     {
-     "rank": 7,
+     "rank": 6,
      "name": "placebo_random__vwap_above_vwap_delta_confirms_bar_di_direct",
      "group": "VWAP",
      "n": 24,
@@ -1918,7 +1901,7 @@
      "placebo_kind": "placebo_random"
     },
     {
-     "rank": 8,
+     "rank": 7,
      "name": "placebo_shift__vwap_above_vwap_delta_confirms_bar_di_directi",
      "group": "VWAP",
      "n": 24,
@@ -1935,19 +1918,36 @@
      "placebo_kind": "placebo_shift"
     },
     {
+     "rank": 8,
+     "name": "placebo_shuffle__momentum_delta_confirms_bar_rsi_directional",
+     "group": "MOMENTUM",
+     "n": 36,
+     "exp": -0.19564,
+     "t": -1.009,
+     "win": 0.3611,
+     "wilson": [
+      0.2248,
+      0.5243
+     ],
+     "payoff": 1.2189,
+     "maxdd": 10.174,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shuffle"
+    },
+    {
      "rank": 9,
      "name": "placebo_random__vwap_above_vwap_cvd_directional_ema_fast_abo",
      "group": "VWAP",
-     "n": 39,
-     "exp": -0.20464,
-     "t": -1.059,
-     "win": 0.2564,
+     "n": 38,
+     "exp": -0.21957,
+     "t": -1.123,
+     "win": 0.2895,
      "wilson": [
-      0.1457,
-      0.4108
+      0.17,
+      0.4476
      ],
-     "payoff": 1.967,
-     "maxdd": 9.085,
+     "payoff": 1.6327,
+     "maxdd": 10.439,
      "is_placebo": true,
      "placebo_kind": "placebo_random"
     },
@@ -1974,48 +1974,31 @@
    "cell": "MCL_240_slice1",
    "bars": 442,
    "screened": 3455,
-   "rows": 18,
+   "rows": 17,
    "free_t": 4.037,
    "clear_free_t": 0,
-   "positive": 12,
+   "positive": 10,
    "best_placebo_rank": 1,
    "top10": [
     {
      "rank": 1,
-     "name": "placebo_random__momentum_break_of_structure_delta_confirms_b",
-     "group": "MOMENTUM",
-     "n": 28,
-     "exp": 0.39451,
-     "t": 1.745,
-     "win": 0.5357,
+     "name": "placebo_random__vwap_above_vwap_delta_confirms_bar_di_direct",
+     "group": "VWAP",
+     "n": 26,
+     "exp": 0.5155,
+     "t": 1.626,
+     "win": 0.5769,
      "wilson": [
-      0.3581,
-      0.7047
+      0.3895,
+      0.7446
      ],
-     "payoff": 1.938,
-     "maxdd": 3.034,
+     "payoff": 2.0258,
+     "maxdd": 3.463,
      "is_placebo": true,
      "placebo_kind": "placebo_random"
     },
     {
      "rank": 2,
-     "name": "placebo_shuffle__momentum_break_of_structure_delta_confirms_",
-     "group": "MOMENTUM",
-     "n": 21,
-     "exp": 0.35788,
-     "t": 0.904,
-     "win": 0.4286,
-     "wilson": [
-      0.2447,
-      0.6345
-     ],
-     "payoff": 2.386,
-     "maxdd": 5.2,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
-     "rank": 3,
      "name": "vwap_above_vwap_delta_confirms_bar_ema_stack_macd_hist_direc",
      "group": "VWAP",
      "n": 20,
@@ -2032,7 +2015,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 4,
+     "rank": 3,
      "name": "placebo_shift__vwap_above_vwap_delta_confirms_bar_ema_stack_",
      "group": "VWAP",
      "n": 20,
@@ -2049,21 +2032,38 @@
      "placebo_kind": "placebo_shift"
     },
     {
-     "rank": 5,
-     "name": "placebo_shuffle__vwap_above_vwap_delta_confirms_bar_ema_stac",
+     "rank": 4,
+     "name": "placebo_random__vwap_above_vwap_cvd_directional_ema_fast_abo",
      "group": "VWAP",
-     "n": 23,
-     "exp": 0.32225,
-     "t": 1.178,
-     "win": 0.5217,
+     "n": 39,
+     "exp": 0.29705,
+     "t": 0.944,
+     "win": 0.359,
      "wilson": [
-      0.3296,
-      0.7076
+      0.2274,
+      0.5158
      ],
-     "payoff": 1.6459,
-     "maxdd": 2.779,
+     "payoff": 2.8283,
+     "maxdd": 7.079,
      "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
+     "placebo_kind": "placebo_random"
+    },
+    {
+     "rank": 5,
+     "name": "placebo_shift__vwap_above_vwap_delta_confirms_bar_di_directi",
+     "group": "VWAP",
+     "n": 27,
+     "exp": 0.29522,
+     "t": 0.899,
+     "win": 0.4815,
+     "wilson": [
+      0.3074,
+      0.6601
+     ],
+     "payoff": 1.7266,
+     "maxdd": 7.657,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shift"
     },
     {
      "rank": 6,
@@ -2084,23 +2084,6 @@
     },
     {
      "rank": 7,
-     "name": "placebo_shuffle__momentum_delta_confirms_bar_rsi_directional",
-     "group": "MOMENTUM",
-     "n": 47,
-     "exp": 0.16865,
-     "t": 0.752,
-     "win": 0.4468,
-     "wilson": [
-      0.3141,
-      0.5875
-     ],
-     "payoff": 1.6378,
-     "maxdd": 6.129,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
-     "rank": 8,
      "name": "vwap_above_vwap_cvd_directional_ema_fast_above_slow_rsi_dire",
      "group": "VWAP",
      "n": 36,
@@ -2115,6 +2098,23 @@
      "maxdd": 6.916,
      "is_placebo": false,
      "placebo_kind": null
+    },
+    {
+     "rank": 8,
+     "name": "placebo_shuffle__vwap_above_vwap_delta_confirms_bar_di_direc",
+     "group": "VWAP",
+     "n": 27,
+     "exp": 0.11246,
+     "t": 0.427,
+     "win": 0.4815,
+     "wilson": [
+      0.3074,
+      0.6601
+     ],
+     "payoff": 1.3067,
+     "maxdd": 4.074,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shuffle"
     },
     {
      "rank": 9,
@@ -2135,20 +2135,20 @@
     },
     {
      "rank": 10,
-     "name": "placebo_random__vwap_above_vwap_cvd_directional_ema_fast_abo",
+     "name": "placebo_shuffle__vwap_above_vwap_cvd_directional_ema_fast_ab",
      "group": "VWAP",
-     "n": 37,
-     "exp": 0.03271,
-     "t": 0.1,
-     "win": 0.4595,
+     "n": 41,
+     "exp": 9e-05,
+     "t": 0.0,
+     "win": 0.2927,
      "wilson": [
-      0.3104,
-      0.6162
+      0.1761,
+      0.4448
      ],
-     "payoff": 1.2321,
-     "maxdd": 8.647,
+     "payoff": 2.4171,
+     "maxdd": 7.98,
      "is_placebo": true,
-     "placebo_kind": "placebo_random"
+     "placebo_kind": "placebo_shuffle"
     }
    ]
   },
@@ -2159,8 +2159,8 @@
    "rows": 19,
    "free_t": 4.037,
    "clear_free_t": 0,
-   "positive": 12,
-   "best_placebo_rank": 3,
+   "positive": 11,
+   "best_placebo_rank": 2,
    "top10": [
     {
      "rank": 1,
@@ -2181,6 +2181,23 @@
     },
     {
      "rank": 2,
+     "name": "placebo_random__vwap_above_vwap_cvd_directional_ema_fast_abo",
+     "group": "VWAP",
+     "n": 39,
+     "exp": 0.27576,
+     "t": 1.222,
+     "win": 0.4103,
+     "wilson": [
+      0.2708,
+      0.5658
+     ],
+     "payoff": 2.2593,
+     "maxdd": 3.111,
+     "is_placebo": true,
+     "placebo_kind": "placebo_random"
+    },
+    {
+     "rank": 3,
      "name": "momentum_break_of_structure_delta_confirms_bar_rsi_direction",
      "group": "MOMENTUM",
      "n": 26,
@@ -2197,24 +2214,24 @@
      "placebo_kind": null
     },
     {
-     "rank": 3,
-     "name": "placebo_random__vwap_break_of_structure_delta_confirms_bar_s",
-     "group": "VWAP",
-     "n": 26,
-     "exp": 0.1443,
-     "t": 0.433,
-     "win": 0.3846,
+     "rank": 4,
+     "name": "placebo_shuffle__momentum_break_of_structure_delta_confirms_",
+     "group": "MOMENTUM",
+     "n": 29,
+     "exp": 0.15144,
+     "t": 0.583,
+     "win": 0.4828,
      "wilson": [
-      0.2243,
-      0.5747
+      0.3139,
+      0.6557
      ],
-     "payoff": 1.9547,
-     "maxdd": 5.241,
+     "payoff": 1.373,
+     "maxdd": 5.673,
      "is_placebo": true,
-     "placebo_kind": "placebo_random"
+     "placebo_kind": "placebo_shuffle"
     },
     {
-     "rank": 4,
+     "rank": 5,
      "name": "vwap_above_vwap_delta_confirms_bar_ema_stack_macd_hist_direc",
      "group": "VWAP",
      "n": 23,
@@ -2231,7 +2248,41 @@
      "placebo_kind": null
     },
     {
-     "rank": 5,
+     "rank": 6,
+     "name": "placebo_shuffle__momentum_delta_confirms_bar_rsi_directional",
+     "group": "MOMENTUM",
+     "n": 32,
+     "exp": 0.12622,
+     "t": 0.511,
+     "win": 0.4688,
+     "wilson": [
+      0.3087,
+      0.6355
+     ],
+     "payoff": 1.3885,
+     "maxdd": 5.283,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shuffle"
+    },
+    {
+     "rank": 7,
+     "name": "placebo_random__vwap_break_of_structure_delta_confirms_bar_s",
+     "group": "VWAP",
+     "n": 27,
+     "exp": 0.10859,
+     "t": 0.343,
+     "win": 0.3704,
+     "wilson": [
+      0.2153,
+      0.5577
+     ],
+     "payoff": 1.9902,
+     "maxdd": 7.957,
+     "is_placebo": true,
+     "placebo_kind": "placebo_random"
+    },
+    {
+     "rank": 8,
      "name": "vwap_above_vwap_delta_confirms_bar_di_direction_macd_directi",
      "group": "VWAP",
      "n": 33,
@@ -2248,7 +2299,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 6,
+     "rank": 9,
      "name": "vwap_above_vwap_cvd_directional_ema_fast_above_slow_rsi_dire",
      "group": "VWAP",
      "n": 43,
@@ -2265,41 +2316,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 7,
-     "name": "placebo_random__vwap_above_vwap_cvd_directional_ema_fast_abo",
-     "group": "VWAP",
-     "n": 43,
-     "exp": 0.0977,
-     "t": 0.484,
-     "win": 0.3721,
-     "wilson": [
-      0.2438,
-      0.5214
-     ],
-     "payoff": 1.9993,
-     "maxdd": 5.704,
-     "is_placebo": true,
-     "placebo_kind": "placebo_random"
-    },
-    {
-     "rank": 8,
-     "name": "placebo_shuffle__momentum_delta_confirms_bar_rsi_directional",
-     "group": "MOMENTUM",
-     "n": 53,
-     "exp": 0.07532,
-     "t": 0.442,
-     "win": 0.434,
-     "wilson": [
-      0.3095,
-      0.5673
-     ],
-     "payoff": 1.5029,
-     "maxdd": 7.284,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
-     "rank": 9,
+     "rank": 10,
      "name": "placebo_shift__momentum_break_of_structure_delta_confirms_ba",
      "group": "MOMENTUM",
      "n": 30,
@@ -2314,89 +2331,21 @@
      "maxdd": 6.841,
      "is_placebo": true,
      "placebo_kind": "placebo_shift"
-    },
-    {
-     "rank": 10,
-     "name": "momentum_delta_confirms_bar_rsi_directional_slope_directiona",
-     "group": "MOMENTUM",
-     "n": 56,
-     "exp": 0.06338,
-     "t": 0.351,
-     "win": 0.4464,
-     "wilson": [
-      0.3239,
-      0.5759
-     ],
-     "payoff": 1.376,
-     "maxdd": 9.703,
-     "is_placebo": false,
-     "placebo_kind": null
     }
    ]
   },
   {
    "cell": "MCL_60_180",
    "bars": 2820,
-   "screened": 4761,
-   "rows": 169,
+   "screened": 4749,
+   "rows": 165,
    "free_t": 4.115,
    "clear_free_t": 0,
-   "positive": 81,
-   "best_placebo_rank": 1,
+   "positive": 78,
+   "best_placebo_rank": 3,
    "top10": [
     {
      "rank": 1,
-     "name": "placebo_shuffle__multi_timeframe_break_of_structure_delta_co",
-     "group": "MULTI_TIMEFRAME",
-     "n": 20,
-     "exp": 0.59933,
-     "t": 1.715,
-     "win": 0.55,
-     "wilson": [
-      0.3421,
-      0.7418
-     ],
-     "payoff": 2.0631,
-     "maxdd": 5.463,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
-     "rank": 2,
-     "name": "placebo_shuffle__momentum_imbalance_pullback_mtf_strongly_al",
-     "group": "MOMENTUM",
-     "n": 21,
-     "exp": 0.44955,
-     "t": 1.588,
-     "win": 0.5714,
-     "wilson": [
-      0.3655,
-      0.7553
-     ],
-     "payoff": 1.6984,
-     "maxdd": 2.606,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
-     "rank": 3,
-     "name": "placebo_random__vwap_above_vwap_break_of_structure_price_abo",
-     "group": "VWAP",
-     "n": 46,
-     "exp": 0.41336,
-     "t": 1.052,
-     "win": 0.4348,
-     "wilson": [
-      0.3021,
-      0.5775
-     ],
-     "payoff": 2.3639,
-     "maxdd": 5.094,
-     "is_placebo": true,
-     "placebo_kind": "placebo_random"
-    },
-    {
-     "rank": 4,
      "name": "momentum_break_of_structure_ema_stack_regime_matches_directi",
      "group": "MOMENTUM",
      "n": 29,
@@ -2413,7 +2362,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 5,
+     "rank": 2,
      "name": "momentum_cvd_directional_stoch_directional_structure_trend__",
      "group": "MOMENTUM",
      "n": 39,
@@ -2430,7 +2379,24 @@
      "placebo_kind": null
     },
     {
-     "rank": 6,
+     "rank": 3,
+     "name": "placebo_shuffle__multi_timeframe_delta_confirms_bar_mtf_alig",
+     "group": "MULTI_TIMEFRAME",
+     "n": 34,
+     "exp": 0.38089,
+     "t": 1.901,
+     "win": 0.5882,
+     "wilson": [
+      0.4222,
+      0.7363
+     ],
+     "payoff": 1.4788,
+     "maxdd": 4.259,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shuffle"
+    },
+    {
+     "rank": 4,
      "name": "momentum_mtf_strongly_aligned_price_above_ema200_range_posit",
      "group": "MOMENTUM",
      "n": 20,
@@ -2447,24 +2413,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 7,
-     "name": "placebo_random__trend_break_of_structure_ema_stack_imbalance",
-     "group": "TREND",
-     "n": 22,
-     "exp": 0.34795,
-     "t": 1.067,
-     "win": 0.4545,
-     "wilson": [
-      0.2692,
-      0.6534
-     ],
-     "payoff": 1.9861,
-     "maxdd": 9.373,
-     "is_placebo": true,
-     "placebo_kind": "placebo_random"
-    },
-    {
-     "rank": 8,
+     "rank": 5,
      "name": "volume_profile_delta_confirms_bar_price_above_ema200_value_a",
      "group": "VOLUME_PROFILE",
      "n": 26,
@@ -2481,7 +2430,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 9,
+     "rank": 6,
      "name": "momentum_cvd_directional_macd_directional_mtf_aligned",
      "group": "MOMENTUM",
      "n": 55,
@@ -2498,7 +2447,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 10,
+     "rank": 7,
      "name": "multi_timeframe_delta_confirms_bar_mtf_aligned_structure_tre",
      "group": "MULTI_TIMEFRAME",
      "n": 32,
@@ -2513,18 +2462,69 @@
      "maxdd": 6.761,
      "is_placebo": false,
      "placebo_kind": null
+    },
+    {
+     "rank": 8,
+     "name": "momentum_cvd_directional_stoch_directional_structure_trend__",
+     "group": "MOMENTUM",
+     "n": 21,
+     "exp": 0.27461,
+     "t": 1.12,
+     "win": 0.5714,
+     "wilson": [
+      0.3655,
+      0.7553
+     ],
+     "payoff": 1.339,
+     "maxdd": 3.131,
+     "is_placebo": false,
+     "placebo_kind": null
+    },
+    {
+     "rank": 9,
+     "name": "multi_timeframe_break_of_structure_delta_confirms_bar_mtf_al",
+     "group": "MULTI_TIMEFRAME",
+     "n": 20,
+     "exp": 0.23519,
+     "t": 0.653,
+     "win": 0.4,
+     "wilson": [
+      0.2188,
+      0.6134
+     ],
+     "payoff": 2.1387,
+     "maxdd": 5.512,
+     "is_placebo": false,
+     "placebo_kind": null
+    },
+    {
+     "rank": 10,
+     "name": "momentum_cvd_directional_stoch_directional_structure_trend__",
+     "group": "MOMENTUM",
+     "n": 84,
+     "exp": 0.21084,
+     "t": 1.586,
+     "win": 0.5119,
+     "wilson": [
+      0.4068,
+      0.6159
+     ],
+     "payoff": 1.4124,
+     "maxdd": 5.231,
+     "is_placebo": false,
+     "placebo_kind": null
     }
    ]
   },
   {
    "cell": "MCL_60_274",
    "bars": 3893,
-   "screened": 4767,
-   "rows": 207,
-   "free_t": 4.116,
+   "screened": 4755,
+   "rows": 205,
+   "free_t": 4.115,
    "clear_free_t": 0,
-   "positive": 81,
-   "best_placebo_rank": 2,
+   "positive": 77,
+   "best_placebo_rank": 55,
    "top10": [
     {
      "rank": 1,
@@ -2545,40 +2545,6 @@
     },
     {
      "rank": 2,
-     "name": "placebo_shuffle__liquidity_above_vwap_break_of_structure_imb",
-     "group": "LIQUIDITY",
-     "n": 21,
-     "exp": 0.37347,
-     "t": 1.54,
-     "win": 0.619,
-     "wilson": [
-      0.4088,
-      0.7925
-     ],
-     "payoff": 1.5253,
-     "maxdd": 2.022,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
-     "rank": 3,
-     "name": "placebo_shuffle__breakout_break_of_structure_initial_balance",
-     "group": "BREAKOUT",
-     "n": 24,
-     "exp": 0.33657,
-     "t": 1.043,
-     "win": 0.375,
-     "wilson": [
-      0.2116,
-      0.5729
-     ],
-     "payoff": 2.8957,
-     "maxdd": 3.602,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
-     "rank": 4,
      "name": "momentum_imbalance_bar_price_above_ema50_rsi_directional__f_",
      "group": "MOMENTUM",
      "n": 96,
@@ -2595,7 +2561,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 5,
+     "rank": 3,
      "name": "momentum_break_of_structure_ema_stack_regime_matches_directi",
      "group": "MOMENTUM",
      "n": 39,
@@ -2612,7 +2578,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 6,
+     "rank": 4,
      "name": "momentum_break_of_structure_ema_stack_regime_matches_directi",
      "group": "MOMENTUM",
      "n": 21,
@@ -2629,7 +2595,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 7,
+     "rank": 5,
      "name": "momentum_cvd_directional_macd_directional_mtf_aligned",
      "group": "MOMENTUM",
      "n": 70,
@@ -2646,7 +2612,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 8,
+     "rank": 6,
      "name": "multi_timeframe_delta_confirms_bar_mtf_aligned_structure_tre",
      "group": "MULTI_TIMEFRAME",
      "n": 39,
@@ -2663,7 +2629,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 9,
+     "rank": 7,
      "name": "breakout_break_of_structure_initial_balance_break_rsi_direct",
      "group": "BREAKOUT",
      "n": 20,
@@ -2680,7 +2646,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 10,
+     "rank": 8,
      "name": "momentum_di_direction_fvg_nearby_macd_directional__f_outside",
      "group": "MOMENTUM",
      "n": 20,
@@ -2695,6 +2661,40 @@
      "maxdd": 5.503,
      "is_placebo": false,
      "placebo_kind": null
+    },
+    {
+     "rank": 9,
+     "name": "momentum_imbalance_bar_price_above_ema50_rsi_directional__f_",
+     "group": "MOMENTUM",
+     "n": 116,
+     "exp": 0.2386,
+     "t": 0.696,
+     "win": 0.4655,
+     "wilson": [
+      0.3773,
+      0.5559
+     ],
+     "payoff": 1.8209,
+     "maxdd": 12.124,
+     "is_placebo": false,
+     "placebo_kind": null
+    },
+    {
+     "rank": 10,
+     "name": "momentum_mtf_strongly_aligned_price_above_ema200_range_posit",
+     "group": "MOMENTUM",
+     "n": 25,
+     "exp": 0.23678,
+     "t": 1.039,
+     "win": 0.56,
+     "wilson": [
+      0.3707,
+      0.7333
+     ],
+     "payoff": 1.2749,
+     "maxdd": 2.123,
+     "is_placebo": false,
+     "placebo_kind": null
     }
    ]
   },
@@ -2705,45 +2705,28 @@
    "rows": 37,
    "free_t": 4.115,
    "clear_free_t": 0,
-   "positive": 25,
+   "positive": 21,
    "best_placebo_rank": 1,
    "top10": [
     {
      "rank": 1,
-     "name": "placebo_random__volume_profile_delta_confirms_bar_macd_hist_",
-     "group": "VOLUME_PROFILE",
-     "n": 39,
-     "exp": 0.35114,
-     "t": 2.02,
-     "win": 0.6154,
+     "name": "placebo_shift__multi_timeframe_ema_stack_mtf_strongly_aligne",
+     "group": "MULTI_TIMEFRAME",
+     "n": 23,
+     "exp": 0.44479,
+     "t": 1.737,
+     "win": 0.6522,
      "wilson": [
-      0.459,
-      0.7511
+      0.4489,
+      0.8119
      ],
-     "payoff": 1.6457,
-     "maxdd": 2.769,
+     "payoff": 1.8148,
+     "maxdd": 2.133,
      "is_placebo": true,
-     "placebo_kind": "placebo_random"
+     "placebo_kind": "placebo_shift"
     },
     {
      "rank": 2,
-     "name": "placebo_shuffle__volume_profile_delta_confirms_bar_macd_hist",
-     "group": "VOLUME_PROFILE",
-     "n": 25,
-     "exp": 0.25326,
-     "t": 1.351,
-     "win": 0.64,
-     "wilson": [
-      0.4452,
-      0.7975
-     ],
-     "payoff": 1.1379,
-     "maxdd": 2.528,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
-     "rank": 3,
      "name": "vwap_above_vwap_ema_stack_range_position_extreme__f_no_immin",
      "group": "VWAP",
      "n": 22,
@@ -2760,7 +2743,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 4,
+     "rank": 3,
      "name": "vwap_above_vwap_delta_confirms_bar_price_above_ema200_stoch_",
      "group": "VWAP",
      "n": 20,
@@ -2777,7 +2760,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 5,
+     "rank": 4,
      "name": "multi_timeframe_break_of_structure_mtf_strongly_aligned_pric",
      "group": "MULTI_TIMEFRAME",
      "n": 22,
@@ -2794,7 +2777,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 6,
+     "rank": 5,
      "name": "volume_profile_delta_confirms_bar_rsi_directional_value_area",
      "group": "VOLUME_PROFILE",
      "n": 38,
@@ -2811,24 +2794,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 7,
-     "name": "placebo_shuffle__multi_timeframe_break_of_structure_mtf_stro",
-     "group": "MULTI_TIMEFRAME",
-     "n": 22,
-     "exp": 0.13527,
-     "t": 1.278,
-     "win": 0.5455,
-     "wilson": [
-      0.3466,
-      0.7308
-     ],
-     "payoff": 2.4372,
-     "maxdd": 0.446,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
-     "rank": 8,
+     "rank": 6,
      "name": "multi_timeframe_mtf_strongly_aligned_structure_trend__f_adx_",
      "group": "MULTI_TIMEFRAME",
      "n": 26,
@@ -2845,24 +2811,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 9,
-     "name": "placebo_shift__multi_timeframe_break_of_structure_mtf_strong",
-     "group": "MULTI_TIMEFRAME",
-     "n": 21,
-     "exp": 0.1025,
-     "t": 0.816,
-     "win": 0.6667,
-     "wilson": [
-      0.4537,
-      0.8281
-     ],
-     "payoff": 0.932,
-     "maxdd": 1.027,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shift"
-    },
-    {
-     "rank": 10,
+     "rank": 7,
      "name": "momentum_imbalance_pullback_price_above_ema50_rsi_directiona",
      "group": "MOMENTUM",
      "n": 23,
@@ -2877,18 +2826,69 @@
      "maxdd": 2.159,
      "is_placebo": false,
      "placebo_kind": null
+    },
+    {
+     "rank": 8,
+     "name": "volume_profile_delta_confirms_bar_macd_hist_direction_slope_",
+     "group": "VOLUME_PROFILE",
+     "n": 27,
+     "exp": 0.0761,
+     "t": 0.4,
+     "win": 0.5185,
+     "wilson": [
+      0.3399,
+      0.6926
+     ],
+     "payoff": 1.1295,
+     "maxdd": 2.937,
+     "is_placebo": false,
+     "placebo_kind": null
+    },
+    {
+     "rank": 9,
+     "name": "momentum_imbalance_pullback_price_above_ema50_rsi_directiona",
+     "group": "MOMENTUM",
+     "n": 54,
+     "exp": 0.06493,
+     "t": 0.886,
+     "win": 0.5185,
+     "wilson": [
+      0.3885,
+      0.6461
+     ],
+     "payoff": 1.3452,
+     "maxdd": 1.83,
+     "is_placebo": false,
+     "placebo_kind": null
+    },
+    {
+     "rank": 10,
+     "name": "multi_timeframe_ema_stack_mtf_strongly_aligned_structure_tre",
+     "group": "MULTI_TIMEFRAME",
+     "n": 31,
+     "exp": 0.05909,
+     "t": 0.335,
+     "win": 0.5484,
+     "wilson": [
+      0.3777,
+      0.7084
+     ],
+     "payoff": 0.9896,
+     "maxdd": 4.204,
+     "is_placebo": false,
+     "placebo_kind": null
     }
    ]
   },
   {
    "cell": "MCL_60_90",
    "bars": 1428,
-   "screened": 4755,
-   "rows": 114,
+   "screened": 4746,
+   "rows": 107,
    "free_t": 4.115,
    "clear_free_t": 0,
-   "positive": 68,
-   "best_placebo_rank": 3,
+   "positive": 66,
+   "best_placebo_rank": 5,
    "top10": [
     {
      "rank": 1,
@@ -2926,23 +2926,6 @@
     },
     {
      "rank": 3,
-     "name": "placebo_shuffle__multi_timeframe_delta_confirms_bar_mtf_alig",
-     "group": "MULTI_TIMEFRAME",
-     "n": 24,
-     "exp": 0.32655,
-     "t": 1.289,
-     "win": 0.5417,
-     "wilson": [
-      0.3507,
-      0.7211
-     ],
-     "payoff": 1.5357,
-     "maxdd": 2.703,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
-     "rank": 4,
      "name": "momentum_imbalance_pullback_price_above_ema50_rsi_directiona",
      "group": "MOMENTUM",
      "n": 20,
@@ -2959,7 +2942,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 5,
+     "rank": 4,
      "name": "momentum_cvd_directional_macd_directional_mtf_aligned",
      "group": "MOMENTUM",
      "n": 35,
@@ -2976,7 +2959,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 6,
+     "rank": 5,
      "name": "placebo_shift__multi_timeframe_delta_confirms_bar_mtf_aligne",
      "group": "MULTI_TIMEFRAME",
      "n": 22,
@@ -2993,7 +2976,7 @@
      "placebo_kind": "placebo_shift"
     },
     {
-     "rank": 7,
+     "rank": 6,
      "name": "multi_timeframe_macd_hist_direction_mtf_strongly_aligned_pri",
      "group": "MULTI_TIMEFRAME",
      "n": 24,
@@ -3010,7 +2993,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 8,
+     "rank": 7,
      "name": "momentum_cvd_directional_stoch_directional_structure_trend__",
      "group": "MOMENTUM",
      "n": 27,
@@ -3027,7 +3010,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 9,
+     "rank": 8,
      "name": "momentum_cvd_directional_macd_directional_mtf_aligned__f_rel",
      "group": "MOMENTUM",
      "n": 23,
@@ -3044,36 +3027,70 @@
      "placebo_kind": null
     },
     {
-     "rank": 10,
-     "name": "placebo_shift__volume_profile_delta_confirms_bar_price_above",
-     "group": "VOLUME_PROFILE",
-     "n": 33,
-     "exp": 0.19558,
-     "t": 0.794,
-     "win": 0.4242,
+     "rank": 9,
+     "name": "multi_timeframe_macd_hist_direction_mtf_strongly_aligned_pri",
+     "group": "MULTI_TIMEFRAME",
+     "n": 31,
+     "exp": 0.18647,
+     "t": 0.892,
+     "win": 0.5806,
      "wilson": [
-      0.2724,
-      0.5919
+      0.4077,
+      0.7358
      ],
-     "payoff": 1.8595,
-     "maxdd": 3.199,
+     "payoff": 1.0503,
+     "maxdd": 4.749,
+     "is_placebo": false,
+     "placebo_kind": null
+    },
+    {
+     "rank": 10,
+     "name": "placebo_random__multi_timeframe_delta_confirms_bar_mtf_align",
+     "group": "MULTI_TIMEFRAME",
+     "n": 32,
+     "exp": 0.16374,
+     "t": 0.68,
+     "win": 0.4062,
+     "wilson": [
+      0.2552,
+      0.5774
+     ],
+     "payoff": 1.9297,
+     "maxdd": 5.257,
      "is_placebo": true,
-     "placebo_kind": "placebo_shift"
+     "placebo_kind": "placebo_random"
     }
    ]
   },
   {
    "cell": "MCL_60_slice0",
    "bars": 1626,
-   "screened": 4752,
-   "rows": 120,
+   "screened": 4746,
+   "rows": 118,
    "free_t": 4.115,
    "clear_free_t": 0,
-   "positive": 10,
-   "best_placebo_rank": 12,
+   "positive": 14,
+   "best_placebo_rank": 1,
    "top10": [
     {
      "rank": 1,
+     "name": "placebo_shuffle__momentum_cvd_directional_stoch_directional_",
+     "group": "MOMENTUM",
+     "n": 55,
+     "exp": 0.24643,
+     "t": 1.474,
+     "win": 0.5273,
+     "wilson": [
+      0.3979,
+      0.6531
+     ],
+     "payoff": 1.3985,
+     "maxdd": 8.954,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shuffle"
+    },
+    {
+     "rank": 2,
      "name": "trend_break_of_structure_candle_close_strength_ema_fast_abov",
      "group": "TREND",
      "n": 30,
@@ -3090,7 +3107,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 2,
+     "rank": 3,
      "name": "trend_break_of_structure_candle_close_strength_ema_fast_abov",
      "group": "TREND",
      "n": 32,
@@ -3107,7 +3124,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 3,
+     "rank": 4,
      "name": "momentum_price_above_ema200_regime_matches_direction_rsi_dir",
      "group": "MOMENTUM",
      "n": 26,
@@ -3124,7 +3141,24 @@
      "placebo_kind": null
     },
     {
-     "rank": 4,
+     "rank": 5,
+     "name": "placebo_random__momentum_cvd_directional_stoch_directional_s",
+     "group": "MOMENTUM",
+     "n": 85,
+     "exp": 0.10233,
+     "t": 0.784,
+     "win": 0.4588,
+     "wilson": [
+      0.357,
+      0.5642
+     ],
+     "payoff": 1.4295,
+     "maxdd": 11.13,
+     "is_placebo": true,
+     "placebo_kind": "placebo_random"
+    },
+    {
+     "rank": 6,
      "name": "vwap_above_vwap_cvd_directional_price_above_ema200_stoch_dir",
      "group": "VWAP",
      "n": 30,
@@ -3141,7 +3175,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 5,
+     "rank": 7,
      "name": "multi_timeframe_macd_hist_direction_mtf_strongly_aligned_pri",
      "group": "MULTI_TIMEFRAME",
      "n": 20,
@@ -3158,7 +3192,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 6,
+     "rank": 8,
      "name": "trend_break_of_structure_mtf_aligned_price_above_ema50__f_ad",
      "group": "TREND",
      "n": 28,
@@ -3175,7 +3209,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 7,
+     "rank": 9,
      "name": "volume_profile_cvd_directional_price_above_ema200_structure_",
      "group": "VOLUME_PROFILE",
      "n": 44,
@@ -3192,7 +3226,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 8,
+     "rank": 10,
      "name": "volume_profile_cvd_directional_price_above_ema200_structure_",
      "group": "VOLUME_PROFILE",
      "n": 43,
@@ -3207,72 +3241,21 @@
      "maxdd": 4.506,
      "is_placebo": false,
      "placebo_kind": null
-    },
-    {
-     "rank": 9,
-     "name": "trend_break_of_structure_mtf_aligned_price_above_ema50__f_ef",
-     "group": "TREND",
-     "n": 25,
-     "exp": 0.01238,
-     "t": 0.098,
-     "win": 0.6,
-     "wilson": [
-      0.4074,
-      0.766
-     ],
-     "payoff": 0.7051,
-     "maxdd": 2.509,
-     "is_placebo": false,
-     "placebo_kind": null
-    },
-    {
-     "rank": 10,
-     "name": "liquidity_above_vwap_candle_close_strength_cvd_directional_p",
-     "group": "LIQUIDITY",
-     "n": 42,
-     "exp": 0.0024,
-     "t": 0.033,
-     "win": 0.4524,
-     "wilson": [
-      0.3122,
-      0.6005
-     ],
-     "payoff": 1.2276,
-     "maxdd": 3.896,
-     "is_placebo": false,
-     "placebo_kind": null
     }
    ]
   },
   {
    "cell": "MCL_60_slice1",
    "bars": 1513,
-   "screened": 4752,
-   "rows": 106,
+   "screened": 4746,
+   "rows": 103,
    "free_t": 4.115,
    "clear_free_t": 0,
-   "positive": 35,
-   "best_placebo_rank": 1,
+   "positive": 31,
+   "best_placebo_rank": 2,
    "top10": [
     {
      "rank": 1,
-     "name": "placebo_random__momentum_break_of_structure_cvd_directional_",
-     "group": "MOMENTUM",
-     "n": 51,
-     "exp": 0.45553,
-     "t": 0.99,
-     "win": 0.4118,
-     "wilson": [
-      0.2875,
-      0.5483
-     ],
-     "payoff": 2.7755,
-     "maxdd": 9.036,
-     "is_placebo": true,
-     "placebo_kind": "placebo_random"
-    },
-    {
-     "rank": 2,
      "name": "momentum_cvd_directional_macd_directional_mtf_aligned",
      "group": "MOMENTUM",
      "n": 21,
@@ -3289,24 +3272,24 @@
      "placebo_kind": null
     },
     {
-     "rank": 3,
-     "name": "placebo_random__vwap_above_vwap_cvd_directional_price_above_",
-     "group": "VWAP",
-     "n": 39,
-     "exp": 0.21435,
-     "t": 0.94,
-     "win": 0.5128,
+     "rank": 2,
+     "name": "placebo_shuffle__multi_timeframe_delta_confirms_bar_mtf_alig",
+     "group": "MULTI_TIMEFRAME",
+     "n": 22,
+     "exp": 0.25314,
+     "t": 0.95,
+     "win": 0.4545,
      "wilson": [
-      0.362,
-      0.6614
+      0.2692,
+      0.6534
      ],
-     "payoff": 1.3968,
-     "maxdd": 5.149,
+     "payoff": 1.9176,
+     "maxdd": 2.09,
      "is_placebo": true,
-     "placebo_kind": "placebo_random"
+     "placebo_kind": "placebo_shuffle"
     },
     {
-     "rank": 4,
+     "rank": 3,
      "name": "momentum_delta_confirms_bar_ema_fast_above_slow_macd_hist_di",
      "group": "MOMENTUM",
      "n": 27,
@@ -3321,6 +3304,23 @@
      "maxdd": 1.71,
      "is_placebo": false,
      "placebo_kind": null
+    },
+    {
+     "rank": 4,
+     "name": "placebo_shuffle__momentum_cvd_directional_ema_fast_above_slo",
+     "group": "MOMENTUM",
+     "n": 36,
+     "exp": 0.19708,
+     "t": 0.981,
+     "win": 0.5,
+     "wilson": [
+      0.3447,
+      0.6553
+     ],
+     "payoff": 1.4533,
+     "maxdd": 3.39,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shuffle"
     },
     {
      "rank": 5,
@@ -3358,23 +3358,6 @@
     },
     {
      "rank": 7,
-     "name": "placebo_random__volume_profile_cvd_directional_price_above_e",
-     "group": "VOLUME_PROFILE",
-     "n": 40,
-     "exp": 0.13531,
-     "t": 1.027,
-     "win": 0.575,
-     "wilson": [
-      0.4219,
-      0.7149
-     ],
-     "payoff": 1.1432,
-     "maxdd": 3.04,
-     "is_placebo": true,
-     "placebo_kind": "placebo_random"
-    },
-    {
-     "rank": 8,
      "name": "trend_break_of_structure_candle_close_strength_ema_fast_abov",
      "group": "TREND",
      "n": 29,
@@ -3389,6 +3372,23 @@
      "maxdd": 1.313,
      "is_placebo": false,
      "placebo_kind": null
+    },
+    {
+     "rank": 8,
+     "name": "placebo_shuffle__volume_profile_cvd_directional_price_above_",
+     "group": "VOLUME_PROFILE",
+     "n": 51,
+     "exp": 0.12617,
+     "t": 0.973,
+     "win": 0.5098,
+     "wilson": [
+      0.3768,
+      0.6414
+     ],
+     "payoff": 1.3521,
+     "maxdd": 7.415,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shuffle"
     },
     {
      "rank": 9,
@@ -3409,32 +3409,32 @@
     },
     {
      "rank": 10,
-     "name": "placebo_shuffle__multi_timeframe_above_vwap_macd_directional",
-     "group": "MULTI_TIMEFRAME",
-     "n": 21,
-     "exp": 0.12331,
-     "t": 0.597,
-     "win": 0.6667,
+     "name": "trend_break_of_structure_candle_close_strength_ema_fast_abov",
+     "group": "TREND",
+     "n": 29,
+     "exp": 0.11484,
+     "t": 1.276,
+     "win": 0.4828,
      "wilson": [
-      0.4537,
-      0.8281
+      0.3139,
+      0.6557
      ],
-     "payoff": 0.7024,
-     "maxdd": 2.049,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
+     "payoff": 2.1093,
+     "maxdd": 1.313,
+     "is_placebo": false,
+     "placebo_kind": null
     }
    ]
   },
   {
    "cell": "MCL_60_slice2",
    "bars": 1824,
-   "screened": 4755,
-   "rows": 121,
+   "screened": 4746,
+   "rows": 117,
    "free_t": 4.115,
    "clear_free_t": 0,
-   "positive": 59,
-   "best_placebo_rank": 3,
+   "positive": 60,
+   "best_placebo_rank": 9,
    "top10": [
     {
      "rank": 1,
@@ -3472,23 +3472,6 @@
     },
     {
      "rank": 3,
-     "name": "placebo_shift__multi_timeframe_di_direction_macd_directional",
-     "group": "MULTI_TIMEFRAME",
-     "n": 22,
-     "exp": 0.28325,
-     "t": 1.086,
-     "win": 0.4545,
-     "wilson": [
-      0.2692,
-      0.6534
-     ],
-     "payoff": 2.0762,
-     "maxdd": 2.114,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shift"
-    },
-    {
-     "rank": 4,
      "name": "momentum_cvd_directional_stoch_directional_structure_trend__",
      "group": "MOMENTUM",
      "n": 55,
@@ -3505,24 +3488,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 5,
-     "name": "placebo_shift__volume_profile_delta_confirms_bar_price_above",
-     "group": "VOLUME_PROFILE",
-     "n": 42,
-     "exp": 0.22447,
-     "t": 0.962,
-     "win": 0.4286,
-     "wilson": [
-      0.2912,
-      0.5779
-     ],
-     "payoff": 1.8874,
-     "maxdd": 3.955,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shift"
-    },
-    {
-     "rank": 6,
+     "rank": 4,
      "name": "momentum_break_of_structure_cvd_directional_macd_directional",
      "group": "MOMENTUM",
      "n": 28,
@@ -3539,7 +3505,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 7,
+     "rank": 5,
      "name": "momentum_cvd_directional_macd_directional_mtf_aligned__f_rel",
      "group": "MOMENTUM",
      "n": 24,
@@ -3556,7 +3522,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 8,
+     "rank": 6,
      "name": "momentum_delta_confirms_bar_ema_fast_above_slow_imbalance_pu",
      "group": "MOMENTUM",
      "n": 51,
@@ -3573,7 +3539,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 9,
+     "rank": 7,
      "name": "multi_timeframe_macd_hist_direction_mtf_strongly_aligned_pri",
      "group": "MULTI_TIMEFRAME",
      "n": 28,
@@ -3590,7 +3556,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 10,
+     "rank": 8,
      "name": "momentum_cvd_directional_macd_directional_mtf_aligned",
      "group": "MOMENTUM",
      "n": 41,
@@ -3605,6 +3571,40 @@
      "maxdd": 4.148,
      "is_placebo": false,
      "placebo_kind": null
+    },
+    {
+     "rank": 9,
+     "name": "placebo_shift__multi_timeframe_cvd_directional_ema_fast_abov",
+     "group": "MULTI_TIMEFRAME",
+     "n": 54,
+     "exp": 0.18146,
+     "t": 1.568,
+     "win": 0.6111,
+     "wilson": [
+      0.4779,
+      0.7296
+     ],
+     "payoff": 1.1921,
+     "maxdd": 1.951,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shift"
+    },
+    {
+     "rank": 10,
+     "name": "momentum_imbalance_pullback_price_above_ema50_rsi_directiona",
+     "group": "MOMENTUM",
+     "n": 24,
+     "exp": 0.17443,
+     "t": 0.986,
+     "win": 0.5,
+     "wilson": [
+      0.3143,
+      0.6857
+     ],
+     "payoff": 1.594,
+     "maxdd": 2.402,
+     "is_placebo": false,
+     "placebo_kind": null
     }
    ]
   },
@@ -3615,62 +3615,79 @@
    "rows": 16,
    "free_t": 4.034,
    "clear_free_t": 0,
-   "positive": 4,
+   "positive": 5,
    "best_placebo_rank": 1,
    "top10": [
     {
      "rank": 1,
-     "name": "placebo_shuffle__momentum_price_above_ema200_range_position_",
-     "group": "MOMENTUM",
-     "n": 22,
-     "exp": 0.31719,
-     "t": 1.308,
-     "win": 0.5,
+     "name": "placebo_shuffle__vwap_price_above_ema200_rsi_directional_str",
+     "group": "VWAP",
+     "n": 23,
+     "exp": 0.28417,
+     "t": 1.129,
+     "win": 0.5652,
      "wilson": [
-      0.3072,
-      0.6928
+      0.3681,
+      0.7437
      ],
-     "payoff": 1.9816,
-     "maxdd": 3.962,
+     "payoff": 1.322,
+     "maxdd": 2.816,
      "is_placebo": true,
      "placebo_kind": "placebo_shuffle"
     },
     {
      "rank": 2,
-     "name": "placebo_random__vwap_delta_confirms_bar_ema_stack_structure_",
-     "group": "VWAP",
-     "n": 44,
-     "exp": 0.04787,
-     "t": 0.249,
-     "win": 0.3409,
+     "name": "placebo_shuffle__momentum_price_above_ema200_range_position_",
+     "group": "MOMENTUM",
+     "n": 24,
+     "exp": 0.19591,
+     "t": 0.771,
+     "win": 0.5,
      "wilson": [
-      0.2188,
-      0.4886
+      0.3143,
+      0.6857
      ],
-     "payoff": 2.1106,
-     "maxdd": 4.524,
-     "is_placebo": true,
-     "placebo_kind": "placebo_random"
-    },
-    {
-     "rank": 3,
-     "name": "placebo_shuffle__vwap_price_above_ema200_rsi_directional_str",
-     "group": "VWAP",
-     "n": 23,
-     "exp": 0.03098,
-     "t": 0.115,
-     "win": 0.4348,
-     "wilson": [
-      0.2563,
-      0.6319
-     ],
-     "payoff": 1.3713,
-     "maxdd": 4.042,
+     "payoff": 1.4225,
+     "maxdd": 5.97,
      "is_placebo": true,
      "placebo_kind": "placebo_shuffle"
     },
     {
+     "rank": 3,
+     "name": "placebo_random__vwap_price_above_ema200_rsi_directional_stru",
+     "group": "VWAP",
+     "n": 40,
+     "exp": 0.14467,
+     "t": 0.77,
+     "win": 0.475,
+     "wilson": [
+      0.3294,
+      0.625
+     ],
+     "payoff": 1.4566,
+     "maxdd": 6.067,
+     "is_placebo": true,
+     "placebo_kind": "placebo_random"
+    },
+    {
      "rank": 4,
+     "name": "placebo_shift__vwap_price_above_ema200_rsi_directional_struc",
+     "group": "VWAP",
+     "n": 30,
+     "exp": 0.05168,
+     "t": 0.222,
+     "win": 0.4333,
+     "wilson": [
+      0.2738,
+      0.608
+     ],
+     "payoff": 1.4327,
+     "maxdd": 6.07,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shift"
+    },
+    {
+     "rank": 5,
      "name": "momentum_price_above_ema200_range_position_extreme_rsi_direc",
      "group": "MOMENTUM",
      "n": 24,
@@ -3687,7 +3704,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 5,
+     "rank": 6,
      "name": "vwap_price_above_ema200_rsi_directional_structure_trend_vwap",
      "group": "VWAP",
      "n": 23,
@@ -3704,7 +3721,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 6,
+     "rank": 7,
      "name": "vwap_delta_confirms_bar_ema_stack_structure_trend_vwap_recla",
      "group": "VWAP",
      "n": 25,
@@ -3721,7 +3738,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 7,
+     "rank": 8,
      "name": "vwap_delta_confirms_bar_ema_stack_structure_trend_vwap_recla",
      "group": "VWAP",
      "n": 33,
@@ -3738,7 +3755,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 8,
+     "rank": 9,
      "name": "momentum_imbalance_pullback_price_above_ema50_rsi_directiona",
      "group": "MOMENTUM",
      "n": 25,
@@ -3755,7 +3772,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 9,
+     "rank": 10,
      "name": "vwap_price_above_ema200_rsi_directional_structure_trend_vwap",
      "group": "VWAP",
      "n": 31,
@@ -3770,23 +3787,6 @@
      "maxdd": 7.295,
      "is_placebo": false,
      "placebo_kind": null
-    },
-    {
-     "rank": 10,
-     "name": "placebo_shuffle__vwap_delta_confirms_bar_ema_stack_structure",
-     "group": "VWAP",
-     "n": 34,
-     "exp": -0.19652,
-     "t": -1.005,
-     "win": 0.3235,
-     "wilson": [
-      0.1913,
-      0.4916
-     ],
-     "payoff": 1.4171,
-     "maxdd": 9.116,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
     }
    ]
   },
@@ -3798,7 +3798,7 @@
    "free_t": 4.034,
    "clear_free_t": 0,
    "positive": 11,
-   "best_placebo_rank": 3,
+   "best_placebo_rank": 2,
    "top10": [
     {
      "rank": 1,
@@ -3819,6 +3819,23 @@
     },
     {
      "rank": 2,
+     "name": "placebo_shuffle__momentum_break_of_structure_cvd_directional",
+     "group": "MOMENTUM",
+     "n": 37,
+     "exp": 0.30392,
+     "t": 1.622,
+     "win": 0.4595,
+     "wilson": [
+      0.3104,
+      0.6162
+     ],
+     "payoff": 2.2659,
+     "maxdd": 7.057,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shuffle"
+    },
+    {
+     "rank": 3,
      "name": "vwap_di_direction_vwap_reclaim__f_vwap_proximity",
      "group": "VWAP",
      "n": 20,
@@ -3835,36 +3852,19 @@
      "placebo_kind": null
     },
     {
-     "rank": 3,
-     "name": "placebo_shuffle__momentum_break_of_structure_cvd_directional",
-     "group": "MOMENTUM",
-     "n": 45,
-     "exp": 0.21768,
-     "t": 1.16,
-     "win": 0.4889,
-     "wilson": [
-      0.3496,
-      0.63
-     ],
-     "payoff": 1.5288,
-     "maxdd": 3.523,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
      "rank": 4,
-     "name": "placebo_random__trend_price_above_ema50_structure_trend_vwap",
-     "group": "TREND",
-     "n": 20,
-     "exp": 0.18645,
-     "t": 0.582,
-     "win": 0.4,
+     "name": "placebo_random__momentum_break_of_structure_cvd_directional_",
+     "group": "MOMENTUM",
+     "n": 57,
+     "exp": 0.18538,
+     "t": 1.162,
+     "win": 0.4737,
      "wilson": [
-      0.2188,
-      0.6134
+      0.3499,
+      0.6008
      ],
-     "payoff": 2.0467,
-     "maxdd": 5.707,
+     "payoff": 1.595,
+     "maxdd": 6.92,
      "is_placebo": true,
      "placebo_kind": "placebo_random"
     },
@@ -3904,6 +3904,23 @@
     },
     {
      "rank": 7,
+     "name": "placebo_random__vwap_di_direction_vwap_reclaim__f_vwap_proxi",
+     "group": "VWAP",
+     "n": 26,
+     "exp": 0.13758,
+     "t": 0.547,
+     "win": 0.4615,
+     "wilson": [
+      0.2876,
+      0.6454
+     ],
+     "payoff": 1.494,
+     "maxdd": 2.482,
+     "is_placebo": true,
+     "placebo_kind": "placebo_random"
+    },
+    {
+     "rank": 8,
      "name": "momentum_break_of_structure_cvd_directional_macd_directional",
      "group": "MOMENTUM",
      "n": 36,
@@ -3918,23 +3935,6 @@
      "maxdd": 5.041,
      "is_placebo": false,
      "placebo_kind": null
-    },
-    {
-     "rank": 8,
-     "name": "placebo_random__vwap_di_direction_vwap_reclaim__f_vwap_proxi",
-     "group": "VWAP",
-     "n": 28,
-     "exp": 0.10127,
-     "t": 0.254,
-     "win": 0.3571,
-     "wilson": [
-      0.2071,
-      0.5417
-     ],
-     "payoff": 2.0827,
-     "maxdd": 5.711,
-     "is_placebo": true,
-     "placebo_kind": "placebo_random"
     },
     {
      "rank": 9,
@@ -3955,20 +3955,20 @@
     },
     {
      "rank": 10,
-     "name": "vwap_above_vwap_ema_fast_above_slow_range_position_extreme_r",
+     "name": "placebo_shuffle__vwap_di_direction_vwap_reclaim__f_vwap_prox",
      "group": "VWAP",
-     "n": 33,
-     "exp": 0.00833,
-     "t": 0.039,
-     "win": 0.3636,
+     "n": 20,
+     "exp": 0.02767,
+     "t": 0.092,
+     "win": 0.4,
      "wilson": [
-      0.2219,
-      0.5338
+      0.2188,
+      0.6134
      ],
-     "payoff": 1.7765,
-     "maxdd": 5.635,
-     "is_placebo": false,
-     "placebo_kind": null
+     "payoff": 1.5734,
+     "maxdd": 4.755,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shuffle"
     }
    ]
   },
@@ -4019,8 +4019,8 @@
   {
    "cell": "MGC_240_slice2",
    "bars": 458,
-   "screened": 3405,
-   "rows": 3,
+   "screened": 3402,
+   "rows": 2,
    "free_t": 4.033,
    "clear_free_t": 0,
    "positive": 0,
@@ -4045,23 +4045,6 @@
     },
     {
      "rank": 2,
-     "name": "placebo_random__momentum_price_above_ema200_range_position_e",
-     "group": "MOMENTUM",
-     "n": 41,
-     "exp": -0.11479,
-     "t": -0.626,
-     "win": 0.3659,
-     "wilson": [
-      0.2359,
-      0.5188
-     ],
-     "payoff": 1.3972,
-     "maxdd": 15.716,
-     "is_placebo": true,
-     "placebo_kind": "placebo_random"
-    },
-    {
-     "rank": 3,
      "name": "momentum_price_above_ema200_range_position_extreme_rsi_direc",
      "group": "MOMENTUM",
      "n": 20,
@@ -4082,12 +4065,12 @@
   {
    "cell": "MGC_60_180",
    "bars": 2827,
-   "screened": 4992,
-   "rows": 218,
-   "free_t": 4.127,
+   "screened": 4977,
+   "rows": 210,
+   "free_t": 4.126,
    "clear_free_t": 0,
-   "positive": 116,
-   "best_placebo_rank": 12,
+   "positive": 118,
+   "best_placebo_rank": 6,
    "top10": [
     {
      "rank": 1,
@@ -4176,6 +4159,23 @@
     },
     {
      "rank": 6,
+     "name": "placebo_shift__liquidity_break_of_structure_cvd_directional_",
+     "group": "LIQUIDITY",
+     "n": 60,
+     "exp": 0.19852,
+     "t": 1.198,
+     "win": 0.4667,
+     "wilson": [
+      0.3463,
+      0.5911
+     ],
+     "payoff": 1.6117,
+     "maxdd": 6.494,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shift"
+    },
+    {
+     "rank": 7,
      "name": "vwap_macd_directional_range_position_extreme_value_area_brea",
      "group": "VWAP",
      "n": 25,
@@ -4192,7 +4192,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 7,
+     "rank": 8,
      "name": "vwap_above_vwap_cvd_directional_poc_reversion_structure_tren",
      "group": "VWAP",
      "n": 22,
@@ -4209,7 +4209,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 8,
+     "rank": 9,
      "name": "momentum_cvd_directional_ema_stack_macd_directional_regime_m",
      "group": "MOMENTUM",
      "n": 65,
@@ -4226,7 +4226,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 9,
+     "rank": 10,
      "name": "trend_break_of_structure_candle_close_strength_ema_fast_abov",
      "group": "TREND",
      "n": 30,
@@ -4241,35 +4241,18 @@
      "maxdd": 1.826,
      "is_placebo": false,
      "placebo_kind": null
-    },
-    {
-     "rank": 10,
-     "name": "trend_break_of_structure_candle_close_strength_ema_fast_abov",
-     "group": "TREND",
-     "n": 28,
-     "exp": 0.1646,
-     "t": 1.15,
-     "win": 0.4643,
-     "wilson": [
-      0.2953,
-      0.6419
-     ],
-     "payoff": 2.0651,
-     "maxdd": 1.826,
-     "is_placebo": false,
-     "placebo_kind": null
     }
    ]
   },
   {
    "cell": "MGC_60_274",
    "bars": 4256,
-   "screened": 4998,
-   "rows": 264,
-   "free_t": 4.127,
+   "screened": 4980,
+   "rows": 251,
+   "free_t": 4.126,
    "clear_free_t": 0,
    "positive": 133,
-   "best_placebo_rank": 4,
+   "best_placebo_rank": 23,
    "top10": [
     {
      "rank": 1,
@@ -4324,23 +4307,6 @@
     },
     {
      "rank": 4,
-     "name": "placebo_shuffle__vwap_cvd_directional_price_above_ema200_val",
-     "group": "VWAP",
-     "n": 22,
-     "exp": 0.29605,
-     "t": 1.333,
-     "win": 0.5909,
-     "wilson": [
-      0.3873,
-      0.7674
-     ],
-     "payoff": 1.3387,
-     "maxdd": 2.952,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
-     "rank": 5,
      "name": "momentum_delta_confirms_bar_macd_directional_range_position_",
      "group": "MOMENTUM",
      "n": 37,
@@ -4357,7 +4323,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 6,
+     "rank": 5,
      "name": "vwap_delta_confirms_bar_ema_fast_above_slow_range_position_e",
      "group": "VWAP",
      "n": 26,
@@ -4374,7 +4340,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 7,
+     "rank": 6,
      "name": "fibonacci_cvd_directional_fib_shallow_retrace_price_above_em",
      "group": "FIBONACCI",
      "n": 32,
@@ -4391,7 +4357,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 8,
+     "rank": 7,
      "name": "volume_profile_di_direction_range_position_extreme_stoch_dir",
      "group": "VOLUME_PROFILE",
      "n": 35,
@@ -4408,7 +4374,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 9,
+     "rank": 8,
      "name": "momentum_delta_confirms_bar_macd_directional_range_position_",
      "group": "MOMENTUM",
      "n": 32,
@@ -4425,7 +4391,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 10,
+     "rank": 9,
      "name": "fibonacci_cvd_directional_di_direction_fib_shallow_retrace_r",
      "group": "FIBONACCI",
      "n": 32,
@@ -4440,6 +4406,23 @@
      "maxdd": 1.444,
      "is_placebo": false,
      "placebo_kind": null
+    },
+    {
+     "rank": 10,
+     "name": "momentum_ema_stack_mtf_strongly_aligned_range_position_extre",
+     "group": "MOMENTUM",
+     "n": 23,
+     "exp": 0.18255,
+     "t": 0.628,
+     "win": 0.3913,
+     "wilson": [
+      0.2216,
+      0.5921
+     ],
+     "payoff": 2.1031,
+     "maxdd": 5.327,
+     "is_placebo": false,
+     "placebo_kind": null
     }
    ]
   },
@@ -4447,11 +4430,11 @@
    "cell": "MGC_60_30",
    "bars": 479,
    "screened": 4968,
-   "rows": 37,
+   "rows": 39,
    "free_t": 4.126,
    "clear_free_t": 0,
-   "positive": 11,
-   "best_placebo_rank": 3,
+   "positive": 10,
+   "best_placebo_rank": 2,
    "top10": [
     {
      "rank": 1,
@@ -4472,6 +4455,40 @@
     },
     {
      "rank": 2,
+     "name": "placebo_random__momentum_delta_confirms_bar_price_above_ema2",
+     "group": "MOMENTUM",
+     "n": 47,
+     "exp": 0.21875,
+     "t": 1.432,
+     "win": 0.5957,
+     "wilson": [
+      0.4534,
+      0.7236
+     ],
+     "payoff": 1.1727,
+     "maxdd": 5.103,
+     "is_placebo": true,
+     "placebo_kind": "placebo_random"
+    },
+    {
+     "rank": 3,
+     "name": "placebo_shuffle__volume_profile_delta_confirms_bar_price_abo",
+     "group": "VOLUME_PROFILE",
+     "n": 27,
+     "exp": 0.11739,
+     "t": 0.526,
+     "win": 0.5185,
+     "wilson": [
+      0.3399,
+      0.6926
+     ],
+     "payoff": 1.1687,
+     "maxdd": 5.195,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shuffle"
+    },
+    {
+     "rank": 4,
      "name": "volume_profile_delta_confirms_bar_poc_reversion__f_no_immine",
      "group": "VOLUME_PROFILE",
      "n": 23,
@@ -4488,75 +4505,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 3,
-     "name": "placebo_random__multi_timeframe_ema_stack_mtf_aligned_rsi_di",
-     "group": "MULTI_TIMEFRAME",
-     "n": 32,
-     "exp": 0.11315,
-     "t": 0.955,
-     "win": 0.6562,
-     "wilson": [
-      0.4831,
-      0.7959
-     ],
-     "payoff": 0.8305,
-     "maxdd": 1.906,
-     "is_placebo": true,
-     "placebo_kind": "placebo_random"
-    },
-    {
-     "rank": 4,
-     "name": "placebo_random__trend_break_of_structure_di_direction_value_",
-     "group": "TREND",
-     "n": 25,
-     "exp": 0.07403,
-     "t": 0.551,
-     "win": 0.64,
-     "wilson": [
-      0.4452,
-      0.7975
-     ],
-     "payoff": 0.7506,
-     "maxdd": 3.737,
-     "is_placebo": true,
-     "placebo_kind": "placebo_random"
-    },
-    {
      "rank": 5,
-     "name": "placebo_shift__multi_timeframe_ema_stack_mtf_aligned_rsi_dir",
-     "group": "MULTI_TIMEFRAME",
-     "n": 23,
-     "exp": 0.06658,
-     "t": 0.526,
-     "win": 0.6522,
-     "wilson": [
-      0.4489,
-      0.8119
-     ],
-     "payoff": 0.7152,
-     "maxdd": 2.12,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shift"
-    },
-    {
-     "rank": 6,
-     "name": "placebo_shuffle__multi_timeframe_ema_stack_mtf_aligned_rsi_d",
-     "group": "MULTI_TIMEFRAME",
-     "n": 23,
-     "exp": 0.06199,
-     "t": 0.553,
-     "win": 0.6087,
-     "wilson": [
-      0.4079,
-      0.7784
-     ],
-     "payoff": 0.871,
-     "maxdd": 2.392,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
-    },
-    {
-     "rank": 7,
      "name": "multi_timeframe_ema_fast_above_slow_mtf_aligned_structure_tr",
      "group": "MULTI_TIMEFRAME",
      "n": 26,
@@ -4573,7 +4522,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 8,
+     "rank": 6,
      "name": "vwap_above_vwap_di_direction_rsi_directional__f_no_imminent_",
      "group": "VWAP",
      "n": 62,
@@ -4590,7 +4539,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 9,
+     "rank": 7,
      "name": "vwap_ema_fast_above_slow_structure_trend_vwap_reclaim__f_no_",
      "group": "VWAP",
      "n": 20,
@@ -4607,7 +4556,24 @@
      "placebo_kind": null
     },
     {
-     "rank": 10,
+     "rank": 8,
+     "name": "placebo_random__trend_break_of_structure_di_direction_rsi_di",
+     "group": "TREND",
+     "n": 27,
+     "exp": 0.02582,
+     "t": 0.247,
+     "win": 0.6667,
+     "wilson": [
+      0.4782,
+      0.8136
+     ],
+     "payoff": 0.5645,
+     "maxdd": 1.984,
+     "is_placebo": true,
+     "placebo_kind": "placebo_random"
+    },
+    {
+     "rank": 9,
      "name": "momentum_delta_confirms_bar_rsi_directional_slope_directiona",
      "group": "MOMENTUM",
      "n": 26,
@@ -4622,18 +4588,35 @@
      "maxdd": 2.245,
      "is_placebo": false,
      "placebo_kind": null
+    },
+    {
+     "rank": 10,
+     "name": "multi_timeframe_ema_stack_mtf_strongly_aligned_structure_tre",
+     "group": "MULTI_TIMEFRAME",
+     "n": 30,
+     "exp": 0.00731,
+     "t": 0.066,
+     "win": 0.5,
+     "wilson": [
+      0.3315,
+      0.6685
+     ],
+     "payoff": 1.0333,
+     "maxdd": 3.015,
+     "is_placebo": false,
+     "placebo_kind": null
     }
    ]
   },
   {
    "cell": "MGC_60_90",
    "bars": 1430,
-   "screened": 4980,
-   "rows": 128,
+   "screened": 4968,
+   "rows": 121,
    "free_t": 4.126,
    "clear_free_t": 0,
-   "positive": 58,
-   "best_placebo_rank": 2,
+   "positive": 56,
+   "best_placebo_rank": 24,
    "top10": [
     {
      "rank": 1,
@@ -4654,23 +4637,6 @@
     },
     {
      "rank": 2,
-     "name": "placebo_random__momentum_macd_hist_direction_mtf_strongly_al",
-     "group": "MOMENTUM",
-     "n": 42,
-     "exp": 0.21281,
-     "t": 1.1,
-     "win": 0.4762,
-     "wilson": [
-      0.3336,
-      0.6228
-     ],
-     "payoff": 1.6055,
-     "maxdd": 4.116,
-     "is_placebo": true,
-     "placebo_kind": "placebo_random"
-    },
-    {
-     "rank": 3,
      "name": "momentum_delta_confirms_bar_range_position_extreme_rsi_direc",
      "group": "MOMENTUM",
      "n": 29,
@@ -4687,7 +4653,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 4,
+     "rank": 3,
      "name": "volume_profile_delta_confirms_bar_price_above_ema50_rsi_dire",
      "group": "VOLUME_PROFILE",
      "n": 38,
@@ -4704,7 +4670,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 5,
+     "rank": 4,
      "name": "trend_delta_confirms_bar_ema_fast_above_slow_macd_directiona",
      "group": "TREND",
      "n": 29,
@@ -4721,24 +4687,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 6,
-     "name": "placebo_random__vwap_ema_stack_structure_trend_value_area_br",
-     "group": "VWAP",
-     "n": 24,
-     "exp": 0.16374,
-     "t": 1.048,
-     "win": 0.6667,
-     "wilson": [
-      0.4671,
-      0.8203
-     ],
-     "payoff": 0.8485,
-     "maxdd": 3.045,
-     "is_placebo": true,
-     "placebo_kind": "placebo_random"
-    },
-    {
-     "rank": 7,
+     "rank": 5,
      "name": "trend_delta_confirms_bar_ema_fast_above_slow_macd_directiona",
      "group": "TREND",
      "n": 27,
@@ -4755,7 +4704,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 8,
+     "rank": 6,
      "name": "trend_delta_confirms_bar_ema_fast_above_slow_macd_directiona",
      "group": "TREND",
      "n": 27,
@@ -4772,7 +4721,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 9,
+     "rank": 7,
      "name": "momentum_delta_confirms_bar_range_position_extreme_rsi_direc",
      "group": "MOMENTUM",
      "n": 45,
@@ -4789,32 +4738,66 @@
      "placebo_kind": null
     },
     {
-     "rank": 10,
-     "name": "placebo_shuffle__multi_timeframe_delta_confirms_bar_mtf_alig",
+     "rank": 8,
+     "name": "multi_timeframe_delta_confirms_bar_mtf_strongly_aligned_rsi_",
      "group": "MULTI_TIMEFRAME",
-     "n": 20,
-     "exp": 0.14858,
-     "t": 0.515,
-     "win": 0.45,
+     "n": 47,
+     "exp": 0.11723,
+     "t": 0.835,
+     "win": 0.5319,
      "wilson": [
-      0.2582,
-      0.6579
+      0.3923,
+      0.6667
      ],
-     "payoff": 1.5784,
-     "maxdd": 2.342,
-     "is_placebo": true,
-     "placebo_kind": "placebo_shuffle"
+     "payoff": 1.2123,
+     "maxdd": 4.18,
+     "is_placebo": false,
+     "placebo_kind": null
+    },
+    {
+     "rank": 9,
+     "name": "multi_timeframe_delta_confirms_bar_mtf_aligned_stoch_directi",
+     "group": "MULTI_TIMEFRAME",
+     "n": 21,
+     "exp": 0.11519,
+     "t": 0.42,
+     "win": 0.381,
+     "wilson": [
+      0.2075,
+      0.5912
+     ],
+     "payoff": 2.008,
+     "maxdd": 4.1,
+     "is_placebo": false,
+     "placebo_kind": null
+    },
+    {
+     "rank": 10,
+     "name": "momentum_cvd_directional_mtf_aligned_price_above_ema50_rsi_d",
+     "group": "MOMENTUM",
+     "n": 80,
+     "exp": 0.11301,
+     "t": 1.28,
+     "win": 0.5375,
+     "wilson": [
+      0.429,
+      0.6425
+     ],
+     "payoff": 1.264,
+     "maxdd": 3.879,
+     "is_placebo": false,
+     "placebo_kind": null
     }
    ]
   },
   {
    "cell": "MGC_60_slice0",
    "bars": 1603,
-   "screened": 4980,
-   "rows": 140,
+   "screened": 4971,
+   "rows": 138,
    "free_t": 4.126,
    "clear_free_t": 0,
-   "positive": 77,
+   "positive": 79,
    "best_placebo_rank": 6,
    "top10": [
     {
@@ -4904,20 +4887,20 @@
     },
     {
      "rank": 6,
-     "name": "placebo_shift__multi_timeframe_cvd_directional_di_direction_",
-     "group": "MULTI_TIMEFRAME",
-     "n": 22,
-     "exp": 0.19995,
-     "t": 0.638,
-     "win": 0.3636,
+     "name": "placebo_shuffle__liquidity_break_of_structure_candle_close_s",
+     "group": "LIQUIDITY",
+     "n": 20,
+     "exp": 0.20033,
+     "t": 1.926,
+     "win": 0.8,
      "wilson": [
-      0.1973,
-      0.5705
+      0.584,
+      0.9193
      ],
-     "payoff": 2.3952,
-     "maxdd": 4.553,
+     "payoff": 0.7958,
+     "maxdd": 1.011,
      "is_placebo": true,
-     "placebo_kind": "placebo_shift"
+     "placebo_kind": "placebo_shuffle"
     },
     {
      "rank": 7,
@@ -4992,12 +4975,12 @@
   {
    "cell": "MGC_60_slice1",
    "bars": 1667,
-   "screened": 4974,
-   "rows": 99,
+   "screened": 4968,
+   "rows": 97,
    "free_t": 4.126,
    "clear_free_t": 0,
-   "positive": 58,
-   "best_placebo_rank": 8,
+   "positive": 60,
+   "best_placebo_rank": 7,
    "top10": [
     {
      "rank": 1,
@@ -5103,6 +5086,23 @@
     },
     {
      "rank": 7,
+     "name": "placebo_shuffle__vwap_above_vwap_break_of_structure_macd_his",
+     "group": "VWAP",
+     "n": 45,
+     "exp": 0.23714,
+     "t": 1.26,
+     "win": 0.4667,
+     "wilson": [
+      0.3293,
+      0.6092
+     ],
+     "payoff": 1.7723,
+     "maxdd": 4.082,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shuffle"
+    },
+    {
+     "rank": 8,
      "name": "vwap_delta_confirms_bar_rsi_directional_structure_trend_vwap",
      "group": "VWAP",
      "n": 28,
@@ -5119,104 +5119,53 @@
      "placebo_kind": null
     },
     {
-     "rank": 8,
-     "name": "placebo_random__multi_timeframe_mtf_aligned_price_above_ema2",
-     "group": "MULTI_TIMEFRAME",
-     "n": 57,
-     "exp": 0.18548,
-     "t": 1.144,
-     "win": 0.4912,
-     "wilson": [
-      0.3662,
-      0.6174
-     ],
-     "payoff": 1.4499,
-     "maxdd": 5.199,
-     "is_placebo": true,
-     "placebo_kind": "placebo_random"
-    },
-    {
      "rank": 9,
-     "name": "volume_profile_delta_confirms_bar_poc_reversion__f_away_from",
-     "group": "VOLUME_PROFILE",
-     "n": 38,
-     "exp": 0.14235,
-     "t": 0.837,
-     "win": 0.5,
+     "name": "placebo_shift__vwap_above_vwap_break_of_structure_macd_hist_",
+     "group": "VWAP",
+     "n": 39,
+     "exp": 0.20026,
+     "t": 1.098,
+     "win": 0.4872,
      "wilson": [
-      0.3485,
-      0.6515
+      0.3386,
+      0.638
      ],
-     "payoff": 1.4293,
-     "maxdd": 3.049,
-     "is_placebo": false,
-     "placebo_kind": null
+     "payoff": 1.5899,
+     "maxdd": 2.352,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shift"
     },
     {
      "rank": 10,
-     "name": "vwap_above_vwap_break_of_structure_macd_hist_direction_value",
-     "group": "VWAP",
-     "n": 43,
-     "exp": 0.1245,
-     "t": 0.659,
-     "win": 0.4419,
+     "name": "placebo_shuffle__momentum_delta_confirms_bar_rsi_directional",
+     "group": "MOMENTUM",
+     "n": 45,
+     "exp": 0.18525,
+     "t": 2.477,
+     "win": 0.6444,
      "wilson": [
-      0.3043,
-      0.5889
+      0.4984,
+      0.7678
      ],
-     "payoff": 1.596,
-     "maxdd": 6.201,
-     "is_placebo": false,
-     "placebo_kind": null
+     "payoff": 1.6311,
+     "maxdd": 2.455,
+     "is_placebo": true,
+     "placebo_kind": "placebo_shuffle"
     }
    ]
   },
   {
    "cell": "MGC_60_slice2",
    "bars": 1711,
-   "screened": 4983,
-   "rows": 146,
+   "screened": 4971,
+   "rows": 141,
    "free_t": 4.126,
    "clear_free_t": 0,
-   "positive": 89,
-   "best_placebo_rank": 1,
+   "positive": 81,
+   "best_placebo_rank": 5,
    "top10": [
     {
      "rank": 1,
-     "name": "placebo_random__liquidity_cvd_directional_macd_hist_directio",
-     "group": "LIQUIDITY",
-     "n": 32,
-     "exp": 0.56174,
-     "t": 2.105,
-     "win": 0.5312,
-     "wilson": [
-      0.3645,
-      0.6913
-     ],
-     "payoff": 2.0269,
-     "maxdd": 4.351,
-     "is_placebo": true,
-     "placebo_kind": "placebo_random"
-    },
-    {
-     "rank": 2,
-     "name": "placebo_random__fibonacci_cvd_directional_fib_shallow_retrac",
-     "group": "FIBONACCI",
-     "n": 24,
-     "exp": 0.32568,
-     "t": 1.859,
-     "win": 0.5833,
-     "wilson": [
-      0.3883,
-      0.7553
-     ],
-     "payoff": 1.738,
-     "maxdd": 2.031,
-     "is_placebo": true,
-     "placebo_kind": "placebo_random"
-    },
-    {
-     "rank": 3,
      "name": "volume_profile_delta_confirms_bar_price_above_ema50_rsi_dire",
      "group": "VOLUME_PROFILE",
      "n": 46,
@@ -5233,7 +5182,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 4,
+     "rank": 2,
      "name": "volume_profile_above_vwap_macd_directional_price_above_ema20",
      "group": "VOLUME_PROFILE",
      "n": 32,
@@ -5250,7 +5199,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 5,
+     "rank": 3,
      "name": "trend_cvd_directional_ema_stack_imbalance_pullback_range_pos",
      "group": "TREND",
      "n": 21,
@@ -5267,7 +5216,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 6,
+     "rank": 4,
      "name": "liquidity_cvd_directional_macd_hist_direction_prior_day_brea",
      "group": "LIQUIDITY",
      "n": 22,
@@ -5284,24 +5233,24 @@
      "placebo_kind": null
     },
     {
-     "rank": 7,
-     "name": "placebo_shuffle__vwap_break_of_structure_ema_stack_value_are",
-     "group": "VWAP",
-     "n": 20,
-     "exp": 0.19393,
-     "t": 1.113,
-     "win": 0.6,
+     "rank": 5,
+     "name": "placebo_shuffle__volume_profile_break_of_structure_macd_dire",
+     "group": "VOLUME_PROFILE",
+     "n": 31,
+     "exp": 0.19044,
+     "t": 0.588,
+     "win": 0.3871,
      "wilson": [
-      0.3866,
-      0.7812
+      0.2373,
+      0.5618
      ],
-     "payoff": 1.3213,
-     "maxdd": 1.483,
+     "payoff": 2.1487,
+     "maxdd": 6.423,
      "is_placebo": true,
      "placebo_kind": "placebo_shuffle"
     },
     {
-     "rank": 8,
+     "rank": 6,
      "name": "trend_delta_confirms_bar_ema_fast_above_slow_macd_directiona",
      "group": "TREND",
      "n": 37,
@@ -5318,7 +5267,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 9,
+     "rank": 7,
      "name": "trend_delta_confirms_bar_ema_fast_above_slow_macd_directiona",
      "group": "TREND",
      "n": 40,
@@ -5335,7 +5284,7 @@
      "placebo_kind": null
     },
     {
-     "rank": 10,
+     "rank": 8,
      "name": "momentum_delta_confirms_bar_range_position_extreme_rsi_direc",
      "group": "MOMENTUM",
      "n": 34,
@@ -5350,6 +5299,40 @@
      "maxdd": 2.167,
      "is_placebo": false,
      "placebo_kind": null
+    },
+    {
+     "rank": 9,
+     "name": "trend_delta_confirms_bar_ema_fast_above_slow_macd_directiona",
+     "group": "TREND",
+     "n": 38,
+     "exp": 0.16175,
+     "t": 1.444,
+     "win": 0.5263,
+     "wilson": [
+      0.3726,
+      0.6752
+     ],
+     "payoff": 1.663,
+     "maxdd": 1.488,
+     "is_placebo": false,
+     "placebo_kind": null
+    },
+    {
+     "rank": 10,
+     "name": "fibonacci_cvd_directional_fib_shallow_retrace_macd_direction",
+     "group": "FIBONACCI",
+     "n": 21,
+     "exp": 0.14316,
+     "t": 0.981,
+     "win": 0.5238,
+     "wilson": [
+      0.3237,
+      0.7166
+     ],
+     "payoff": 1.6279,
+     "maxdd": 2.033,
+     "is_placebo": false,
+     "placebo_kind": null
     }
    ]
   }
@@ -5362,5 +5345,200 @@
   "exit_at_session_close=True exits dropped at 240m only: it closes a 4-hour trade on its entry bar, median hold 0.0 minutes, so those rows are a different instrument rather than a slow strategy with a bad exit.",
   "Clone collapse uses toolkit.fingerprint, which keys on (entry timestamp, direction) and ignores the exit. groups_spanning_different_exits counts how often that merged rule sets with different stop geometry; it was 0 in every cell run here.",
   "A placebo rank must be read against null_rank. With k placebos among N rows and no edge anywhere, the best placebo's expected rank is (N+1)/(k+1) - about 11 at a 10% share. 'A placebo in the top 10' is only news relative to that number, which is why it is reported beside it."
- ]
+ ],
+ "placebo_in_top10": {
+  "observed": 20,
+  "expected_under_null": 12.4,
+  "n_cells": 23,
+  "rank1_cells": [
+   "MCL_240_180",
+   "MCL_240_90",
+   "MCL_240_slice0",
+   "MCL_240_slice1",
+   "MCL_60_30",
+   "MCL_60_slice0",
+   "MGC_240_180",
+   "MGC_240_slice2"
+  ]
+ },
+ "placebo_rank_read_by_cell_size": {
+  "why": "A top-10 placebo only means something relative to the share of the table the controls occupy. In the thin cells the 12-placebo floor needed for any resolution at all pushes the control share to 40-71% of rows, and the best placebo is then expected at rank 1-4 whatever happens. Those cells are reported but they carry no evidential weight on this question.",
+  "large_cells_placebo_share_about_10pct": {
+   "n_cells": 12,
+   "cells": {
+    "MCL_60_180": {
+     "N": 165,
+     "k": 14,
+     "placebo_row_share": 0.085,
+     "best_placebo_rank": 3,
+     "null_expected_best_rank": 11.07
+    },
+    "MCL_60_274": {
+     "N": 205,
+     "k": 19,
+     "placebo_row_share": 0.093,
+     "best_placebo_rank": 55,
+     "null_expected_best_rank": 10.3
+    },
+    "MCL_60_90": {
+     "N": 107,
+     "k": 11,
+     "placebo_row_share": 0.103,
+     "best_placebo_rank": 5,
+     "null_expected_best_rank": 9.0
+    },
+    "MCL_60_slice0": {
+     "N": 118,
+     "k": 11,
+     "placebo_row_share": 0.093,
+     "best_placebo_rank": 1,
+     "null_expected_best_rank": 9.92
+    },
+    "MCL_60_slice1": {
+     "N": 103,
+     "k": 11,
+     "placebo_row_share": 0.107,
+     "best_placebo_rank": 2,
+     "null_expected_best_rank": 8.67
+    },
+    "MCL_60_slice2": {
+     "N": 117,
+     "k": 11,
+     "placebo_row_share": 0.094,
+     "best_placebo_rank": 9,
+     "null_expected_best_rank": 9.83
+    },
+    "MGC_60_180": {
+     "N": 210,
+     "k": 18,
+     "placebo_row_share": 0.086,
+     "best_placebo_rank": 6,
+     "null_expected_best_rank": 11.11
+    },
+    "MGC_60_274": {
+     "N": 251,
+     "k": 20,
+     "placebo_row_share": 0.08,
+     "best_placebo_rank": 23,
+     "null_expected_best_rank": 12.0
+    },
+    "MGC_60_90": {
+     "N": 121,
+     "k": 10,
+     "placebo_row_share": 0.083,
+     "best_placebo_rank": 24,
+     "null_expected_best_rank": 11.09
+    },
+    "MGC_60_slice0": {
+     "N": 138,
+     "k": 12,
+     "placebo_row_share": 0.087,
+     "best_placebo_rank": 6,
+     "null_expected_best_rank": 10.69
+    },
+    "MGC_60_slice1": {
+     "N": 97,
+     "k": 10,
+     "placebo_row_share": 0.103,
+     "best_placebo_rank": 7,
+     "null_expected_best_rank": 8.91
+    },
+    "MGC_60_slice2": {
+     "N": 141,
+     "k": 13,
+     "placebo_row_share": 0.092,
+     "best_placebo_rank": 5,
+     "null_expected_best_rank": 10.14
+    }
+   },
+   "in_top10_observed": 9,
+   "in_top10_expected_under_null": 7.57,
+   "poisson_binomial_p": 0.2968,
+   "verdict": "9 of 12 against 7.6 expected, p=0.30. The controls are NOT beating the strategies more often than chance in the cells where the question can be asked - but they are not losing to them either, which is the finding: rank 1, 2, 3, 5, 5, 6, 6 and 7 for a deliberately empty rule set in tables of 97-210 rows."
+  },
+  "thin_cells_placebo_share_40_to_71pct": {
+   "n_cells": 11,
+   "cells": {
+    "MCL_240_180": {
+     "N": 22,
+     "k": 11,
+     "placebo_row_share": 0.5,
+     "best_placebo_rank": 1,
+     "null_expected_best_rank": 1.92
+    },
+    "MCL_240_274": {
+     "N": 47,
+     "k": 11,
+     "placebo_row_share": 0.234,
+     "best_placebo_rank": 8,
+     "null_expected_best_rank": 4.0
+    },
+    "MCL_240_90": {
+     "N": 17,
+     "k": 12,
+     "placebo_row_share": 0.706,
+     "best_placebo_rank": 1,
+     "null_expected_best_rank": 1.38
+    },
+    "MCL_240_slice0": {
+     "N": 15,
+     "k": 11,
+     "placebo_row_share": 0.733,
+     "best_placebo_rank": 1,
+     "null_expected_best_rank": 1.33
+    },
+    "MCL_240_slice1": {
+     "N": 17,
+     "k": 11,
+     "placebo_row_share": 0.647,
+     "best_placebo_rank": 1,
+     "null_expected_best_rank": 1.5
+    },
+    "MCL_240_slice2": {
+     "N": 19,
+     "k": 12,
+     "placebo_row_share": 0.632,
+     "best_placebo_rank": 2,
+     "null_expected_best_rank": 1.54
+    },
+    "MCL_60_30": {
+     "N": 37,
+     "k": 9,
+     "placebo_row_share": 0.243,
+     "best_placebo_rank": 1,
+     "null_expected_best_rank": 3.8
+    },
+    "MGC_240_180": {
+     "N": 16,
+     "k": 10,
+     "placebo_row_share": 0.625,
+     "best_placebo_rank": 1,
+     "null_expected_best_rank": 1.55
+    },
+    "MGC_240_274": {
+     "N": 25,
+     "k": 8,
+     "placebo_row_share": 0.32,
+     "best_placebo_rank": 2,
+     "null_expected_best_rank": 2.89
+    },
+    "MGC_240_slice2": {
+     "N": 2,
+     "k": 1,
+     "placebo_row_share": 0.5,
+     "best_placebo_rank": 1,
+     "null_expected_best_rank": 1.5
+    },
+    "MGC_60_30": {
+     "N": 39,
+     "k": 9,
+     "placebo_row_share": 0.231,
+     "best_placebo_rank": 2,
+     "null_expected_best_rank": 4.0
+    }
+   },
+   "verdict": "Degenerate by construction. Report, do not interpret."
+  },
+  "within_cell_dependence": "The 3 placebos derived from one base strategy are not 3 independent controls - they share exits, filters and (for shift and shuffle) bar locations. MGC 240m 180d is the clearest case: its top four rows are all placebos, but three of the four come from the same base, so it is about two independent controls, not four."
+ }
 }

@@ -98,3 +98,70 @@ mildly generous. Signals are closed-bar, entries fill next-bar-open, the stop wi
 holds both. D35's one-sided fill lives in the ORB module and cannot reach this. Costs use the
 library's volatility/liquidity/news-scaled model. Clone inflation collapsed; nested
 double-counting is the central correction.
+
+---
+
+## Worker 1 (MGC, MCL) — a more careful reading of the placebo result
+
+A placebo is inside the top 10 in **20 of 23 non-empty cells** (12.4 expected under the no-edge
+null), and ranks **1st in 8 cells**. On **MGC 240m/180d the top four rows are all placebos.**
+
+**But the raw count overstates it, and the correct split matters.** A top-10 placebo only means
+something relative to the control's share of that table:
+
+- In the **12 large cells** (N = 97–251, control share 8.7–12%): a placebo is inside the top 10 in
+  **9 of 12 against 7.6 expected — Poisson-binomial p = 0.30. Not distinguishable from chance in
+  either direction.**
+- In the **11 thin cells**, the 12-placebo floor forces the control share to 23–73%, so the best
+  placebo is expected at rank 1–4 *regardless*. Report, do not interpret.
+
+Also: the 3 placebos derived from one base are **not 3 independent controls** — on MGC 240m/180d,
+3 of the top 4 share a single base.
+
+This reaches the same conclusion as worker 3's raw counts by a stricter route: **the ranking cannot
+distinguish a real rule set from a random entry, and in properly-sized cells the placebo rate is
+exactly what chance predicts.**
+
+### The leak worker 1 found in its own matching — three iterations
+
+This is the check earning its keep, and it ran in the direction that would have *hidden* the
+result:
+
+| version | behaviour | mean normalised placebo rank |
+|---|---|---|
+| v1: group × trade-count-quantile round-robin | handed the control arm each group's **least active** strategy | **0.57**, sign test 16/23 (p=0.047) — placebos systematically ranking low, the void condition |
+| v2: draw before clone collapse | overcorrected — base median 96 vs population 56 | — |
+| **v3: stratify on the ranked population's trade-count quartiles** | controls carry slightly **more** trades than reals (Stouffer +2.46) | **0.5104**, sign test 14/23 (p=0.20) |
+
+v3's residual bias is in the **conservative** direction — more trades means lower variance, so if
+anything **these placebo ranks are understated**.
+
+**Warning that qualifies the pooled analysis:** do not pool placebo rows across cells. The pooled
+KS reads p=0.014 purely from that trade-count inflation.
+
+### The power control — what makes the nulls mean something
+
+A deliberate look-ahead cheat — the same entries shifted 5 bars **backward** — ranks **1st in all
+four 274-day cells**, median expectancy **+0.30 to +0.76R** against a real median of −0.05 to
++0.07R, beating its own base in **15 of 16** matched pairs.
+
+**The harness sees a signal that is really there.** So the null results are real absence, not an
+insensitive test.
+
+Fill audit clean on **42,279 trades**: entry is the fill bar's *open* plus adverse slippage (max
+2.0 ticks, the model ceiling), never a bar extreme; **0 favourable-slippage fills**; 321 trades hit
+a target on their entry bar and in **0** of those was the stop also touched — **the D35 shape is
+absent here**.
+
+### Deflation and replication
+
+**0 rows clear `free_t` in any of 28 cells** (free_t 4.03–4.13). Largest t anywhere: **2.97**
+(MCL 60m 180d). Nothing is close.
+
+Disjoint-slice replication 11 of 40 — but the median trade count *inside a third* is 7–15, so this
+column is weak rather than strong.
+
+### One economic difference worth keeping
+
+**MCL is the cost-fragile contract; MGC is not.** Costs flip **8 of 183** MCL 60m rows and 3 of 37
+MCL 240m rows from positive gross to negative net, against **1 of 259** for MGC.
