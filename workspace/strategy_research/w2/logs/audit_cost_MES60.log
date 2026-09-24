@@ -1,0 +1,1 @@
+{"symbol": "MES", "tf": 60, "qualifying": 201, "median_cost_r_per_trade": 0.0166, "max_cost_r_per_trade": 0.0827, "top10_base_net": [0.2975, 0.264, 0.224, 0.2137, 0.2137, 0.2137, 0.1218, 0.1218, 0.1218, 0.1218], "top10_under_2x_slippage": [0.2796, 0.2222, 0.1699, 0.1953, 0.1953, 0.1953, 0.0695, 0.0695, 0.0695, 0.0695], "top10_still_positive_at_2x": 10}

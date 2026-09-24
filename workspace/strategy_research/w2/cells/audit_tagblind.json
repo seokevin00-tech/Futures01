@@ -1,0 +1,84 @@
+{
+ "description": "random relabelling of real rows reproduces the analytic null rank, so score() and the sort are blind to the arm label",
+ "cells": {
+  "MES_240_180": {
+   "real_rows": 79,
+   "trials": 2000,
+   "mean_pseudo_placebo_rank": 2.04,
+   "analytic_null": 1.975
+  },
+  "MES_240_274": {
+   "real_rows": 128,
+   "trials": 2000,
+   "mean_pseudo_placebo_rank": 2.015,
+   "analytic_null": 1.985
+  },
+  "MES_240_90": {
+   "real_rows": 20,
+   "trials": 2000,
+   "mean_pseudo_placebo_rank": 1.996,
+   "analytic_null": 1.909
+  },
+  "MES_60_180": {
+   "real_rows": 321,
+   "trials": 2000,
+   "mean_pseudo_placebo_rank": 2.074,
+   "analytic_null": 1.994
+  },
+  "MES_60_274": {
+   "real_rows": 407,
+   "trials": 2000,
+   "mean_pseudo_placebo_rank": 1.956,
+   "analytic_null": 1.995
+  },
+  "MES_60_30": {
+   "real_rows": 45,
+   "trials": 2000,
+   "mean_pseudo_placebo_rank": 2.058,
+   "analytic_null": 1.957
+  },
+  "MES_60_90": {
+   "real_rows": 134,
+   "trials": 2000,
+   "mean_pseudo_placebo_rank": 2.087,
+   "analytic_null": 1.985
+  },
+  "MNQ_240_180": {
+   "real_rows": 74,
+   "trials": 2000,
+   "mean_pseudo_placebo_rank": 2.014,
+   "analytic_null": 1.974
+  },
+  "MNQ_240_274": {
+   "real_rows": 192,
+   "trials": 2000,
+   "mean_pseudo_placebo_rank": 2.025,
+   "analytic_null": 1.99
+  },
+  "MNQ_60_180": {
+   "real_rows": 345,
+   "trials": 2000,
+   "mean_pseudo_placebo_rank": 2.001,
+   "analytic_null": 1.994
+  },
+  "MNQ_60_274": {
+   "real_rows": 433,
+   "trials": 2000,
+   "mean_pseudo_placebo_rank": 2.018,
+   "analytic_null": 1.995
+  },
+  "MNQ_60_30": {
+   "real_rows": 34,
+   "trials": 2000,
+   "mean_pseudo_placebo_rank": 1.986,
+   "analytic_null": 1.944
+  },
+  "MNQ_60_90": {
+   "real_rows": 153,
+   "trials": 2000,
+   "mean_pseudo_placebo_rank": 2.024,
+   "analytic_null": 1.987
+  }
+ },
+ "max_abs_deviation": 0.102
+}

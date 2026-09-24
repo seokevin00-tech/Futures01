@@ -1,0 +1,6 @@
+[60m/slice1] MES (321,214) rows=325 placebo_rank=1 (122s)
+[60m/slice2] MES (214,107) rows=468 placebo_rank=1 (101s)
+[60m/slice3] MES (107,0) rows=276 placebo_rank=4 (104s)
+[60m/slice1] MNQ (321,214) rows=241 placebo_rank=1 (77s)
+[60m/slice2] MNQ (214,107) rows=384 placebo_rank=1 (74s)
+[60m/slice3] MNQ (107,0) rows=306 placebo_rank=4 (58s)

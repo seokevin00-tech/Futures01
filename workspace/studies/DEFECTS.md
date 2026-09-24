@@ -579,3 +579,40 @@ Three distinct faults in `opening_range_breakout`, on top of D30:
 | MES/MNQ/NQ | 5/15/30/60 | 15/30/60 | 30/60 | **none** | **none** |
 | MGC | 5/15/30/60 | **none** | **none** | **none** | **none** |
 | MCL | all | 15/30/60 | 30/60 | 60 only | **none** |
+
+## D40 — the micro-grain CSVs splice more than one contract month (found by `rank_nq_es_grains`)
+
+**A data-integrity problem in the supplied files, not in the code.** MZC 60m: **26.3% of bars are
+flat** (high == low, a single print), **11.3% have zero volume**, and **367 close-to-open gaps
+exceed 2%, of which 47% fully reverse on the next bar**. On corn that excursion is ~16 cents — the
+size of a CBOT calendar spread — so the continuous series is splicing quotes from **more than one
+contract month** on hours the front month did not trade. MZW 19.6%/9.0%/202; MZS 12.2%/10.8%/98.
+
+**NQ and ES have zero flat bars and zero 2% gaps**, so this is specific to the grains.
+
+The engine honours gaps at the open, so stops fill at prices that never traded — which is very
+likely why grain stops realise **−1.215R (MZC) / −1.179R (MZW)** against −1.007R on NQ. Dropping
+zero-volume and single-print bars removes **29% of MZC's 60m bars and changes 6 of the 10
+top-ranked strategies** on both MZC and MZW.
+
+**No micro-grain backtest from these files should be trusted**, and the economics rule them out
+anyway: median 60m bar volume is **11–17 contracts** (10th percentile 1–2) against NQ's 9,643, and
+round-turn fees are **9.2% of one R on MZC** versus 0.17% on NQ.
+
+## D41 — NQ and MNQ are NOT the same series (corrects an earlier claim)
+
+An earlier ORB study reported that NQ and MNQ in `csv/raw` were "the same price series from two
+fetch snapshots". Measured: only **0.2% of 4,947 overlapping 1h bars share OHLC** (mean |Δclose|
+2.6 points), and NQ's last bar is 2026-09-18 against MNQ's 2026-09-22 — so windows anchored to the
+final bar **end four days apart**. Same market, different bars. Still not independent evidence,
+but the earlier statement was wrong and any analysis that treated them as identical is suspect.
+
+## D24 — correction to my own brief: `rth_only=False` buys sample and costs expectancy
+
+I told the ranking workers to leave `rth_only` off, citing the 2–12× population cost. Measured
+paired, with identical rule sets and the flag flipped: trades rise ×3.2–4.2 at 240m and ×2.1–2.5 at
+60m — **and paired median expectancy falls** (MZC 240m +0.073 → −0.103, sign p=0.001; MZC 60m
+−0.237 → −0.387, p≈0; ES 60m −0.022 → −0.054, p=0.0004). **The RTH gate was flattering the
+measurement while starving the sample.** Both readings are true; report which one you used.
+Notably, in the properly-populated cells the best placebo ranks **1–3 against nulls of 4.7–19.2 in
+8 of 9**.

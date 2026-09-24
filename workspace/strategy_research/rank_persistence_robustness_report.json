@@ -1,0 +1,987 @@
+{
+ "verdict": "The recurring top-10 ranking is not live-eligible on any symbol or timeframe tested. It carries a small, genuinely out-of-sample amount of information - about 0.7 extra names of ten carrying into a disjoint period - and that information is worth approximately +0.015R per trade, which is inside the cost of being wrong about it.",
+ "headline": {
+  "placebo_in_top10_cells": "69 of 89",
+  "placebo_rows_vs_chance": 0.838,
+  "programme_free_t": 5.453,
+  "rows_clearing_free_t": 0,
+  "max_t_anywhere": 3.923,
+  "nested_overlap_vs_nesting_null": "63 observed vs 69.5 forced (274d->180d)",
+  "disjoint_overlap_vs_chance": {
+   "pair_cells": 59,
+   "overlap_observed": 149,
+   "overlap_expected_by_chance": 124.0,
+   "excess": 25.0,
+   "pct_excess": 20.2,
+   "names_per_ten_observed": 2.53,
+   "names_per_ten_by_chance": 2.1,
+   "cells_above_chance": 26,
+   "cells_below": 10,
+   "tied": 23,
+   "sign_z": 2.67,
+   "stouffer_z": 4.19
+  },
+  "triple_positive": 25,
+  "triple_positive_null": 33.67,
+  "realised_oos_expectancy_r": {
+   "oos_trades": 32219,
+   "realised_exp_r": 0.0048,
+   "no_edge_permutation_null_r": -0.01,
+   "excess_over_null_r": 0.0148
+  },
+  "top10_turnover": "mean Jaccard 0.152 across disjoint thirds in the cells where a top 10 is a real choice; the top-ranked strategy changes in 281 of 385 walk-forward folds"
+ },
+ "biases_checked": {
+  "look-ahead (signal timing)": "Excluded structurally: the engine computes every signal from a closed-bar snapshot and fills entries at the NEXT bar's open.",
+  "look-ahead (window boundary)": "Measured, not assumed. 2.47% of trades open inside a ranking window and close after it. Re-running with a strict rule (entry AND exit inside) moves the pooled out-of-sample figure by -0.00406R on average - the loose rule was mildly generous, so the conclusion is if anything understated.",
+  "data-mining bias": "Quantified: 2,859,518 strategy evaluations, free_t 5.453, zero rows in any top 10 clear it.",
+  "overfitting to the selection window": "Tested directly by disjoint thirds and by rolling walk-forward; the 1-month top 10 shares zero names with the 9-month top 10 in 6 of 6 cells because the two lists rank different populations.",
+  "insufficient sample size": "The 20-trade floor admits 3-9 strategies in most 1-month 60m cells and 1-2 in the 240m thirds, so those 'top 10s' are the whole qualifying population. Flagged everywhere it occurs.",
+  "clone inflation": "Collapsed on realised trades. Uncollapsed, MES 60m/274d reports 220 qualifiers and lists one TREND rule set four times inside its own top 10; collapsed it reports 116.",
+  "unrealistic fills": "Every trade in this study comes from the library engine: stop wins when one bar holds both stop and target, gaps fill at the open. D35 (a limit credited with both extremes of one bar) lives in the ORB module's own fill code and cannot reach these results.",
+  "understated costs and slippage": "Library CostModel applied to every trade; slippage widens with ATR percentile, thin books and news windows rather than being flat.",
+  "survivorship": "None to correct: the population is generated, not selected from survivors. 82.1% of generated strategies never trade at all, which shrinks the effective search to ~495,000 and free_t to 5.15 - still uncleared.",
+  "repainting indicators": "Structurally excluded by the closed-bar snapshot; not separately re-tested here.",
+  "future-data leakage in the null": "The permutation null reassigns R only within (exit geometry x time block), so it preserves every block's pooled R and cannot import information from outside the block.",
+  "nested-window double counting": "The central correction of this whole analysis. A strategy in all four top 10s is one observation seen four times; the nesting baseline is computed explicitly and the observed agreement does not exceed it."
+ },
+ "nested_windows": {
+  "274d->180d": {
+   "cells": 13,
+   "overlap_observed": 63,
+   "overlap_nesting_null": 69.53,
+   "excess_over_nesting_null": -6.53,
+   "cells_with_positive_excess": {
+    "n": 13,
+    "positive": 5,
+    "z": -0.832,
+    "p": 0.4054
+   },
+   "pct_rank_z_mean": -0.017,
+   "pct_rank_z_stouffer": -0.061,
+   "pct_rank_z_positive": {
+    "n": 13,
+    "positive": 8,
+    "z": 0.832,
+    "p": 0.4054
+   },
+   "spearman_population_observed": 0.741,
+   "spearman_population_null": 0.7947,
+   "spearman_excess": -0.0537,
+   "top10_that_even_qualify_in_B": "69 of 130"
+  },
+  "274d->90d": {
+   "cells": 12,
+   "overlap_observed": 14,
+   "overlap_nesting_null": 13.52,
+   "excess_over_nesting_null": 0.48,
+   "cells_with_positive_excess": {
+    "n": 12,
+    "positive": 5,
+    "z": -0.577,
+    "p": 0.5637
+   },
+   "pct_rank_z_mean": -0.135,
+   "pct_rank_z_stouffer": -0.331,
+   "pct_rank_z_positive": {
+    "n": 6,
+    "positive": 2,
+    "z": -0.816,
+    "p": 0.4142
+   },
+   "spearman_population_observed": 0.5068,
+   "spearman_population_null": 0.4738,
+   "spearman_excess": 0.033,
+   "top10_that_even_qualify_in_B": "15 of 120"
+  },
+  "274d->30d": {
+   "cells": 6,
+   "overlap_observed": 0,
+   "overlap_nesting_null": 0.03,
+   "excess_over_nesting_null": -0.03,
+   "cells_with_positive_excess": {
+    "n": 6,
+    "positive": 0,
+    "z": -2.449,
+    "p": 0.0143
+   },
+   "pct_rank_z_mean": null,
+   "pct_rank_z_stouffer": null,
+   "pct_rank_z_positive": {
+    "n": 0
+   },
+   "spearman_population_observed": 0.1,
+   "spearman_population_null": 0.21,
+   "spearman_excess": -0.11,
+   "top10_that_even_qualify_in_B": "0 of 60"
+  },
+  "180d->274d": {
+   "cells": 13,
+   "overlap_observed": 63,
+   "overlap_nesting_null": 69.53,
+   "excess_over_nesting_null": -6.53,
+   "cells_with_positive_excess": {
+    "n": 13,
+    "positive": 5,
+    "z": -0.832,
+    "p": 0.4054
+   },
+   "pct_rank_z_mean": -0.536,
+   "pct_rank_z_stouffer": -1.933,
+   "pct_rank_z_positive": {
+    "n": 13,
+    "positive": 5,
+    "z": -0.832,
+    "p": 0.4054
+   },
+   "spearman_population_observed": 0.741,
+   "spearman_population_null": 0.7947,
+   "spearman_excess": -0.0537,
+   "top10_that_even_qualify_in_B": "120 of 130"
+  },
+  "180d->90d": {
+   "cells": 12,
+   "overlap_observed": 21,
+   "overlap_nesting_null": 23.58,
+   "excess_over_nesting_null": -2.58,
+   "cells_with_positive_excess": {
+    "n": 12,
+    "positive": 2,
+    "z": -2.309,
+    "p": 0.0209
+   },
+   "pct_rank_z_mean": 0.49,
+   "pct_rank_z_stouffer": 0.98,
+   "pct_rank_z_positive": {
+    "n": 4,
+    "positive": 3,
+    "z": 1.0,
+    "p": 0.3173
+   },
+   "spearman_population_observed": 0.7779,
+   "spearman_population_null": 0.5985,
+   "spearman_excess": 0.1794,
+   "top10_that_even_qualify_in_B": "23 of 120"
+  },
+  "180d->30d": {
+   "cells": 6,
+   "overlap_observed": 0,
+   "overlap_nesting_null": 0.27,
+   "excess_over_nesting_null": -0.27,
+   "cells_with_positive_excess": {
+    "n": 6,
+    "positive": 0,
+    "z": -2.449,
+    "p": 0.0143
+   },
+   "pct_rank_z_mean": null,
+   "pct_rank_z_stouffer": null,
+   "pct_rank_z_positive": {
+    "n": 0
+   },
+   "spearman_population_observed": 0.475,
+   "spearman_population_null": 0.2731,
+   "spearman_excess": 0.2019,
+   "top10_that_even_qualify_in_B": "0 of 60"
+  },
+  "90d->274d": {
+   "cells": 12,
+   "overlap_observed": 14,
+   "overlap_nesting_null": 13.52,
+   "excess_over_nesting_null": 0.48,
+   "cells_with_positive_excess": {
+    "n": 12,
+    "positive": 5,
+    "z": -0.577,
+    "p": 0.5637
+   },
+   "pct_rank_z_mean": -0.054,
+   "pct_rank_z_stouffer": -0.188,
+   "pct_rank_z_positive": {
+    "n": 12,
+    "positive": 5,
+    "z": -0.577,
+    "p": 0.5637
+   },
+   "spearman_population_observed": 0.5068,
+   "spearman_population_null": 0.4738,
+   "spearman_excess": 0.033,
+   "top10_that_even_qualify_in_B": "73 of 120"
+  },
+  "90d->180d": {
+   "cells": 12,
+   "overlap_observed": 21,
+   "overlap_nesting_null": 23.58,
+   "excess_over_nesting_null": -2.58,
+   "cells_with_positive_excess": {
+    "n": 12,
+    "positive": 2,
+    "z": -2.309,
+    "p": 0.0209
+   },
+   "pct_rank_z_mean": -0.037,
+   "pct_rank_z_stouffer": -0.127,
+   "pct_rank_z_positive": {
+    "n": 12,
+    "positive": 5,
+    "z": -0.577,
+    "p": 0.5637
+   },
+   "spearman_population_observed": 0.7779,
+   "spearman_population_null": 0.5985,
+   "spearman_excess": 0.1794,
+   "top10_that_even_qualify_in_B": "73 of 120"
+  },
+  "90d->30d": {
+   "cells": 6,
+   "overlap_observed": 5,
+   "overlap_nesting_null": 5.67,
+   "excess_over_nesting_null": -0.67,
+   "cells_with_positive_excess": {
+    "n": 6,
+    "positive": 2,
+    "z": -0.816,
+    "p": 0.4142
+   },
+   "pct_rank_z_mean": -0.15,
+   "pct_rank_z_stouffer": -0.212,
+   "pct_rank_z_positive": {
+    "n": 2,
+    "positive": 1,
+    "z": 0.0,
+    "p": 1.0
+   },
+   "spearman_population_observed": 0.675,
+   "spearman_population_null": 0.4338,
+   "spearman_excess": 0.2413,
+   "top10_that_even_qualify_in_B": "5 of 60"
+  },
+  "30d->274d": {
+   "cells": 6,
+   "overlap_observed": 0,
+   "overlap_nesting_null": 0.03,
+   "excess_over_nesting_null": -0.03,
+   "cells_with_positive_excess": {
+    "n": 6,
+    "positive": 0,
+    "z": -2.449,
+    "p": 0.0143
+   },
+   "pct_rank_z_mean": -0.192,
+   "pct_rank_z_stouffer": -0.469,
+   "pct_rank_z_positive": {
+    "n": 6,
+    "positive": 2,
+    "z": -0.816,
+    "p": 0.4142
+   },
+   "spearman_population_observed": 0.1,
+   "spearman_population_null": 0.21,
+   "spearman_excess": -0.11,
+   "top10_that_even_qualify_in_B": "17 of 60"
+  },
+  "30d->180d": {
+   "cells": 6,
+   "overlap_observed": 0,
+   "overlap_nesting_null": 0.27,
+   "excess_over_nesting_null": -0.27,
+   "cells_with_positive_excess": {
+    "n": 6,
+    "positive": 0,
+    "z": -2.449,
+    "p": 0.0143
+   },
+   "pct_rank_z_mean": -0.358,
+   "pct_rank_z_stouffer": -0.878,
+   "pct_rank_z_positive": {
+    "n": 6,
+    "positive": 2,
+    "z": -0.816,
+    "p": 0.4142
+   },
+   "spearman_population_observed": 0.475,
+   "spearman_population_null": 0.2731,
+   "spearman_excess": 0.2019,
+   "top10_that_even_qualify_in_B": "17 of 60"
+  },
+  "30d->90d": {
+   "cells": 6,
+   "overlap_observed": 5,
+   "overlap_nesting_null": 5.67,
+   "excess_over_nesting_null": -0.67,
+   "cells_with_positive_excess": {
+    "n": 6,
+    "positive": 2,
+    "z": -0.816,
+    "p": 0.4142
+   },
+   "pct_rank_z_mean": -0.047,
+   "pct_rank_z_stouffer": -0.114,
+   "pct_rank_z_positive": {
+    "n": 6,
+    "positive": 3,
+    "z": 0.0,
+    "p": 1.0
+   },
+   "spearman_population_observed": 0.675,
+   "spearman_population_null": 0.4338,
+   "spearman_excess": 0.2413,
+   "top10_that_even_qualify_in_B": "17 of 60"
+  }
+ },
+ "disjoint_thirds": {
+  "summary": {
+   "s1->s2": {
+    "cells": 20,
+    "overlap_observed": 54,
+    "overlap_null": 41.73,
+    "excess": 12.27,
+    "cells_with_positive_excess": {
+     "n": 20,
+     "positive": 8,
+     "z": -0.894,
+     "p": 0.3711
+    },
+    "pct_rank_z_stouffer": 1.49,
+    "pct_rank_z_positive": {
+     "n": 15,
+     "positive": 8,
+     "z": 0.258,
+     "p": 0.7963
+    },
+    "sel_exp_z_stouffer": 1.561,
+    "sel_exp_z_positive": {
+     "n": 20,
+     "positive": 10,
+     "z": 0.0,
+     "p": 1.0
+    }
+   },
+   "s1->s3": {
+    "cells": 20,
+    "overlap_observed": 43,
+    "overlap_null": 42.43,
+    "excess": 0.57,
+    "cells_with_positive_excess": {
+     "n": 20,
+     "positive": 7,
+     "z": -1.342,
+     "p": 0.1797
+    },
+    "pct_rank_z_stouffer": -1.018,
+    "pct_rank_z_positive": {
+     "n": 18,
+     "positive": 5,
+     "z": -1.886,
+     "p": 0.0593
+    },
+    "sel_exp_z_stouffer": 1.06,
+    "sel_exp_z_positive": {
+     "n": 20,
+     "positive": 11,
+     "z": 0.447,
+     "p": 0.6547
+    }
+   },
+   "s2->s1": {
+    "cells": 20,
+    "overlap_observed": 54,
+    "overlap_null": 41.73,
+    "excess": 12.27,
+    "cells_with_positive_excess": {
+     "n": 20,
+     "positive": 8,
+     "z": -0.894,
+     "p": 0.3711
+    },
+    "pct_rank_z_stouffer": 0.467,
+    "pct_rank_z_positive": {
+     "n": 15,
+     "positive": 9,
+     "z": 0.775,
+     "p": 0.4386
+    },
+    "sel_exp_z_stouffer": 2.721,
+    "sel_exp_z_positive": {
+     "n": 20,
+     "positive": 12,
+     "z": 0.894,
+     "p": 0.3711
+    }
+   },
+   "s2->s3": {
+    "cells": 19,
+    "overlap_observed": 52,
+    "overlap_null": 39.82,
+    "excess": 12.18,
+    "cells_with_positive_excess": {
+     "n": 19,
+     "positive": 11,
+     "z": 0.688,
+     "p": 0.4913
+    },
+    "pct_rank_z_stouffer": 0.529,
+    "pct_rank_z_positive": {
+     "n": 17,
+     "positive": 10,
+     "z": 0.728,
+     "p": 0.4669
+    },
+    "sel_exp_z_stouffer": 2.957,
+    "sel_exp_z_positive": {
+     "n": 19,
+     "positive": 14,
+     "z": 2.065,
+     "p": 0.0389
+    }
+   },
+   "s3->s1": {
+    "cells": 20,
+    "overlap_observed": 43,
+    "overlap_null": 42.43,
+    "excess": 0.57,
+    "cells_with_positive_excess": {
+     "n": 20,
+     "positive": 7,
+     "z": -1.342,
+     "p": 0.1797
+    },
+    "pct_rank_z_stouffer": 1.445,
+    "pct_rank_z_positive": {
+     "n": 16,
+     "positive": 10,
+     "z": 1.0,
+     "p": 0.3173
+    },
+    "sel_exp_z_stouffer": 2.292,
+    "sel_exp_z_positive": {
+     "n": 20,
+     "positive": 13,
+     "z": 1.342,
+     "p": 0.1797
+    }
+   },
+   "s3->s2": {
+    "cells": 19,
+    "overlap_observed": 52,
+    "overlap_null": 39.82,
+    "excess": 12.18,
+    "cells_with_positive_excess": {
+     "n": 19,
+     "positive": 11,
+     "z": 0.688,
+     "p": 0.4913
+    },
+    "pct_rank_z_stouffer": 1.495,
+    "pct_rank_z_positive": {
+     "n": 16,
+     "positive": 10,
+     "z": 1.0,
+     "p": 0.3173
+    },
+    "sel_exp_z_stouffer": -0.181,
+    "sel_exp_z_positive": {
+     "n": 19,
+     "positive": 9,
+     "z": -0.229,
+     "p": 0.8185
+    }
+   }
+  },
+  "pooled_overlap": {
+   "all_pair_cells": {
+    "pair_cells": 59,
+    "overlap_observed": 149,
+    "overlap_expected_by_chance": 124.0,
+    "excess": 25.0,
+    "pct_excess": 20.2,
+    "names_per_ten_observed": 2.53,
+    "names_per_ten_by_chance": 2.1,
+    "cells_above_chance": 26,
+    "cells_below": 10,
+    "tied": 23,
+    "sign_z": 2.67,
+    "stouffer_z": 4.19
+   },
+   "where_a_top_10_is_a_real_choice": {
+    "pair_cells": 25,
+    "overlap_observed": 63,
+    "overlap_expected_by_chance": 44.4,
+    "excess": 18.6,
+    "pct_excess": 41.9,
+    "names_per_ten_observed": 2.52,
+    "names_per_ten_by_chance": 1.78,
+    "cells_above_chance": 17,
+    "cells_below": 8,
+    "tied": 0,
+    "sign_z": 1.8,
+    "stouffer_z": 3.62
+   }
+  },
+  "triple_positive": {
+   "cells": 21,
+   "observed_positive_in_all_three": 25,
+   "permutation_null": 33.67,
+   "excess": -8.67,
+   "z": -1.85,
+   "cells_beating_their_own_null": {
+    "n": 21,
+    "positive": 3,
+    "z": -3.273,
+    "p": 0.0011
+   },
+   "per_cell": {
+    "MES_60": {
+     "positive_all_three": 1,
+     "of": 10,
+     "still_at_floor": 1,
+     "null": 1.36,
+     "jaccard": 0.0764,
+     "slice_qualifiers": [
+      37,
+      50,
+      45
+     ]
+    },
+    "MNQ_60": {
+     "positive_all_three": 2,
+     "of": 10,
+     "still_at_floor": 2,
+     "null": 3.425,
+     "jaccard": 0.1184,
+     "slice_qualifiers": [
+      36,
+      50,
+      28
+     ]
+    },
+    "MGC_60": {
+     "positive_all_three": 1,
+     "of": 10,
+     "still_at_floor": 1,
+     "null": 1.325,
+     "jaccard": 0.2605,
+     "slice_qualifiers": [
+      19,
+      26,
+      34
+     ]
+    },
+    "MCL_60": {
+     "positive_all_three": 0,
+     "of": 10,
+     "still_at_floor": 0,
+     "null": 0.635,
+     "jaccard": 0.1379,
+     "slice_qualifiers": [
+      37,
+      30,
+      44
+     ]
+    },
+    "ES_60": {
+     "positive_all_three": 3,
+     "of": 10,
+     "still_at_floor": 2,
+     "null": 1.17,
+     "jaccard": 0.0939,
+     "slice_qualifiers": [
+      22,
+      48,
+      33
+     ]
+    },
+    "NQ_60": {
+     "positive_all_three": 5,
+     "of": 10,
+     "still_at_floor": 5,
+     "null": 5.36,
+     "jaccard": 0.1379,
+     "slice_qualifiers": [
+      59,
+      70,
+      53
+     ]
+    },
+    "MES_240": {
+     "positive_all_three": 0,
+     "of": 1,
+     "still_at_floor": 0,
+     "null": 0.0,
+     "jaccard": 0.6667,
+     "slice_qualifiers": [
+      1,
+      1,
+      2
+     ]
+    },
+    "MNQ_240": {
+     "positive_all_three": 0,
+     "of": 1,
+     "still_at_floor": 0,
+     "null": 0.005,
+     "jaccard": 0.3095,
+     "slice_qualifiers": [
+      1,
+      7,
+      2
+     ]
+    },
+    "MGC_240": {
+     "positive_all_three": 0,
+     "of": 1,
+     "still_at_floor": 0,
+     "null": 0.115,
+     "jaccard": 0.2593,
+     "slice_qualifiers": [
+      1,
+      3,
+      9
+     ]
+    },
+    "MCL_240": {
+     "positive_all_three": 0,
+     "of": 1,
+     "still_at_floor": 0,
+     "null": 0.085,
+     "jaccard": 0.4667,
+     "slice_qualifiers": [
+      1,
+      1,
+      5
+     ]
+    },
+    "MES_1440": {
+     "positive_all_three": 3,
+     "of": 10,
+     "still_at_floor": 3,
+     "null": 2.285,
+     "jaccard": 0.2255,
+     "slice_qualifiers": [
+      47,
+      60,
+      72
+     ]
+    },
+    "MGC_1440": {
+     "positive_all_three": 2,
+     "of": 10,
+     "still_at_floor": 2,
+     "null": 5.185,
+     "jaccard": 0.1481,
+     "slice_qualifiers": [
+      95,
+      148,
+      111
+     ]
+    },
+    "MNQ_1440": {
+     "positive_all_three": 5,
+     "of": 10,
+     "still_at_floor": 3,
+     "null": 3.24,
+     "jaccard": 0.281,
+     "slice_qualifiers": [
+      70,
+      89,
+      59
+     ]
+    },
+    "MES_15": {
+     "positive_all_three": 2,
+     "of": 10,
+     "still_at_floor": 0,
+     "null": 2.375,
+     "jaccard": 0.1866,
+     "slice_qualifiers": [
+      17,
+      11,
+      3
+     ]
+    },
+    "MNQ_15": {
+     "positive_all_three": 0,
+     "of": 8,
+     "still_at_floor": 0,
+     "null": 3.18,
+     "jaccard": 0.2167,
+     "slice_qualifiers": [
+      8,
+      2,
+      4
+     ]
+    },
+    "MGC_15": {
+     "positive_all_three": 0,
+     "of": 10,
+     "still_at_floor": 0,
+     "null": 0.0,
+     "jaccard": 0.3157,
+     "slice_qualifiers": [
+      15,
+      14,
+      5
+     ]
+    },
+    "MCL_15": {
+     "positive_all_three": 1,
+     "of": 10,
+     "still_at_floor": 1,
+     "null": 1.155,
+     "jaccard": 0.5385,
+     "slice_qualifiers": [
+      11,
+      11,
+      10
+     ]
+    },
+    "MES_30": {
+     "positive_all_three": 0,
+     "of": 8,
+     "still_at_floor": 0,
+     "null": 1.435,
+     "jaccard": 0.0,
+     "slice_qualifiers": [
+      8,
+      1,
+      0
+     ]
+    },
+    "MNQ_30": {
+     "positive_all_three": 0,
+     "of": 4,
+     "still_at_floor": 0,
+     "null": 1.07,
+     "jaccard": 0.2,
+     "slice_qualifiers": [
+      4,
+      0,
+      4
+     ]
+    },
+    "MGC_30": {
+     "positive_all_three": 0,
+     "of": 6,
+     "still_at_floor": 0,
+     "null": 0.03,
+     "jaccard": 0.5222,
+     "slice_qualifiers": [
+      6,
+      3,
+      4
+     ]
+    },
+    "MCL_30": {
+     "positive_all_three": 0,
+     "of": 4,
+     "still_at_floor": 0,
+     "null": 0.23,
+     "jaccard": 0.2817,
+     "slice_qualifiers": [
+      4,
+      6,
+      1
+     ]
+    }
+   }
+  },
+  "selection_stability": {
+   "mean_top10_jaccard_all_cells": 0.2592,
+   "mean_top10_jaccard_where_selection_is_real": 0.1524,
+   "cells_where_selection_is_real": "8 of 21 (every disjoint third has at least 20 qualifiers, so a top 10 is a choice rather than the whole population)",
+   "note": "Jaccard near 1.0 in the 240m and 30m cells is degenerate: those cells have 2-8 qualifiers per slice, so the 'top 10' is every strategy that cleared the floor."
+  }
+ },
+ "placebo_cohort": {
+  "cells": 89,
+  "cells_with_placebo_in_top10": "69 of 89",
+  "cells_with_placebo_in_top3": "52 of 89",
+  "cells_with_placebo_ranked_first": "35 of 89",
+  "placebo_rows_inside_top_10s": 236,
+  "expected_if_ranking_carried_no_information": 281.7,
+  "ratio": 0.838
+ },
+ "placebo_validation": {
+  "shift0_arm": "a fourth arm that injects the REAL entry bars unchanged; it must reproduce its parent trade for trade, and did so in 100% of cases across every cell (786 checks), so the injection machinery is not the source of any placebo result"
+ },
+ "real_vs_placebo_followed_forward": {
+  "walk_forward": {
+   "real": {
+    "selections": 723,
+    "oos_trades": 6939,
+    "oos_exp_r": -0.0002
+   },
+   "placebo": {
+    "selections": 542,
+    "oos_trades": 4863,
+    "oos_exp_r": -0.011
+   },
+   "difference_real_minus_placebo": 0.0108
+  },
+  "disjoint_survival": {
+   "real_rows": 66,
+   "real_positive_in_all_three": 13,
+   "real_rate": 0.197,
+   "placebo_rows": 33,
+   "placebo_positive_in_all_three": 8,
+   "placebo_rate": 0.242
+  }
+ },
+ "realised_walk_forward": {
+  "60m_lookback_30d": {
+   "cells": 6,
+   "oos_trades": 3542,
+   "realised_exp_r": 0.0449,
+   "trade_everything_exp_r": 0.0036,
+   "selection_edge_r": 0.0413,
+   "no_edge_permutation_null_r": 0.0271,
+   "excess_over_null_r": 0.0177,
+   "cells_beating_null": "4 of 6",
+   "stouffer_z": 1.19,
+   "top_ranked_strategy_changed": "26 of 40 folds"
+  },
+  "60m_lookback_90d": {
+   "cells": 6,
+   "oos_trades": 5238,
+   "realised_exp_r": 0.0342,
+   "trade_everything_exp_r": 0.0266,
+   "selection_edge_r": 0.0077,
+   "no_edge_permutation_null_r": 0.0174,
+   "excess_over_null_r": 0.0169,
+   "cells_beating_null": "4 of 6",
+   "stouffer_z": 1.15,
+   "top_ranked_strategy_changed": "30 of 37 folds"
+  },
+  "60m_lookback_180d": {
+   "cells": 6,
+   "oos_trades": 1455,
+   "realised_exp_r": 0.0706,
+   "trade_everything_exp_r": 0.0583,
+   "selection_edge_r": 0.0123,
+   "no_edge_permutation_null_r": 0.0459,
+   "excess_over_null_r": 0.0247,
+   "cells_beating_null": "3 of 6",
+   "stouffer_z": 1.76,
+   "top_ranked_strategy_changed": "15 of 19 folds"
+  },
+  "240m_lookback_90d": {
+   "cells": 4,
+   "oos_trades": 307,
+   "realised_exp_r": -0.0175,
+   "trade_everything_exp_r": -0.0096,
+   "selection_edge_r": -0.0079,
+   "no_edge_permutation_null_r": -0.0212,
+   "excess_over_null_r": 0.0038,
+   "cells_beating_null": "2 of 4",
+   "stouffer_z": 0.17,
+   "top_ranked_strategy_changed": "5 of 19 folds"
+  },
+  "240m_lookback_180d": {
+   "cells": 4,
+   "oos_trades": 605,
+   "realised_exp_r": -0.0248,
+   "trade_everything_exp_r": -0.0315,
+   "selection_edge_r": 0.0067,
+   "no_edge_permutation_null_r": -0.0262,
+   "excess_over_null_r": 0.0014,
+   "cells_beating_null": "2 of 4",
+   "stouffer_z": 0.31,
+   "top_ranked_strategy_changed": "7 of 13 folds"
+  },
+  "1440m_lookback_30d": {
+   "cells": 1,
+   "oos_trades": 52,
+   "realised_exp_r": -0.0178,
+   "trade_everything_exp_r": -0.0021,
+   "selection_edge_r": -0.0157,
+   "no_edge_permutation_null_r": 0.0027,
+   "excess_over_null_r": -0.0205,
+   "cells_beating_null": "0 of 1",
+   "stouffer_z": -0.58,
+   "top_ranked_strategy_changed": "0 of 1 folds"
+  },
+  "1440m_lookback_90d": {
+   "cells": 3,
+   "oos_trades": 2779,
+   "realised_exp_r": -0.0072,
+   "trade_everything_exp_r": -0.0051,
+   "selection_edge_r": -0.0021,
+   "no_edge_permutation_null_r": -0.0155,
+   "excess_over_null_r": 0.0084,
+   "cells_beating_null": "3 of 3",
+   "stouffer_z": 1.24,
+   "top_ranked_strategy_changed": "43 of 59 folds"
+  },
+  "1440m_lookback_180d": {
+   "cells": 3,
+   "oos_trades": 8013,
+   "realised_exp_r": -0.0155,
+   "trade_everything_exp_r": -0.0004,
+   "selection_edge_r": -0.0151,
+   "no_edge_permutation_null_r": -0.0182,
+   "excess_over_null_r": 0.0027,
+   "cells_beating_null": "3 of 3",
+   "stouffer_z": 0.62,
+   "top_ranked_strategy_changed": "77 of 87 folds"
+  },
+  "1440m_lookback_274d": {
+   "cells": 3,
+   "oos_trades": 8348,
+   "realised_exp_r": -0.0076,
+   "trade_everything_exp_r": -0.0021,
+   "selection_edge_r": -0.0055,
+   "no_edge_permutation_null_r": -0.0124,
+   "excess_over_null_r": 0.0048,
+   "cells_beating_null": "3 of 3",
+   "stouffer_z": 1.08,
+   "top_ranked_strategy_changed": "67 of 86 folds"
+  },
+  "15m_30m_lookback_30d": {
+   "cells": 8,
+   "oos_trades": 1880,
+   "realised_exp_r": -0.0305,
+   "trade_everything_exp_r": -0.0242,
+   "selection_edge_r": -0.0063,
+   "no_edge_permutation_null_r": -0.1387,
+   "excess_over_null_r": 0.1082,
+   "cells_beating_null": "7 of 8",
+   "stouffer_z": 4.5,
+   "top_ranked_strategy_changed": "11 of 24 folds"
+  },
+  "ALL_CELLS_ALL_LOOKBACKS": {
+   "oos_trades": 32219,
+   "realised_exp_r": 0.0048,
+   "no_edge_permutation_null_r": -0.01,
+   "excess_over_null_r": 0.0148
+  }
+ },
+ "deflation": {
+  "screened_by_source": {
+   "bigscan/cells": 533302,
+   "focus/cells": 612908,
+   "studies/out (non-rank)": 1127901,
+   "studies/out rank_* (workers 1-3)": 433751,
+   "worker 4 ledgers + placebo cohorts": 151656
+  },
+  "total": 2859518,
+  "free_t": 5.453,
+  "rows_examined": 1231,
+  "rows_clearing": 0,
+  "max_t": 3.923
+ },
+ "audit": {
+  "cells": 25,
+  "boundary_delta_mean": -0.00406,
+  "boundary_delta_worst": -0.0302,
+  "straddle_pct_mean": 2.47,
+  "dead_pct_mean": 82.1,
+  "engine_rules": [
+   "signals computed on closed bars only",
+   "entry fills at the NEXT bar's open, never the signal bar's close",
+   "when one bar holds both the stop and a target the STOP is taken",
+   "gaps fill at the open, worse than the stop, never at it",
+   "slippage on fill price, commission in dollars, charged once",
+   "D35 (a limit credited with both extremes of one bar) belongs to the ORB module's own fill code; nothing here uses it - every trade in this study came from the library engine"
+  ]
+ }
+}

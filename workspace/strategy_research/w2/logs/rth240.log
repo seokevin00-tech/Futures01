@@ -1,0 +1,2 @@
+[240m/274d RTH] MES rows=81 census={"n_strategies": 13991, "traded": 1182, "ge5": 366, "ge10": 156, "ge20": 46, "ge30": 27, "median": 0, "p90": 0, "max": 77, "total_trades": 6083}
+[240m/274d RTH] MNQ rows=51 census={"n_strategies": 13995, "traded": 1679, "ge5": 500, "ge10": 183, "ge20": 40, "ge30": 14, "median": 0, "p90": 1, "max": 67, "total_trades": 7358}
