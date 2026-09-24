@@ -154,11 +154,22 @@ by default; disjoint periods by default; matched controls by default; per-cell s
 Stouffer combination; and a guard that refuses to report a condition as an effect when it is a
 group alias.
 
-**Priority 3 — the two live leads, tested properly.**
-- `break_of_structure` versus other structure signals: **+4.4 to +5.0 at 240m on all three
-  symbols, and it strengthens with the floor** (MES 240m: +4.43 at floor 20, +2.99 at floor 30).
-  Not yet out-of-sample tested. This is the most promising untested thread in the programme.
-- `fib_golden_pocket` versus `fib_shallow_retrace` at 240m.
+**Priority 3 — the live leads, tested properly.**
+
+> **RETRACTED (2026-09-24, same day).** This section named `break_of_structure` at 240m as
+> "the most promising untested thread in the programme", on +4.4 to +5.0 versus other
+> structure signals, strengthening with the trade floor. The `s_leadlag` study has now run
+> the out-of-sample test that was missing and **it does not reproduce**: median expectancy
+> **−0.0364R** over 142 strategies, 37% profitable. Against `structure_trend` at 240m it is
+> +1.061 over 15 cells (8+/7−), but that is **IS −0.876 / OOS +1.919**, and per disjoint
+> slice it is negative on 5/5 symbols in the oldest, positive on 4/5 in the middle and
+> negative on 4/5 in the newest — **5+/5− across out-of-sample cells, 3 of 6 on independent
+> units**. A comparator artefact plus one favourable period. Do not build on it.
+
+- ~~`break_of_structure` versus other structure signals at 240m~~ — retracted above.
+- `fib_golden_pocket` versus `fib_shallow_retrace` at 240m. Still untested out of sample; it
+  is now the only surviving lead, and it should be treated with the scepticism this
+  retraction earns.
 
 Both need the same treatment that killed everything else: disjoint periods, out-of-sample
 splits, and deflation against the real search size. If they die there, they die.

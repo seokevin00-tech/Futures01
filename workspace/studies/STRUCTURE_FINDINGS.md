@@ -160,3 +160,52 @@ Bias checks: look-ahead PASS (240/240 truncation matches, lag exactly 3 bars), r
 leakage PASS, fills PASS, costs PASS (3× slippage changes no conclusion), parameter sensitivity
 stable in shape across fractal width 2–5 though not in sign. Failed by the worker's own audit:
 sample size, data-mining bias, OOS transfer, and duplication.
+
+---
+
+## `s_leadlag` — does the lower timeframe break structure first
+
+**Scope:** 5 symbols, ~321 days of 60m bars, 60m→240m; matched arms share a 14-strategy
+population with only the entry swapped; disjoint slices, per-cell rank-sum + Stouffer.
+
+### The lead is real, large and stable — and not tradeable
+
+The 60m breaks structure a median **6–17 bars** ahead of the 240m (MGC 17, MNQ 8, MCL 7, MES
+6.5, NQ 6; IQR ~2–27; zero-lead 0%). **79–87%** of 240m breaks had a live 60m break of the same
+direction already in place, and only **0–6%** had no precursor at all. Availability is not the
+problem.
+
+The price is a **78–81% false-positive rate** at a 24-hour horizon (69–77% at 48h) — near
+identical on all five symbols, on the independent 15m→60m pair, and between the first 60% and
+last 40% of the sample. **Buying a 1.5–4.5 higher-timeframe-bar head start costs four wrong
+signals in five.**
+
+The mechanism confirms it: early entries genuinely are earlier (405–431 min held vs 570–633),
+but their MFE is *lower* (1.37–1.41R vs 1.43R) and MAE *higher*, edge ratio 1.169 vs 1.231.
+Being early buys worse excursion — exactly what an 80% false-positive rate predicts.
+
+### Every strategy form of it is null or worse
+
+- `ltf_break_first` vs `break_of_structure`@60: z = −0.60 over 15 cells, **−1.17 OOS**;
+  six-block walk-forward +0.112 with 15+/15−. The "not yet confirmed" gate is worth nothing.
+- `htf_confirms_late`: monotone worse with N (N=0 −0.077R, N=4 −0.104R), N=8 never clears 20
+  trades, N=16 fires on 0.0%. Entering late is strictly worse.
+- The one apparent survivor fails parameter sensitivity: K = 0/1/3/∞ gives
+  −0.036/−0.046/−0.012/−0.043, an isolated bump.
+
+### `break_of_structure`@240 fails its first out-of-sample test — lead RETRACTED
+
+The previous programme flagged this as its most promising untested thread (+4.4 to +5.0 versus
+other structure signals, strengthening with the floor). Tested: median expectancy **−0.0364R**
+over 142 strategies, **37% profitable**. Against `structure_trend`@240 it is +1.061 over 15
+cells but that decomposes to **IS −0.876 / OOS +1.919**, and per disjoint slice it is negative
+on 5/5 symbols in the oldest, positive on 4/5 in the middle, negative on 4/5 in the newest —
+**5+/5− across OOS cells**. A comparator artefact plus one favourable period.
+
+### Look-ahead guard, stated explicitly because the whole study is about timing
+
+All swing reads advance a pointer only while `confirmed_index <= i`; every event is stamped
+`bar.end_ts` rather than `bar.ts`; all cross-timeframe comparison is on wall-clock closes, never
+indices. `_audit_causality` re-derives every array from `bars[:i+1]` and compares against the
+full-series value: **0 mismatches, causal on 10/10** (5 symbols × 2 timeframes). Entries fill at
+the next bar's open.

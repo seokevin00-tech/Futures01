@@ -366,3 +366,10 @@ one surviving edge**, until someone runs worker 3's exact test with worker 2's t
 | `g_reversal` | No extension effect survives (z=+3.02 at floor 1 decaying to +0.82 at floor 20; OOS −2.52). 43 of 152 tests nominally significant against 7.6 expected, but heavily correlated. Plus D25. |
 | `g_breakout` | **Requiring compression is an in-sample illusion.** Paired counterfactual: full-sample z up to **+12.20**; on a 60/40 split, IS-positive in 11 of 12 cells and **significantly negative OOS in six** (NQ 240m +6.89 → −7.56; MGC 60m +10.94 → −6.90). Survives only on MES 60m. It also costs ~2/3 of all opportunity. Volume confirmation is not general either. **Unfinished thread worth chasing**: `break_of_structure` vs other structure signals is +4.4 to +5.0 at 240m on all three symbols and *strengthens* with the floor — not yet OOS-tested. |
 | `g_fibonacci` | **Clean negative.** `fib_sr_confluence` does not test confluence — it fires on **48.6–81.0% of all bars**, and P(fires given a fib level) exceeds P(fires without) by only 0.4–9.0 points. Fib-level bars and `pullback_to_support` bars are indistinguishable; against a direction-matched baseline neither beats a random entry. **Four conditions can be dropped from the search space with no measured loss.** |
+
+## D27 — `market_structure().events` never resets its reference levels (found by `s_leadlag`)
+
+`ref_high` / `ref_low` are running max/min that are never reset, so structure events are
+emitted almost never: **5,000 MGC 60m bars yield 30 BOS_UP and 1 CHOCH_DOWN**. The event
+stream is unusable; `s_leadlag` had to work from the confirmed-swing arrays instead. Anything
+in the library reading `.events` is reading near-nothing.
