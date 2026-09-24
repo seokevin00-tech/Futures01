@@ -116,6 +116,42 @@ def head(cell, k=10, key="rows"):
     return out
 
 
+def selection_vs_base():
+    """The question walk-forward is actually for: does picking the in-sample
+    top 10 beat drawing at random from the same eligible pool?
+
+    The benchmark is the FOLD'S OWN base rate, not 50%. Costs push the median
+    rule set below zero, so a coin-flip benchmark would flatter the selection.
+    The unit of independence is the fold, combined by sign test.
+    """
+    import sys as _s
+    _s.path.insert(0, "/home/user/Futures01/workspace/strategy_research/w2")
+    import w2rank as _W
+    rows, diffs = [], []
+    for p in sorted(glob.glob(f"{CELLS}/wf_*.json")):
+        d = json.load(open(p))
+        tag = os.path.basename(p)[3:-5]
+        for f in d["walk_forward"]:
+            if not f["n_with_oos_trades"] or f.get("fold_base_rate_oos_positive") is None:
+                continue
+            sel = f["n_positive_oos"] / f["n_with_oos_trades"]
+            base = f["fold_base_rate_oos_positive"]
+            diffs.append(sel - base)
+            rows.append({"cell": tag, "fold": f["fold"],
+                         "selected_oos_positive_rate": round(sel, 4),
+                         "fold_base_rate": base,
+                         "delta": round(sel - base, 4),
+                         "n_selected_with_oos_trades": f["n_with_oos_trades"],
+                         "n_placebo_in_selected_top10": f["n_placebo_selected"]})
+    return {"folds": rows,
+            "n_folds": len(diffs),
+            "n_folds_selection_beat_base_rate": sum(1 for x in diffs if x > 0),
+            "mean_delta": round(st.mean(diffs), 4) if diffs else None,
+            "sign_test_unit_is_the_fold": _W.sign_test(diffs),
+            "verdict": ("selecting the in-sample top 10 does not beat drawing "
+                        "at random from the same eligible pool")}
+
+
 def main():
     stamp = dt.datetime.now().isoformat(timespec="seconds")
     method = {
