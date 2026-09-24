@@ -45,3 +45,4 @@ describe its shape.
 | date | scope | report |
 |---|---|---|
 | 2026-09-23 | MGC, MES, NQ — 39 cells, 554k strategies | [deep scan](2026-09-23_MGC-MES-NQ_deep-scan.md) |
+| 2026-09-24 | 22 studies, 24 agents, 912 matched comparisons | [study programme](2026-09-24_strategy-studies_21-study-programme.md) |

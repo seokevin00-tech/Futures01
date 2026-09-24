@@ -21,6 +21,21 @@ from typing import Dict, List
 OUT = "workspace/studies/out"
 Z_CRIT = 1.96
 
+#: Above this, an "arm" is almost certainly a count of TRADES rather than of
+#: strategies. The largest per-strategy population any study assembled was about
+#: 1,800 clearing the trade floor and 8,700 with at least one trade, so arms in
+#: the tens of thousands are trade-level pools.
+#:
+#: This matters because pooled trade-level statistics inflate roughly threefold
+#: against the paired per-strategy equivalent - measured twice in this
+#: programme: NQ 60m lunch was z=-2.75 pooled over 330 trades against z=-0.83
+#: paired over 13 strategies, and di_direction was -4.32 pooled against -1.17
+#: per cell. Trades inside one strategy are not independent observations; they
+#: share the rule set that generated them. Left uncorrected, these dominate any
+#: ranking by |z| purely through sample size, which is exactly what they did on
+#: the first merge run.
+TRADE_LEVEL_ARM = 3000
+
 
 def load() -> List[dict]:
     if not os.path.isdir(OUT):
@@ -61,17 +76,25 @@ def main():
     print()
 
     # ---- every statistically supported claim, pooled --------------------
-    supported, unsupported = [], []
+    supported, unsupported, inadmissible = [], [], []
     for d in ok:
         for path, ab in walk_ab(d.get("findings", {})):
             z = ab["rank_sum"].get("z", 0.0)
             na, nb = ab["rank_sum"].get("n_a", 0), ab["rank_sum"].get("n_b", 0)
+            trade_level = max(na, nb) > TRADE_LEVEL_ARM
             rec = dict(study=d["study_id"], path=path, z=z, n_a=na, n_b=nb,
-                       delta=ab.get("median_exp_delta"), verdict=ab.get("verdict"))
-            (supported if abs(z) >= Z_CRIT and min(na, nb) >= 5
-             else unsupported).append(rec)
+                       delta=ab.get("median_exp_delta"), verdict=ab.get("verdict"),
+                       trade_level=trade_level)
+            if trade_level:
+                inadmissible.append(rec)
+            elif abs(z) >= Z_CRIT and min(na, nb) >= 5:
+                supported.append(rec)
+            else:
+                unsupported.append(rec)
 
-    print(f"ab comparisons run across all studies: {len(supported) + len(unsupported)}")
+    total_run = len(supported) + len(unsupported) + len(inadmissible)
+    print(f"ab comparisons run across all studies: {total_run}")
+    print(f"  REJECTED as trade-level pools (arm > {TRADE_LEVEL_ARM}): {len(inadmissible)}")
     print(f"  statistically supported (|z|>=1.96, both arms >=5): {len(supported)}")
     print(f"  not supported: {len(unsupported)}")
     print()
@@ -79,7 +102,7 @@ def main():
     # Multiple testing across the whole programme, not per study. Twenty
     # agents running fifty tests each is a thousand tests; at alpha=0.05 that
     # is fifty false positives expected by chance alone.
-    total = len(supported) + len(unsupported)
+    total = len(supported) + len(unsupported)   # admissible tests only
     if total:
         import math
         bonf_z = abs(_inv_norm(0.05 / max(1, total) / 2))
@@ -104,7 +127,8 @@ def main():
         for c in d.get("caveats", []):
             print(f"  [{d['study_id']:<20s}] {c}")
 
-    json.dump(dict(studies=ok, supported=supported, unsupported=unsupported),
+    json.dump(dict(studies=ok, supported=supported, unsupported=unsupported,
+                   inadmissible=inadmissible),
               open("workspace/studies/merged.json", "w"), indent=1, default=str)
     print(f"\nmerged -> workspace/studies/merged.json")
 
