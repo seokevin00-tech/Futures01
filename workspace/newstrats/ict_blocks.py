@@ -310,6 +310,15 @@ def bar_states(bars: Sequence[Bar], obs: Sequence[Zone], fvgs: Sequence[Zone], *
                 continue
             keep.append(z)
         st.n_ob_active = len(keep)
+        # Only the most recent unmitigated block. A live ICT reader is looking
+        # at one block, not at the thirteen that happen to be on the chart, and
+        # the difference between those two readings is the whole firing rate.
+        elig = [z for z in keep if z.confirmed_index < t]
+        if elig:
+            nz = max(elig, key=lambda z: z.confirmed_index)
+            if nz.touched_by(bar):
+                st.ob_newest = (nz.direction, len(nz.touch_indices) <= 1,
+                                float(nz.confirmed_index))
         live_ob = keep
 
         # ---- breakers: a failed OB, claimed to act with opposite polarity
@@ -347,6 +356,12 @@ def bar_states(bars: Sequence[Bar], obs: Sequence[Zone], fvgs: Sequence[Zone], *
                 continue
             keepf.append(z)
         st.n_fvg_active = len(keepf)
+        eligf = [z for z in keepf if z.confirmed_index < t]
+        if eligf:
+            nz = max(eligf, key=lambda z: z.confirmed_index)
+            if nz.touched_by(bar):
+                st.fvg_newest = (nz.direction, len(nz.touch_indices) <= 1,
+                                 float(nz.confirmed_index))
         live_fvg = keepf
 
         # ---- inversion FVGs
