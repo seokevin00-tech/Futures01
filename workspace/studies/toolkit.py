@@ -21,7 +21,7 @@ import os
 import statistics as st
 from collections import defaultdict
 from datetime import timedelta
-from typing import Dict, Iterable, List, Optional, Sequence
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from futures_agents.backtest.engine import run_portfolio
 from futures_agents.backtest.metrics import compute_metrics
@@ -231,3 +231,109 @@ def save(study_id: str, title: str, question: str, payload: dict,
     with open(path, "w") as fh:
         json.dump(doc, fh, indent=1, default=str)
     return path
+
+
+# ==========================================================================
+# CUSTOM STRATEGY RESEARCH
+# ==========================================================================
+#
+# The combinator builds strategies from templates, and a template names groups
+# that already exist. New research conditions have no template, and five agents
+# editing library.py at once would collide. So custom work builds Strategy
+# objects directly: full control over the rule set, no template plumbing, and
+# no shared file to contend on.
+
+def make_strategy(symbol: str, tf: int, conditions: Sequence, *,
+                  group: str = "CUSTOM", name: Optional[str] = None,
+                  exit_model=None, filters=None, execution_tf: Optional[int] = None,
+                  confirm_tfs: Sequence[int] = ()):
+    """One Strategy from an explicit condition list.
+
+    ``exit_model`` defaults to the only exit that survived the study programme:
+    ATRx1 with targets anchored to 1/2.5 ATR of the anchor timeframe, best or
+    joint-best in 7 of 10 entry groups at every trade floor from 5 to 30. It
+    also sets ``exit_at_session_close=False``, which was the single largest
+    measured exit effect - left True it reduces every 4h and daily trade to one
+    bar, median hold 0.0 minutes.
+    """
+    from futures_agents.strategies.base import (ExitModel, StopKind, Strategy,
+                                                StrategyFilters, TargetKind)
+    if exit_model is None:
+        exit_model = ExitModel(
+            StopKind.ATR, 1.0, targets_r=(2.0, 4.0), scale_out=(0.5, 0.5),
+            breakeven_at_r=1.5, time_stop_bars=40,
+            target_kind=TargetKind.ANCHOR_ATR, anchor_mult=(1.0, 2.5),
+            min_reward_risk=1.5, exit_at_session_close=False)
+    if filters is None:
+        # rth_only defaults True and is the library-wide 4h population killer:
+        # it reduces the 4h population to one bar per day and costs every group
+        # a 2-12x factor. Custom research starts without it; turn it on
+        # deliberately and report that you did.
+        filters = StrategyFilters(rth_only=False)
+    conds = tuple(conditions)
+    return Strategy(
+        name=name or f"{group.lower()}_{'_'.join(c.name for c in conds)}",
+        symbol=symbol.upper(), group=group, primary_tf=tf, conditions=conds,
+        exit=exit_model, filters=filters, execution_tf=execution_tf,
+        confirm_tfs=tuple(confirm_tfs))
+
+
+def measure_custom(symbol: str, tf: int, window_days: Optional[int],
+                   strategies: Sequence, *, floor: int = FLOOR,
+                   collapse: bool = True) -> List[dict]:
+    """Run explicit Strategy objects and return the same row shape as ``measure``.
+
+    Use this for a new condition, and always alongside a control arm built the
+    same way, or the result is a league table rather than a comparison.
+    """
+    series = _series(symbol, tf, window_days)
+    if len(series) < 120:
+        return []
+    frame = build_symbol_frame(series, FRAMES[tf])
+    res = run_portfolio(frame, list(strategies))
+    seen, out = {}, []
+    for s in strategies:
+        trades = res[s.strategy_id].trades
+        if len(trades) < floor:
+            continue
+        if collapse:
+            fp = fingerprint(trades)
+            if fp in seen:
+                out[seen[fp]]["clones"] += 1
+                continue
+            seen[fp] = len(out)
+        m = compute_metrics(trades)
+        lo, hi = wilson(m.wins, m.trades)
+        out.append(dict(
+            id=s.strategy_id, group=s.group, symbol=symbol, tf=tf,
+            window=window_days, name=s.name,
+            conditions=[c.name for c in s.conditions],
+            n=m.trades, win=round(m.win_rate, 4), win_lo=round(lo, 4),
+            win_hi=round(hi, 4), exp=round(m.expectancy_r, 4),
+            rr=round(m.payoff_ratio, 4), pf=round(m.profit_factor, 4),
+            maxdd=round(m.max_drawdown_r, 3), t=round(m.t_statistic, 3),
+            sortino=round(m.sortino, 3), clones=1))
+    return out
+
+
+def disjoint_slices(symbol: str, tf: int, n: int = 3) -> List[Tuple[int, int]]:
+    """``n`` non-overlapping (start_days_ago, end_days_ago) windows.
+
+    The scan windows used earlier in this project all END on the same final bar,
+    so 90d is a subset of 180d is a subset of 274d and agreement across them is
+    one observation seen three times. Replication needs genuinely disjoint
+    periods; this hands them out.
+    """
+    series = _series(symbol, tf, None)
+    span = (series.bars[-1].ts - series.bars[0].ts).days
+    edge = span // n
+    return [((n - i) * edge, (n - i - 1) * edge) for i in range(n)]
+
+
+def slice_series(symbol: str, tf: int, start_days_ago: int, end_days_ago: int):
+    """Bars inside one disjoint window, for use with ``build_symbol_frame``."""
+    full = _series(symbol, tf, None)
+    last = full.bars[-1].ts
+    lo = last - timedelta(days=start_days_ago)
+    hi = last - timedelta(days=end_days_ago)
+    return BarSeries(symbol, tf, [b for b in full.bars if lo <= b.ts < hi])
