@@ -417,3 +417,79 @@ The 3-bar fractal confirmation consumes **50–60% of a median 5–6 bar swing l
 symbol and both timeframes. This is a structural reason multi-leg geometry cannot be traded on
 this data at these timeframes: by the time a leg is confirmed, most of it has happened. Not a
 bug — a constraint that should be stated before anyone proposes another swing-geometry idea.
+
+---
+
+## D30 — the opening range is never constructed at 60m or 240m (found by `ict_define`)
+
+**The blocking ORB defect, and distinct from D21.**
+
+`futures_agents/features.py::_build_session_state` seeds the opening range with
+`minutes_since_open(b.ts, spec.rth_open) < 30`. But 60m and 240m bars are clock-aligned to
+`:00`, while RTH opens at **09:30** (MES/NQ/MNQ) or **08:20** (MGC). No bar ever falls inside
+the seed window, so the range is never built: `snap.opening_range` is None on **4,990 of 5,000**
+MES 60m bars.
+
+Measured OR-seed bars:
+
+| symbol | 5m | 15m | 30m | 60m | 240m |
+|---|---|---|---|---|---|
+| MES | 114 | 82 | 41 | **2** | **0** |
+| MGC | — | — | — | **0** | — |
+| MCL | — | — | — | works | — |
+
+MCL works only because its RTH opens at 09:00, on the hour. So `opening_range_breakout` at
+0.16%/0.00% and `opening_range_fade` at 0.0000 are **this bug, not a market fact** — which
+retroactively explains the "4 of 4,256 bars" finding.
+
+**The sting, which is worse than the bug.** ORB is computable only at 5m (~19 trading days of
+data) and 15m/30m (~41 days), giving **at most ~41 signals per symbol**. The 60m series has ~201
+days and structurally cannot form a range. **The timeframes with the sample have the bug; the
+timeframes without the bug lack the sample.** ORB may not be testable on this data at a sample
+worth believing, whatever the fix.
+
+## D31 — kill-zone windows are arithmetically impossible at 240m (found by `ict_define`)
+
+240m bars start at 00/04/08/12/16/20 ET, so the Silver Bullet window (10:00–11:00 ET) contains
+**0.00%** of them. At 60m it is 4.38% — exactly one bar per day. Not a weak effect; an empty
+intersection.
+
+## D32 — `market_structure()`'s CHoCH is mis-specified, not just rare (found by `ict_define`)
+
+Refines D27. CHoCH emits **1–6 events per 5,000 bars (0.02–0.30%)**, an order of magnitude below
+the 1% usability floor, because it compares against a **running extreme** rather than the last
+counter-trend swing as the methodology defines it. Re-specify or drop; do not report its rarity
+as a market fact.
+
+## Genuinely new and untested (from `ict_define`'s mapping)
+
+Ranked, with measured firing rates where taken:
+
+1. **BOS/CHoCH as EVENTS rather than STATE.** The indicator layer emits them with
+   `confirmed_index`, but **no condition exposes them**. BOS events fire on 0.6–2.3% of bars
+   against the existing *state* condition's 31–42%. These are different objects and only the
+   state has ever been tested.
+2. **Inversion FVG** — zero implementation; `active_fvgs()` discards filled gaps by construction,
+   so the concept is unreachable.
+3. **Breaker block** — zero implementation, though `SDZone.invalidated_index` and `as_of()`
+   already exist to support it.
+4. Base-free order block (the library's SDZone demands a *base*; ICT's order block does not).
+5. Equal highs/lows (0.9–1.6% at 0.10× tolerance, 2.5–3.6% at 0.25×).
+6. Swing-anchored premium/discount gate.
+7. FVG size screen — `min_size_pct` is hard-coded to 0.0.
+
+## Not falsifiable as stated — do not build on these
+
+- **Power of Three** — labels every day post-hoc and refutes none.
+- **Judas swing** — requires "the true daily direction", known only ex post. Its forward-testable
+  residue is `overnight_sweep` AND a clock filter, joint rate likely <1%.
+- **MSS** — sources give two incompatible detectors ("CHoCH + displacement" versus "the
+  confirmation after a CHoCH").
+- **Mitigation block** — not separable from order block in any source retrieved.
+
+## Evidence quality warning
+
+Every ICT source retrieved is a broker blog, indicator vendor or teaching site. **None
+peer-reviewed, none with an auditable record.** Two circulating backtest claims flatly
+contradict each other ("0 of 648 backtests beat the index" versus "FVG 64.8% mitigation vs
+standalone OB 43.1% bounce"). Recorded as claims, not priors.
