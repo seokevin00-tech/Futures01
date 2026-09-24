@@ -1,132 +1,307 @@
-"""Publish the three deliverables, namespaced so a peer worker's files are not clobbered."""
-import sys, json, statistics as st
+"""Publish the geometry results into the three workspace files.
+
+Other agents write these files too, so this MERGES a namespaced
+``swing_geometry`` section rather than replacing the document.
+
+Ranking is on durability, never on historical profit: expectancy in R shrunk
+towards zero by sample size, the t-statistic of the R series deflated by the
+search size, recovery factor against max drawdown, and a penalty for the worst
+losing streak.
+"""
+from __future__ import annotations
+
+import json
+import math
+import os
+import statistics as st
+import sys
 from collections import defaultdict
-sys.path.insert(0, '/home/user/Futures01'); sys.path.insert(0, '/home/user/Futures01/workspace/studies')
-import toolkit as T
 
-SC = '/tmp/claude-0/-home-user-Futures01/40939d92-faf6-5f2f-9d25-d7e403702dd3/scratchpad'
-OUT = '/home/user/Futures01/workspace/strategy_research'
-bt = json.load(open(f'{SC}/bt.json')); wf = json.load(open(f'{SC}/wf.json'))
-s240 = json.load(open(f'{SC}/s240.json')); stress = json.load(open(f'{SC}/stress.json'))
-rates = json.load(open(f'{SC}/rates.json')); wfa = json.load(open(f'{SC}/wf_analysis.json'))
-meas = json.load(open('/home/user/Futures01/workspace/studies/out/s_leadlag.json'))
+sys.path.insert(0, "workspace/studies")
+sys.path.insert(0, "workspace/newstrats")
+import toolkit as T   # noqa: E402
 
-FORMULA = ("durability = expectancy_R * n/(n+40) + 0.15*min(t,4) - 0.05*maxDD_R "
-           "- 0.02*max_consecutive_losses. Never total or historical profit: the n/(n+40) shrink "
-           "kills a 22-trade wonder, the t term rewards a distinguishable R series and the drawdown "
-           "and losing-run terms charge for the path rather than the endpoint.")
+ROOT = "workspace/strategy_research"
+SCRATCH = f"{ROOT}/scratch"
 
-def durability(r, maxcl=0):
-    n = r["n"] or 0
-    if not n or r["exp"] is None: return None
-    return round(r["exp"] * n / (n + 40) + 0.15 * min(r.get("t") or 0, 4)
-                 - 0.05 * abs(r.get("maxdd") or 0) - 0.02 * maxcl, 4)
+#: Every distinct arm x contrast x period x parameter-variant that was looked
+#: at. Used for the deflation arithmetic - understating it is how a search
+#: announces an edge it bought with trials.
+N_SCREENED = 9 * 4 * 2 * 9 + 24          # arms x contrasts x periods x variants + WF folds
 
-# ---- performance_db: per symbol x timeframe x arm, aggregated over disjoint cells
-db = defaultdict(lambda: defaultdict(dict))
-allrows = bt + s240
-for sym in ["MGC", "MES", "NQ", "MNQ", "MCL"]:
-    for tf in (60, 240):
-        for arm in sorted({r["arm"] for r in allrows if r["tf"] == tf}):
-            v = [r for r in allrows if r["symbol"] == sym and r["tf"] == tf
-                 and r["arm"] == arm and r["n"] and r["n"] >= 20 and r["exp"] is not None]
-            if not v: continue
-            by_cell = defaultdict(list)
-            for r in v: by_cell[r["cell"]].append(r)
-            db[sym][str(tf)][arm] = dict(
-                n_strategies=len(v), total_trades=sum(r["n"] for r in v),
-                median_trades=st.median([r["n"] for r in v]),
-                win_rate=round(st.median([r["win"] for r in v]), 4),
-                avg_win_R=round(st.median([r["avg_win"] for r in v if r.get("avg_win")]), 4),
-                avg_loss_R=round(st.median([r["avg_loss"] for r in v if r.get("avg_loss")]), 4),
-                payoff_ratio=round(st.median([r["rr"] for r in v]), 3),
-                profit_factor=round(st.median([r["pf"] for r in v]), 3),
-                expectancy_R=round(st.median([r["exp"] for r in v]), 4),
-                max_drawdown_R=round(max(r["maxdd"] for r in v), 3),
-                avg_drawdown_R=round(st.median([r["maxdd"] for r in v]), 3),
-                sortino=round(st.median([r["sortino"] for r in v if r.get("sortino") is not None]), 3),
-                t_stat=round(st.median([r["t"] for r in v]), 3),
-                avg_MAE_R=round(st.median([r["mae"] for r in v if r.get("mae")]), 4),
-                avg_MFE_R=round(st.median([r["mfe"] for r in v if r.get("mfe")]), 4),
-                edge_ratio_MFE_over_MAE=round(st.median([r["mfe"] for r in v if r.get("mfe")])
-                                              / st.median([r["mae"] for r in v if r.get("mae")]), 3),
-                avg_duration_min=round(st.median([r["hold_min"] for r in v if r.get("hold_min")]), 1),
-                pct_profitable=round(sum(1 for r in v if r["exp"] > 0) / len(v), 3),
-                per_disjoint_slice={c: dict(n_strategies=len(g),
-                                            expectancy_R=round(st.median([x["exp"] for x in g]), 4),
-                                            pct_profitable=round(sum(1 for x in g if x["exp"] > 0) / len(g), 3))
-                                    for c, g in sorted(by_cell.items())})
 
-perf = dict(
-    generated_by="strategy research worker - lead-lag study (s_leadlag, s_leadlag_arms, s_leadlag_walkforward, s_leadlag_bos240_oos, s_leadlag_robustness)",
-    independence="Every symbol is its own universe. Nothing measured on MNQ is claimed for MES, MGC or MCL. MNQ/NQ/MES are one index complex and are counted as ONE independent unit alongside MGC and MCL.",
-    timeframes_tested=dict(individually=[60, 240], as_a_pair="60m lower / 240m higher on one frame, plus a 15m/60m replication of the MEASUREMENT only (58-day span, never used for a tradeability claim)"),
-    metric_note="Values are medians across the 14-strategy population per arm (bare entry + 13 partner conditions), aggregated over 3 genuinely disjoint ~107-day slices. max_drawdown_R is the worst across the population; avg_drawdown_R is its median.",
-    max_consecutive=stress,
-    by_symbol={k: dict(v) for k, v in db.items()})
-json.dump(perf, open(f'{OUT}/leadlag_performance_db.json', 'w'), indent=1, default=str)
+def metrics(rs, mae, mfe, mins):
+    n = len(rs)
+    w = [x for x in rs if x > 0]
+    l = [x for x in rs if x <= 0]
+    eq = peak = 0.0
+    dd, cw, cl, mcw, mcl = [], 0, 0, 0, 0
+    for x in rs:
+        eq += x
+        peak = max(peak, eq)
+        dd.append(peak - eq)
+        if x > 0:
+            cw, cl = cw + 1, 0
+        else:
+            cl, cw = cl + 1, 0
+        mcw, mcl = max(mcw, cw), max(mcl, cl)
+    sd = st.pstdev(rs) if n > 2 else 0.0
+    neg = [x for x in rs if x < 0]
+    dsd = st.pstdev(neg) if len(neg) > 2 else 0.0
+    return dict(
+        trades=n, win_rate=round(len(w) / n, 4),
+        avg_win_r=round(st.fmean(w), 4) if w else 0.0,
+        avg_loss_r=round(st.fmean(l), 4) if l else 0.0,
+        reward_risk=round(abs(st.fmean(w) / st.fmean(l)), 3) if w and l and st.fmean(l) else None,
+        profit_factor=round(sum(w) / abs(sum(l)), 3) if l and sum(l) else None,
+        expectancy_r=round(st.fmean(rs), 4), total_r=round(sum(rs), 3),
+        max_drawdown_r=round(max(dd), 3), avg_drawdown_r=round(st.fmean(dd), 3),
+        recovery_factor=round(sum(rs) / max(dd), 3) if max(dd) else None,
+        sharpe_per_trade=round(st.fmean(rs) / sd, 3) if sd else None,
+        sortino=round(st.fmean(rs) / dsd, 3) if dsd else None,
+        t_statistic=round(st.fmean(rs) / (sd / math.sqrt(n)), 3) if sd else None,
+        max_consecutive_wins=mcw, max_consecutive_losses=mcl,
+        avg_duration_minutes=round(st.fmean(mins), 1),
+        avg_mae_r=round(st.fmean(mae), 3), avg_mfe_r=round(st.fmean(mfe), 3),
+        edge_ratio=round(st.fmean(mfe) / st.fmean(mae), 3) if st.fmean(mae) else None)
 
-# ---- strategy_rankings
-rank = []
-for sym in db:
-    for tf in db[sym]:
-        for arm, m in db[sym][tf].items():
-            d = durability(dict(n=m["total_trades"], exp=m["expectancy_R"],
-                                t=m["t_stat"], maxdd=m["avg_drawdown_R"]),
-                           maxcl=7)
-            rank.append(dict(symbol=sym, timeframe=int(tf), arm=arm, durability=d,
-                             expectancy_R=m["expectancy_R"], t_stat=m["t_stat"],
-                             trades=m["total_trades"], win_rate=m["win_rate"],
-                             profit_factor=m["profit_factor"],
-                             pct_profitable=m["pct_profitable"]))
-rank.sort(key=lambda r: -(r["durability"] or -9))
-rankings = dict(
-    generated_by="strategy research worker - lead-lag study",
-    ranked_on=FORMULA,
-    live_eligible=[],
-    live_eligible_reason=(
-        "NOTHING from this study is live-eligible. Two independent bars are failed. (1) LEVEL: every "
-        "lead-lag arm and the break_of_structure@240 incumbent have NEGATIVE median expectancy at "
-        "floor 0, at floor 20 and under tripled slippage. (2) DURABILITY: the only relative result "
-        "that survives both a 3-slice and a 6-block disjoint partition - ltf_break_first_fresh3 over "
-        "htf_confirms_late0 - is +2.678 Stouffer over 22 six-block cells against free_t(84)=2.977, "
-        "and it FAILS parameter sensitivity: median expectancy across the freshness parameter is "
-        "-0.036, -0.046, -0.012, -0.043 for K=0,1,3,unbounded, so K=3 is an isolated bump."),
-    headline_finding=meas["headline"],
-    ranked=rank[:40],
-    note_on_ranking=("Every entry in this table has negative or near-zero durability. The table is "
-                     "published so the ordering is inspectable, not because anything in it is a "
-                     "candidate. Ranking among losers is still ranking among losers."))
-json.dump(rankings, open(f'{OUT}/leadlag_strategy_rankings.json', 'w'), indent=1, default=str)
 
-# ---- robustness_report
-rob = json.load(open('/home/user/Futures01/workspace/studies/out/s_leadlag_robustness.json'))
-rob_out = dict(
-    scope=("Anti-overfitting audit for the lead-lag study: 5 symbols (MGC, MES, NQ, MNQ, MCL), "
-           "timeframes 60m and 240m individually and as a 60m/240m pair, 3 disjoint ~107-day slices "
-           "and a separate 6-block ~53-day partition, 2,520 + 1,260 + 1,050 measured rule-set runs."),
-    bottom_line=rob["headline"],
-    checks=rob["findings"]["checks"],
-    out_of_sample=dict(
-        design_1="slice0 (oldest) in sample, slices 1+2 out of sample, T.disjoint_slices n=3",
-        design_2="6 sequential disjoint blocks, every comparison recomputed per block",
-        headline_claims_and_their_oos_result={
-          "the lower timeframe leads the higher one": "HOLDS. Median lead 6-17 60m bars in the first 60% of the sample and 7-21 bars in the last 40%; false-positive rate 0.73-0.83 then 0.78-0.93. Stable.",
-          "early entry beats the incumbent break_of_structure@60": "FAILS. z=-1.17 over 10 OOS cells (3-slice), +0.112 over 30 cells (6-block), 15+/15-. Null.",
-          "early entry beats entering at the higher timeframe's own break": "FAILS. -4.61 over 10 OOS cells in the 3-slice design does NOT replicate: -0.903 over 30 cells, 15+/15-.",
-          "early beats aligned (the two halves of break_of_structure@60)": "FAILS. +3.83 in sample, -4.44 out of sample in the 3-slice design; +1.231 and 14+/15- over 6 blocks. Sign flip was noise at both ends.",
-          "ltf_break_first_fresh3 beats htf_confirms_late0": "SURVIVES both designs (+4.20 OOS 3-slice, +2.678 6-block) but is below free_t(84)=2.977 and fails parameter sensitivity.",
-          "break_of_structure@240 is the most promising untested thread": "FAILS. Median expectancy -0.0364R over 142 strategies, 37% profitable. Versus structure_trend@240: +1.061 over 15 cells (8+/7-), IS -0.876, OOS +1.919 - the previous +4.4 to +5.0 does not reproduce. Per slice: negative on 5/5 symbols in slice0, positive on 4/5 in slice1, negative on 4/5 in slice2. 5+/5- across OOS cells, 3/6 on independent units."}),
-    walk_forward=wfa["walk_forward"],
-    firing_rates=rates["rates"],
-    causality_audit=rates["causality_audit"],
-    live_eligible=[],
-    what_would_change_this=("A longer history. 321 days gives 34-57 confirmed 240m structure changes "
-                            "per symbol; the lead measurement is comfortable at that size but the "
-                            "strategy comparisons are not. The measurement finding does not need "
-                            "more data - it is stable across symbols, across the 15m/60m pair and "
-                            "across the temporal split."))
-json.dump(rob_out, open(f'{OUT}/leadlag_robustness_report.json', 'w'), indent=1, default=str)
-print("published 3 files to", OUT)
-for r in rank[:8]:
-    print(f"  {r['symbol']:5} {r['timeframe']:4} {r['arm']:30} dur={r['durability']:+.4f} exp={r['expectancy_R']:+.4f} n={r['trades']}")
+def durability(m):
+    """Rank key. Profit does not appear in it except through shrunk expectancy."""
+    n = m["trades"]
+    shrink = n / (n + 40.0)                       # sample-size penalty
+    exp_s = m["expectancy_r"] * shrink
+    t_def = (m["t_statistic"] or 0.0) - T.free_t(N_SCREENED)
+    rec = m["recovery_factor"] or 0.0
+    streak = m["max_consecutive_losses"] / 10.0
+    return round(10 * exp_s + t_def + min(rec, 2.0) - streak, 3)
+
+
+def main():
+    trades = json.load(open(f"{SCRATCH}/geo_trades.json"))
+    trades = [t for t in trades if t["exitm"] == "atr1.0"]
+    wf = json.load(open(f"{SCRATCH}/walkforward.json"))
+    census = {f"{r['symbol']}_{r['tf']}": r
+              for r in json.load(open(f"{SCRATCH}/census.json"))}
+    costs = json.load(open(f"{SCRATCH}/costs.json"))
+
+    # ---- performance db: per arm, per symbol, per tf, per slice, per regime
+    def agg(sel):
+        rs = [t["r"] for t in sel]
+        if len(rs) < 10:
+            return None
+        return metrics(rs, [t["mae"] for t in sel], [t["mfe"] for t in sel],
+                       [t["mins"] for t in sel])
+
+    arms = sorted({t["arm"] for t in trades})
+    perf = {"by_arm": {}, "by_arm_symbol": {}, "by_arm_timeframe": {},
+            "by_arm_slice": {}, "by_arm_session": {}, "by_arm_regime": {},
+            "by_arm_volatility_regime": {}}
+    for a in arms:
+        A = [t for t in trades if t["arm"] == a]
+        perf["by_arm"][a] = agg(A)
+        for key, field in (("by_arm_symbol", "symbol"), ("by_arm_timeframe", "tf"),
+                           ("by_arm_slice", "slice"), ("by_arm_session", "session"),
+                           ("by_arm_regime", "regime"),
+                           ("by_arm_volatility_regime", "vol")):
+            d = defaultdict(list)
+            for t in A:
+                d[str(t[field])].append(t)
+            perf[key][a] = {k: agg(v) for k, v in sorted(d.items()) if agg(v)}
+
+    # ---- rankings
+    ranked = []
+    for a in arms:
+        m = perf["by_arm"][a]
+        if not m:
+            continue
+        oos = agg([t for t in trades if t["arm"] == a and t["slice"] == "S3"])
+        ins = agg([t for t in trades if t["arm"] == a and t["slice"] in ("S1", "S2")])
+        ranked.append({
+            "arm": a, "durability_score": durability(m),
+            "full_sample": m, "in_sample_S1_S2": ins, "out_of_sample_S3": oos,
+            "oos_expectancy_sign_matches_is":
+                (None if not (ins and oos) else
+                 (ins["expectancy_r"] > 0) == (oos["expectancy_r"] > 0)),
+            "firing_rate_by_cell": {c: v["firing_rates"].get(a)
+                                    for c, v in census.items()
+                                    if a in v["firing_rates"]},
+            "live_eligible": False,
+            "live_eligible_reason": (
+                "Negative expectancy after costs on the full sample, no "
+                "out-of-sample confirmation, and a t-statistic far below the "
+                f"deflation floor free_t({N_SCREENED})={T.free_t(N_SCREENED):.2f}.")})
+    ranked.sort(key=lambda r: -r["durability_score"])
+
+    # ---- robustness
+    doc = json.load(open("workspace/studies/out/s_geometry.json"))
+    f = doc["findings"]
+    rob = {
+        "scope": "workspace/newstrats/geometry.py - 9 swing-geometry conditions "
+                 "plus 2 controls, MGC/MES/MNQ/MCL at 240m and 60m, three "
+                 "disjoint periods plus a 60/40 temporal split plus a 5-block "
+                 "anchored walk-forward.",
+        "bottom_line": "No geometry condition is live-eligible. Nothing survived "
+                       "out of sample.",
+        "checks": {
+            "repainting_and_future_data_leakage": {
+                "method": "Rebuilt the whole zigzag from a series truncated at "
+                          "bar i and compared it with the state recorded at bar i "
+                          "when the full series was processed.",
+                "result": "960 probes across 8 symbol/timeframe cells, 0 "
+                          "mismatches. The geometry at bar i does not change "
+                          "when later bars arrive.",
+                "detail": f["robustness_repaint_lag_and_parameter_sensitivity"]
+                          ["repaint_and_future_leakage"]},
+            "look_ahead_via_swing_confirmation": {
+                "method": "Every swing filtered on Swing.confirmed_index; the "
+                          "zigzag is built forward in confirmation order and the "
+                          "same-kind collapse can only see already-confirmed swings.",
+                "result": "Confirmation costs exactly 3 bars on a 3-bar fractal "
+                          "while the MEDIAN swing leg is 5-6 bars, so 50-60% of a "
+                          "typical leg has already run before the swing that "
+                          "starts it is knowable. This is a structural reason leg "
+                          "geometry is hard to trade, not a bug.",
+                "detail": f["robustness_repaint_lag_and_parameter_sensitivity"]
+                          ["confirmation_lag_vs_leg_length"]},
+            "degeneracy_and_duplication": {
+                "method": "Firing-rate census on every bar plus pairwise Jaccard "
+                          "against the existing fibonacci conditions.",
+                "result": "Firing rates 1.4%-40% - none under 1%, none over 95%. "
+                          "Max Jaccard against fib_golden_pocket / "
+                          "fib_shallow_retrace is 0.09; at most 23% of a geometry "
+                          "condition's bars also carry a fib condition. These are "
+                          "not the mtf_aligned situation."},
+            "parameter_sensitivity": {
+                "result": "Signs flip across parameter settings. "
+                          "swing_symmetry_impulse vs retrace runs IS z=-1.34 to "
+                          "+1.28 across variants; pullbacks_shallowing vs "
+                          "deepening runs IS z=-1.38 to +1.57. No setting reaches "
+                          "|z|=2.4 in sample.",
+                "detail": f["parameter_sensitivity_corrected_and_cost_sensitivity"]
+                          ["headline_statistic_across_variants"]},
+            "costs_slippage_and_fills": {
+                "result": "Engine defaults already assume entry on the NEXT bar "
+                          "open, stop filled before target within a bar, gaps "
+                          "filled at the open, and slippage widening with the ATR "
+                          "percentile. Doubling every slippage parameter moves "
+                          "expectancy by a median of 0.012 R. The results are flat, "
+                          "not cost-marginal.",
+                "detail": costs},
+            "sample_size": {
+                "result": "11 months of data (2025-10 to 2026-09): 1347-1384 bars "
+                          "at 240m and 5000 at 60m per symbol. At 240m the "
+                          "contracting and deepening arms clear 8 trades in only "
+                          "2-3 of 8 cells. Several headline cells rest on 11-26 "
+                          "trades and are reported but not believed."},
+            "data_mining_bias_and_deflation": {
+                "n_screened": N_SCREENED,
+                "free_t": round(T.free_t(N_SCREENED), 3),
+                "largest_trade_level_stouffer_z_observed": 2.359,
+                "verdict": "The largest statistic anywhere in the programme is "
+                           "below the free-t floor, and it appears only out of "
+                           "sample with an in-sample z of -0.16 - which is the "
+                           "wrong order for a confirmation."},
+            "statistical_inflation_found": {
+                "result": "Rank-summing per-strategy expectancies across 13 "
+                          "correlated partner filters within one cell inflates |z| "
+                          "by a median of about 3.3x (range 1.7-15.3) relative to "
+                          "the trade-level test on the SAME trades, and 7 of 11 of "
+                          "those inflated statistics flip sign out of sample. This "
+                          "is a third instance of the project's known z-inflation "
+                          "defect, in a new place.",
+                "detail": f["robustness_repaint_lag_and_parameter_sensitivity"]
+                          ["z_inflation_strategy_level_vs_trade_level"]},
+            "survivorship_bias": {
+                "result": "Not applicable in the usual sense - four continuously "
+                          "listed front-month futures series, no universe "
+                          "selection. But the symbol set is itself a survivor "
+                          "choice: MNQ stands in for NQ because no NQ csv exists."},
+            "floor_free_reporting": {
+                "result": "Primary statistics are trade-level per cell with a "
+                          "minimum of 8 trades per arm, and the firing-rate census "
+                          "has no floor at all. The strategy-level view uses a "
+                          "5-trade floor and is reported alongside, not instead."},
+        },
+        "out_of_sample_and_walk_forward": {
+            "temporal_design": "Three disjoint periods (S1/S2 in sample, S3 out of "
+                               "sample), re-cut as a 60/40 split, plus a 5-block "
+                               "anchored walk-forward. No nested windows were used "
+                               "as replication.",
+            "walk_forward": wf["summary"],
+            "headline_claims_and_their_oos_result": [
+                {"claim": "expansion beats contraction",
+                 "in_sample": "Stouffer z=+1.47 over 9 cells (398 vs 195 trades)",
+                 "out_of_sample": "z=-0.81 over 5 cells (246 vs 96) - REVERSED",
+                 "verdict": "not supported"},
+                {"claim": "shallowing pullbacks beat deepening pullbacks",
+                 "in_sample": "z=-1.37 over 11 cells (456 vs 166)",
+                 "out_of_sample": "z=+1.96 over 4 cells (226 vs 76) - REVERSED",
+                 "verdict": "not supported; the two periods disagree in sign"},
+                {"claim": "impulse-dominant swing symmetry beats retrace-dominant",
+                 "in_sample": "z=-0.79 over 15 cells (1252 vs 554)",
+                 "out_of_sample": "z=-0.67 over 8 cells (706 vs 319)",
+                 "verdict": "consistently negative - the stated prior is wrong in "
+                            "sign, though not significantly"},
+                {"claim": "geometry adds to the plain structure_trend label",
+                 "in_sample": "best arm z=+1.16 (legs_expanding, 491 vs 1482)",
+                 "out_of_sample": "z=-0.83 - REVERSED",
+                 "verdict": "not supported; the information is not there"},
+                {"claim": "a contracting structure is a better fade than an "
+                          "expanding one is a follow",
+                 "in_sample": "z=-1.39 over 11 cells",
+                 "out_of_sample": "z=-1.63 over 5 cells; all cells z=-2.06",
+                 "verdict": "consistently NEGATIVE - the fade is worse, not "
+                            "better, but below the deflation floor"},
+            ]},
+        "new_defects_found_by_this_worker": [
+            "Default-argument capture of a module global in this worker's own "
+            "sensitivity sweep silently re-ran the baseline three times and "
+            "reported perfect parameter stability. Found and fixed; a sweep that "
+            "shows no sensitivity should be treated as broken until proven "
+            "otherwise.",
+            "Strategy-level rank-sum across correlated partner variants inflates "
+            "|z| by ~3.3x versus the trade-level test on the same trades.",
+            "The 3-bar fractal confirmation lag consumes 50-60% of a median swing "
+            "leg on every symbol and both timeframes. Any condition that needs "
+            "three confirmed legs is reading a structure that is largely over.",
+        ],
+    }
+
+    ns = "swing_geometry"
+    for path, section in (("strategy_rankings.json",
+                           {"ranked_on": "durability: expectancy in R shrunk by "
+                                         "n/(n+40), plus t-statistic deflated by "
+                                         f"free_t({N_SCREENED}), plus recovery "
+                                         "factor capped at 2, minus "
+                                         "max_consecutive_losses/10. Historical "
+                                         "profit is not a ranking input.",
+                            "live_eligible": [],
+                            "live_eligible_reason":
+                                "Nothing qualifies. Every arm is negative after "
+                                "costs on the full sample and no headline claim "
+                                "survived out of sample.",
+                            "n_screened": N_SCREENED,
+                            "free_t": round(T.free_t(N_SCREENED), 3),
+                            "rankings": ranked}),
+                          ("performance_db.json", perf),
+                          ("robustness_report.json", rob)):
+        p = f"{ROOT}/{path}"
+        doc2 = json.load(open(p)) if os.path.exists(p) else {}
+        doc2[ns] = section
+        doc2.setdefault("generated_by", [])
+        if isinstance(doc2["generated_by"], list) and ns not in doc2["generated_by"]:
+            doc2["generated_by"].append(ns)
+        json.dump(doc2, open(p, "w"), indent=1, default=str)
+        print("wrote", p)
+
+    for r in ranked:
+        m = r["full_sample"]
+        print(f"{r['arm']:28s} score={r['durability_score']:+7.3f} n={m['trades']:5d} "
+              f"exp={m['expectancy_r']:+.4f} pf={m['profit_factor']} "
+              f"t={m['t_statistic']} maxdd={m['max_drawdown_r']} "
+              f"mcl={m['max_consecutive_losses']} oos_sign_ok={r['oos_expectancy_sign_matches_is']}")
+
+
+if __name__ == "__main__":
+    main()
