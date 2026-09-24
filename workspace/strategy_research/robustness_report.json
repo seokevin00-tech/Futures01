@@ -1,9 +1,9 @@
 {
  "verdict": "The recurring top-10 ranking is not live-eligible on any symbol or timeframe tested. It carries a small, genuinely out-of-sample amount of information - about 0.7 extra names of ten carrying into a disjoint period - and that information is worth approximately +0.015R per trade, which is inside the cost of being wrong about it.",
  "headline": {
-  "placebo_in_top10_cells": "69 of 89",
-  "placebo_rows_vs_chance": 0.838,
-  "programme_free_t": 5.453,
+  "placebo_in_top10_cells": "90 of 112",
+  "placebo_rows_vs_chance": 0.872,
+  "programme_free_t": 5.46,
   "rows_clearing_free_t": 0,
   "max_t_anywhere": 3.923,
   "nested_overlap_vs_nesting_null": "63 observed vs 69.5 forced (274d->180d)",
@@ -34,7 +34,7 @@
  "biases_checked": {
   "look-ahead (signal timing)": "Excluded structurally: the engine computes every signal from a closed-bar snapshot and fills entries at the NEXT bar's open.",
   "look-ahead (window boundary)": "Measured, not assumed. 2.47% of trades open inside a ranking window and close after it. Re-running with a strict rule (entry AND exit inside) moves the pooled out-of-sample figure by -0.00406R on average - the loose rule was mildly generous, so the conclusion is if anything understated.",
-  "data-mining bias": "Quantified: 2,859,518 strategy evaluations, free_t 5.453, zero rows in any top 10 clear it.",
+  "data-mining bias": "Quantified: 2,975,677 strategy evaluations, free_t 5.46, zero rows in any top 10 clear it.",
   "overfitting to the selection window": "Tested directly by disjoint thirds and by rolling walk-forward; the 1-month top 10 shares zero names with the 9-month top 10 in 6 of 6 cells because the two lists rank different populations.",
   "insufficient sample size": "The 20-trade floor admits 3-9 strategies in most 1-month 60m cells and 1-2 in the 240m thirds, so those 'top 10s' are the whole qualifying population. Flagged everywhere it occurs.",
   "clone inflation": "Collapsed on realised trades. Uncollapsed, MES 60m/274d reports 220 qualifiers and lists one TREND rule set four times inside its own top 10; collapsed it reports 116.",
@@ -793,13 +793,13 @@
   }
  },
  "placebo_cohort": {
-  "cells": 89,
-  "cells_with_placebo_in_top10": "69 of 89",
-  "cells_with_placebo_in_top3": "52 of 89",
-  "cells_with_placebo_ranked_first": "35 of 89",
-  "placebo_rows_inside_top_10s": 236,
-  "expected_if_ranking_carried_no_information": 281.7,
-  "ratio": 0.838
+  "cells": 112,
+  "cells_with_placebo_in_top10": "90 of 112",
+  "cells_with_placebo_in_top3": "68 of 112",
+  "cells_with_placebo_ranked_first": "44 of 112",
+  "placebo_rows_inside_top_10s": 306,
+  "expected_if_ranking_carried_no_information": 350.9,
+  "ratio": 0.872
  },
  "placebo_validation": {
   "shift0_arm": "a fourth arm that injects the REAL entry bars unchanged; it must reproduce its parent trade for trade, and did so in 100% of cases across every cell (786 checks), so the injection machinery is not the source of any placebo result"
@@ -960,12 +960,12 @@
    "bigscan/cells": 533302,
    "focus/cells": 612908,
    "studies/out (non-rank)": 1127901,
-   "studies/out rank_* (workers 1-3)": 433751,
+   "studies/out rank_* (workers 1-3)": 549910,
    "worker 4 ledgers + placebo cohorts": 151656
   },
-  "total": 2859518,
-  "free_t": 5.453,
-  "rows_examined": 1231,
+  "total": 2975677,
+  "free_t": 5.46,
+  "rows_examined": 1454,
   "rows_clearing": 0,
   "max_t": 3.923
  },
@@ -983,5 +983,127 @@
    "slippage on fill price, commission in dollars, charged once",
    "D35 (a limit credited with both extremes of one bar) belongs to the ORB module's own fill code; nothing here uses it - every trade in this study came from the library engine"
   ]
+ },
+ "where_the_persistence_lives": {
+  "disjoint_overlap_by_symbol": {
+   "ES": {
+    "pair_cells": 3,
+    "overlap": 5,
+    "chance": 5.2,
+    "excess": -0.2,
+    "cells_above_chance": "1 of 3"
+   },
+   "MCL": {
+    "pair_cells": 12,
+    "overlap": 36,
+    "chance": 32.4,
+    "excess": 3.6,
+    "cells_above_chance": "5 of 12"
+   },
+   "MES": {
+    "pair_cells": 13,
+    "overlap": 25,
+    "chance": 18.7,
+    "excess": 6.3,
+    "cells_above_chance": "6 of 13"
+   },
+   "MGC": {
+    "pair_cells": 15,
+    "overlap": 45,
+    "chance": 38.2,
+    "excess": 6.8,
+    "cells_above_chance": "8 of 15"
+   },
+   "MNQ": {
+    "pair_cells": 13,
+    "overlap": 31,
+    "chance": 24.9,
+    "excess": 6.1,
+    "cells_above_chance": "4 of 13"
+   },
+   "NQ": {
+    "pair_cells": 3,
+    "overlap": 7,
+    "chance": 4.7,
+    "excess": 2.3,
+    "cells_above_chance": "2 of 3"
+   }
+  },
+  "disjoint_overlap_by_timeframe": {
+   "1440m": {
+    "pair_cells": 9,
+    "overlap": 31,
+    "chance": 16.9,
+    "excess": 14.1,
+    "cells_above_chance": "8 of 9"
+   },
+   "15m": {
+    "pair_cells": 12,
+    "overlap": 45,
+    "chance": 42.0,
+    "excess": 3.0,
+    "cells_above_chance": "7 of 12"
+   },
+   "240m": {
+    "pair_cells": 12,
+    "overlap": 15,
+    "chance": 15.0,
+    "excess": 0.0,
+    "cells_above_chance": "0 of 12"
+   },
+   "30m": {
+    "pair_cells": 8,
+    "overlap": 17,
+    "chance": 17.0,
+    "excess": 0.0,
+    "cells_above_chance": "0 of 8"
+   },
+   "60m": {
+    "pair_cells": 18,
+    "overlap": 41,
+    "chance": 33.1,
+    "excess": 7.9,
+    "cells_above_chance": "11 of 18"
+   }
+  },
+  "realised_oos_by_symbol": {
+   "ES": {
+    "oos_trades": 1003,
+    "oos_exp_r": -0.0412,
+    "null_exp_r": -0.0499,
+    "excess_r": 0.0087
+   },
+   "MCL": {
+    "oos_trades": 3053,
+    "oos_exp_r": 0.0397,
+    "null_exp_r": 0.005,
+    "excess_r": 0.0347
+   },
+   "MES": {
+    "oos_trades": 8174,
+    "oos_exp_r": -0.0064,
+    "null_exp_r": -0.0144,
+    "excess_r": 0.008
+   },
+   "MGC": {
+    "oos_trades": 9159,
+    "oos_exp_r": -0.0189,
+    "null_exp_r": -0.0312,
+    "excess_r": 0.0123
+   },
+   "MNQ": {
+    "oos_trades": 8634,
+    "oos_exp_r": 0.0112,
+    "null_exp_r": -0.0027,
+    "excess_r": 0.0139
+   },
+   "NQ": {
+    "oos_trades": 2196,
+    "oos_exp_r": 0.0928,
+    "null_exp_r": 0.0637,
+    "excess_r": 0.0292
+   }
+  },
+  "reading": "The whole out-of-sample overlap excess sits in the daily cells, which are the only ones with years rather than months per slice: +14.1 of the total +25.0, above chance in 8 of 9 pair-cells. 60m contributes +7.9 in 11 of 18. 240m and 30m contribute exactly zero. It does not become money anywhere: daily realised out-of-sample expectancy is -0.007 to -0.016R."
  }
 }

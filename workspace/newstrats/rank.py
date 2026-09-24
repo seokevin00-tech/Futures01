@@ -486,74 +486,84 @@ def _ranked_reals(reals: Sequence[Strategy], res, floor: int) -> List[Strategy]:
 
 def _stratified(cleared: Sequence[Strategy], n: int, seed: int,
                 realised: Optional[Dict[str, int]] = None) -> List[Strategy]:
-    """Draw base strategies that are *representative of the ranked population*.
+    """Draw base strategies matched to the ranked population's trade counts.
 
-    A placebo inherits its base's trade frequency almost exactly (measured
-    ratio of realised to base trades: 1.004). So whatever trade-count
-    distribution the base set has, the control arm has - and if that
-    distribution does not match the population the controls are controlling
-    for, the comparison is rigged before a single trade is simulated.
+    A placebo inherits its base's trade frequency almost exactly - measured
+    ratio of realised placebo trades to base trades, 1.00 - so the control
+    arm's trade-count distribution *is* the base set's. If that does not match
+    the population being controlled for, the comparison is rigged before a
+    single trade is simulated, and it is rigged in the direction that flatters
+    the real rows: a control with half the sample has a wider expectancy
+    distribution and a worse floor survival rate than the thing it controls
+    for.
 
-    **This is written the way it is because the first version was wrong and the
-    uniformity check caught it.** Version 1 stratified by group AND by
-    trade-count quantile, interleaving each group's lowest and highest and
-    round-robining across groups. With roughly as many bases as groups -
-    exactly the regime at a 10% placebo share - every group contributed only
-    its *lowest* member, so the control arm was built entirely from the
-    least-active strategies. Measured consequence across 23 cells: median
-    placebo trade count 23-30 against 43-68 for the real rows it was ranked
-    against, and a mean normalised placebo rank of 0.57 instead of 0.50. A
-    control with half the sample of the thing it controls for is a handicapped
-    control, and a handicapped control flatters every real row above it.
+    **Two versions of this function were wrong and the uniformity check caught
+    both**, which is the entire argument for running that check.
 
-    The fix is to stop being clever. Allocate the draw across groups in
-    proportion to each group's share of the ranked population (largest
-    remainder, with one guaranteed seat per group while seats remain, so a
-    small family is still represented), then sample uniformly at random within
-    each group. That is a stratified random sample: it covers the families and
-    it leaves the trade-count distribution alone, which is the property that
-    actually matters.
+    *Version 1* stratified by group and by trade-count quantile, interleaving
+    each group's lowest and highest and round-robining across groups. With
+    roughly as many bases as groups - exactly the regime at a 10% placebo
+    share - every group contributed only its lowest member. Measured across 23
+    cells: median placebo trade count 23-30 against 43-68 for the rows it was
+    ranked against, mean normalised placebo rank 0.57 rather than 0.50.
+
+    *Version 2* drew a stratified random sample by group, which is unbiased in
+    expectation but has nothing holding the trade count in place at eight or
+    ten bases; on MGC 60m it produced a base median of 96 trades against a
+    population median of 56, an error the same size in the other direction.
+
+    So the quantity that has to match is stratified on directly. Bases are
+    allocated evenly across the ranked population's trade-count quartiles, and
+    within a quartile the draw is random but prefers groups not yet
+    represented, so families are covered without that coverage being allowed to
+    distort the trade counts. Group coverage is the secondary objective because
+    it is the one whose failure is merely unrepresentative; trade-count
+    mismatch is the one whose failure is a bias.
     """
     if not cleared:
         return []
     n = min(n, len(cleared))
-    by_group: Dict[str, List[Strategy]] = defaultdict(list)
-    for s in cleared:
-        by_group[s.group].append(s)
-    groups = sorted(by_group)
+    if n <= 0:
+        return []
     rng = random.Random(f"bases:{seed}")
-    for g in groups:
-        by_group[g].sort(key=lambda s: s.strategy_id)   # determinism first
-        rng.shuffle(by_group[g])
+    key = (lambda s: (realised.get(s.strategy_id, 0), s.strategy_id)) if realised \
+        else (lambda s: s.strategy_id)
+    pool = sorted(cleared, key=key)
 
-    total = len(cleared)
-    quota: Dict[str, int] = {}
-    if n >= len(groups):
-        for g in groups:
-            quota[g] = 1
-        left = n - len(groups)
-    else:
-        for g in groups:
-            quota[g] = 0
-        left = n
-    # largest remainder on the group shares, over the seats still to allocate
-    want = {g: left * len(by_group[g]) / total for g in groups}
-    for g in groups:
-        take = min(int(want[g]), len(by_group[g]) - quota[g])
-        quota[g] += take
-        left -= take
-    rem = sorted(groups, key=lambda g: (-(want[g] - int(want[g])), g))
-    i = 0
-    while left > 0 and i < 10 * len(groups):
-        g = rem[i % len(rem)]
-        if quota[g] < len(by_group[g]):
-            quota[g] += 1
-            left -= 1
-        i += 1
+    n_bins = min(4, n)
+    bins: List[List[Strategy]] = []
+    for i in range(n_bins):
+        lo = len(pool) * i // n_bins
+        hi = len(pool) * (i + 1) // n_bins
+        b = pool[lo:hi]
+        rng.shuffle(b)
+        bins.append(b)
+    quota = [n // n_bins] * n_bins
+    for i in range(n % n_bins):
+        quota[i] += 1
 
     out: List[Strategy] = []
-    for g in groups:
-        out.extend(by_group[g][:quota[g]])
+    used: set = set()
+    for b, q in zip(bins, quota):
+        picked = 0
+        # first pass: prefer a group not already in the control arm
+        for s in list(b):
+            if picked >= q:
+                break
+            if s.group not in used:
+                out.append(s)
+                used.add(s.group)
+                b.remove(s)
+                picked += 1
+        # second pass: fill the quartile's remaining seats at random
+        while picked < q and b:
+            out.append(b.pop())
+            picked += 1
+    # any seats a short quartile could not fill
+    leftover = [s for bn in bins for s in bn]
+    rng.shuffle(leftover)
+    while len(out) < n and leftover:
+        out.append(leftover.pop())
     return out[:n]
 
 

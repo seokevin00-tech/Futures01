@@ -1,0 +1,587 @@
+{
+ "MGC_60": {
+  "symbol": "MGC",
+  "tf": 60,
+  "window": 274,
+  "n_reals": 3004,
+  "n_cleared": 141,
+  "n_bases": 40,
+  "reps": 400,
+  "eligible": {
+   "pool": "eligible",
+   "n_placebos_run": 120,
+   "n_rows": 106,
+   "build": {
+    "pool": "eligible",
+    "shift_bars": 5,
+    "n_bases": 40,
+    "dropped_empty": 0,
+    "id_collisions": 0,
+    "eligible_rate_mean": 0.4192,
+    "direction_changed_mean": 0.4801,
+    "signal_rate_mean": 0.0323,
+    "n_placebos": 120
+   },
+   "floor_survival": 0.883,
+   "median_n": 67.5,
+   "median_realised_over_base": 1.0,
+   "by_kind": {
+    "placebo_random": {
+     "n": 40,
+     "best_rank": 4,
+     "mean_normalised_rank": 0.5108,
+     "median_n_trades": 77.0,
+     "ks_vs_uniform": {
+      "d": 0.1151,
+      "p": 0.6377,
+      "n": 40
+     },
+     "null": {
+      "n_total": 106,
+      "n_placebo": 40,
+      "expected_best_rank": 2.61,
+      "p_best_placebo_rank_1": 0.3774,
+      "p_best_placebo_in_top5": 0.9118,
+      "p_best_placebo_in_top10": 0.9934
+     }
+    },
+    "placebo_shift": {
+     "n": 26,
+     "best_rank": 1,
+     "mean_normalised_rank": 0.3694,
+     "median_n_trades": 71.0,
+     "ks_vs_uniform": {
+      "d": 0.2515,
+      "p": 0.062,
+      "n": 26
+     },
+     "null": {
+      "n_total": 106,
+      "n_placebo": 26,
+      "expected_best_rank": 3.96,
+      "p_best_placebo_rank_1": 0.2453,
+      "p_best_placebo_in_top5": 0.7628,
+      "p_best_placebo_in_top10": 0.9483
+     }
+    },
+    "placebo_shuffle": {
+     "n": 40,
+     "best_rank": 5,
+     "mean_normalised_rank": 0.5741,
+     "median_n_trades": 57.0,
+     "ks_vs_uniform": {
+      "d": 0.158,
+      "p": 0.2481,
+      "n": 40
+     },
+     "null": {
+      "n_total": 106,
+      "n_placebo": 40,
+      "expected_best_rank": 2.61,
+      "p_best_placebo_rank_1": 0.3774,
+      "p_best_placebo_in_top5": 0.9118,
+      "p_best_placebo_in_top10": 0.9934
+     }
+    }
+   },
+   "uniformity": {
+    "d": 0.1151,
+    "p": 0.6377,
+    "n": 40
+   },
+   "mean_normalised_rank": 0.5108,
+   "verdict": "uniform - count matching does not push a relocated entry down",
+   "vs_real_n": {
+    "u": 14800.5,
+    "z": 1.616,
+    "p": 0.10612,
+    "n_a": 106,
+    "n_b": 252
+   },
+   "median_n_real": 52.5
+  },
+  "all": {
+   "pool": "all",
+   "n_placebos_run": 120,
+   "n_rows": 90,
+   "build": {
+    "pool": "all",
+    "shift_bars": 5,
+    "n_bases": 40,
+    "dropped_empty": 0,
+    "id_collisions": 0,
+    "eligible_rate_mean": 1.0,
+    "direction_changed_mean": 0.4803,
+    "signal_rate_mean": 0.0323,
+    "n_placebos": 120
+   },
+   "floor_survival": 0.75,
+   "median_n": 65.0,
+   "median_realised_over_base": 0.827,
+   "by_kind": {
+    "placebo_random": {
+     "n": 24,
+     "best_rank": 5,
+     "mean_normalised_rank": 0.4903,
+     "median_n_trades": 82.0,
+     "ks_vs_uniform": {
+      "d": 0.0778,
+      "p": 0.9979,
+      "n": 24
+     },
+     "null": {
+      "n_total": 90,
+      "n_placebo": 24,
+      "expected_best_rank": 3.64,
+      "p_best_placebo_rank_1": 0.2667,
+      "p_best_placebo_in_top5": 0.7967,
+      "p_best_placebo_in_top10": 0.9631
+     }
+    },
+    "placebo_shift": {
+     "n": 26,
+     "best_rank": 1,
+     "mean_normalised_rank": 0.4124,
+     "median_n_trades": 71.0,
+     "ks_vs_uniform": {
+      "d": 0.2098,
+      "p": 0.178,
+      "n": 26
+     },
+     "null": {
+      "n_total": 90,
+      "n_placebo": 26,
+      "expected_best_rank": 3.37,
+      "p_best_placebo_rank_1": 0.2889,
+      "p_best_placebo_in_top5": 0.8265,
+      "p_best_placebo_in_top10": 0.9735
+     }
+    },
+    "placebo_shuffle": {
+     "n": 40,
+     "best_rank": 4,
+     "mean_normalised_rank": 0.5628,
+     "median_n_trades": 59.0,
+     "ks_vs_uniform": {
+      "d": 0.1333,
+      "p": 0.4479,
+      "n": 40
+     },
+     "null": {
+      "n_total": 90,
+      "n_placebo": 40,
+      "expected_best_rank": 2.22,
+      "p_best_placebo_rank_1": 0.4444,
+      "p_best_placebo_in_top5": 0.9518,
+      "p_best_placebo_in_top10": 0.9982
+     }
+    }
+   },
+   "uniformity": {
+    "d": 0.0778,
+    "p": 0.9979,
+    "n": 24
+   },
+   "mean_normalised_rank": 0.4903,
+   "verdict": "uniform - count matching does not push a relocated entry down",
+   "vs_real_n": {
+    "u": 11807.5,
+    "z": 0.581,
+    "p": 0.56149,
+    "n_a": 90,
+    "n_b": 252
+   },
+   "median_n_real": 52.5
+  }
+ },
+ "MGC_240": {
+  "symbol": "MGC",
+  "tf": 240,
+  "window": 274,
+  "n_reals": 2175,
+  "n_cleared": 10,
+  "n_bases": 10,
+  "reps": 400,
+  "eligible": {
+   "pool": "eligible",
+   "n_placebos_run": 30,
+   "n_rows": 28,
+   "build": {
+    "pool": "eligible",
+    "shift_bars": 5,
+    "n_bases": 10,
+    "dropped_empty": 0,
+    "id_collisions": 0,
+    "eligible_rate_mean": 0.6249,
+    "direction_changed_mean": 0.4345,
+    "signal_rate_mean": 0.0846,
+    "n_placebos": 30
+   },
+   "floor_survival": 0.933,
+   "median_n": 40.5,
+   "median_realised_over_base": 1.167,
+   "by_kind": {
+    "placebo_random": {
+     "n": 10,
+     "best_rank": 1,
+     "mean_normalised_rank": 0.5357,
+     "median_n_trades": 55.5,
+     "ks_vs_uniform": {
+      "d": 0.1893,
+      "p": 0.8254,
+      "n": 10
+     },
+     "null": {
+      "n_total": 28,
+      "n_placebo": 10,
+      "expected_best_rank": 2.64,
+      "p_best_placebo_rank_1": 0.3571,
+      "p_best_placebo_in_top5": 0.9128,
+      "p_best_placebo_in_top10": 0.9967
+     }
+    },
+    "placebo_shift": {
+     "n": 8,
+     "best_rank": 4,
+     "mean_normalised_rank": 0.442,
+     "median_n_trades": 37.0,
+     "ks_vs_uniform": {
+      "d": 0.3036,
+      "p": 0.3833,
+      "n": 8
+     },
+     "null": {
+      "n_total": 28,
+      "n_placebo": 8,
+      "expected_best_rank": 3.22,
+      "p_best_placebo_rank_1": 0.2857,
+      "p_best_placebo_in_top5": 0.8422,
+      "p_best_placebo_in_top10": 0.9859
+     }
+    },
+    "placebo_shuffle": {
+     "n": 10,
+     "best_rank": 2,
+     "mean_normalised_rank": 0.5107,
+     "median_n_trades": 38.0,
+     "ks_vs_uniform": {
+      "d": 0.275,
+      "p": 0.3761,
+      "n": 10
+     },
+     "null": {
+      "n_total": 28,
+      "n_placebo": 10,
+      "expected_best_rank": 2.64,
+      "p_best_placebo_rank_1": 0.3571,
+      "p_best_placebo_in_top5": 0.9128,
+      "p_best_placebo_in_top10": 0.9967
+     }
+    }
+   },
+   "uniformity": {
+    "d": 0.1893,
+    "p": 0.8254,
+    "n": 10
+   },
+   "mean_normalised_rank": 0.5357,
+   "verdict": "uniform - count matching does not push a relocated entry down",
+   "vs_real_n": {
+    "u": 386.0,
+    "z": 1.524,
+    "p": 0.1274,
+    "n_a": 28,
+    "n_b": 22
+   },
+   "median_n_real": 37.5
+  },
+  "all": {
+   "pool": "all",
+   "n_placebos_run": 30,
+   "n_rows": 26,
+   "build": {
+    "pool": "all",
+    "shift_bars": 5,
+    "n_bases": 10,
+    "dropped_empty": 0,
+    "id_collisions": 0,
+    "eligible_rate_mean": 1.0,
+    "direction_changed_mean": 0.4783,
+    "signal_rate_mean": 0.0846,
+    "n_placebos": 30
+   },
+   "floor_survival": 0.867,
+   "median_n": 39.5,
+   "median_realised_over_base": 1.079,
+   "by_kind": {
+    "placebo_random": {
+     "n": 8,
+     "best_rank": 1,
+     "mean_normalised_rank": 0.5192,
+     "median_n_trades": 54.5,
+     "ks_vs_uniform": {
+      "d": 0.2308,
+      "p": 0.7288,
+      "n": 8
+     },
+     "null": {
+      "n_total": 26,
+      "n_placebo": 8,
+      "expected_best_rank": 3.0,
+      "p_best_placebo_rank_1": 0.3077,
+      "p_best_placebo_in_top5": 0.8697,
+      "p_best_placebo_in_top10": 0.9918
+     }
+    },
+    "placebo_shift": {
+     "n": 8,
+     "best_rank": 2,
+     "mean_normalised_rank": 0.351,
+     "median_n_trades": 37.0,
+     "ks_vs_uniform": {
+      "d": 0.4231,
+      "p": 0.082,
+      "n": 8
+     },
+     "null": {
+      "n_total": 26,
+      "n_placebo": 8,
+      "expected_best_rank": 3.0,
+      "p_best_placebo_rank_1": 0.3077,
+      "p_best_placebo_in_top5": 0.8697,
+      "p_best_placebo_in_top10": 0.9918
+     }
+    },
+    "placebo_shuffle": {
+     "n": 10,
+     "best_rank": 6,
+     "mean_normalised_rank": 0.6038,
+     "median_n_trades": 39.5,
+     "ks_vs_uniform": {
+      "d": 0.2654,
+      "p": 0.4205,
+      "n": 10
+     },
+     "null": {
+      "n_total": 26,
+      "n_placebo": 10,
+      "expected_best_rank": 2.45,
+      "p_best_placebo_rank_1": 0.3846,
+      "p_best_placebo_in_top5": 0.9336,
+      "p_best_placebo_in_top10": 0.9985
+     }
+    }
+   },
+   "uniformity": {
+    "d": 0.2308,
+    "p": 0.7288,
+    "n": 8
+   },
+   "mean_normalised_rank": 0.5192,
+   "verdict": "uniform - count matching does not push a relocated entry down",
+   "vs_real_n": {
+    "u": 343.5,
+    "z": 1.19,
+    "p": 0.23414,
+    "n_a": 26,
+    "n_b": 22
+   },
+   "median_n_real": 37.5
+  }
+ },
+ "MCL_60": {
+  "symbol": "MCL",
+  "tf": 60,
+  "window": 274,
+  "n_reals": 3018,
+  "n_cleared": 122,
+  "n_bases": 40,
+  "reps": 400,
+  "eligible": {
+   "pool": "eligible",
+   "n_placebos_run": 120,
+   "n_rows": 106,
+   "build": {
+    "pool": "eligible",
+    "shift_bars": 5,
+    "n_bases": 40,
+    "dropped_empty": 0,
+    "id_collisions": 0,
+    "eligible_rate_mean": 0.4472,
+    "direction_changed_mean": 0.4859,
+    "signal_rate_mean": 0.0473,
+    "n_placebos": 120
+   },
+   "floor_survival": 0.883,
+   "median_n": 72.5,
+   "median_realised_over_base": 1.012,
+   "by_kind": {
+    "placebo_random": {
+     "n": 39,
+     "best_rank": 3,
+     "mean_normalised_rank": 0.5461,
+     "median_n_trades": 92,
+     "ks_vs_uniform": {
+      "d": 0.1431,
+      "p": 0.3747,
+      "n": 39
+     },
+     "null": {
+      "n_total": 106,
+      "n_placebo": 39,
+      "expected_best_rank": 2.67,
+      "p_best_placebo_rank_1": 0.3679,
+      "p_best_placebo_in_top5": 0.9047,
+      "p_best_placebo_in_top10": 0.9922
+     }
+    },
+    "placebo_shift": {
+     "n": 27,
+     "best_rank": 2,
+     "mean_normalised_rank": 0.3758,
+     "median_n_trades": 70,
+     "ks_vs_uniform": {
+      "d": 0.2462,
+      "p": 0.0633,
+      "n": 27
+     },
+     "null": {
+      "n_total": 106,
+      "n_placebo": 27,
+      "expected_best_rank": 3.82,
+      "p_best_placebo_rank_1": 0.2547,
+      "p_best_placebo_in_top5": 0.7776,
+      "p_best_placebo_in_top10": 0.9548
+     }
+    },
+    "placebo_shuffle": {
+     "n": 40,
+     "best_rank": 1,
+     "mean_normalised_rank": 0.5389,
+     "median_n_trades": 69.5,
+     "ks_vs_uniform": {
+      "d": 0.1255,
+      "p": 0.5267,
+      "n": 40
+     },
+     "null": {
+      "n_total": 106,
+      "n_placebo": 40,
+      "expected_best_rank": 2.61,
+      "p_best_placebo_rank_1": 0.3774,
+      "p_best_placebo_in_top5": 0.9118,
+      "p_best_placebo_in_top10": 0.9934
+     }
+    }
+   },
+   "uniformity": {
+    "d": 0.1431,
+    "p": 0.3747,
+    "n": 39
+   },
+   "mean_normalised_rank": 0.5461,
+   "verdict": "uniform - count matching does not push a relocated entry down",
+   "vs_real_n": {
+    "u": 14128.0,
+    "z": 2.27,
+    "p": 0.02322,
+    "n_a": 106,
+    "n_b": 231
+   },
+   "median_n_real": 67
+  },
+  "all": {
+   "pool": "all",
+   "n_placebos_run": 120,
+   "n_rows": 94,
+   "build": {
+    "pool": "all",
+    "shift_bars": 5,
+    "n_bases": 40,
+    "dropped_empty": 0,
+    "id_collisions": 0,
+    "eligible_rate_mean": 1.0,
+    "direction_changed_mean": 0.4874,
+    "signal_rate_mean": 0.0473,
+    "n_placebos": 120
+   },
+   "floor_survival": 0.783,
+   "median_n": 67.0,
+   "median_realised_over_base": 0.882,
+   "by_kind": {
+    "placebo_random": {
+     "n": 27,
+     "best_rank": 8,
+     "mean_normalised_rank": 0.4801,
+     "median_n_trades": 59,
+     "ks_vs_uniform": {
+      "d": 0.081,
+      "p": 0.9922,
+      "n": 27
+     },
+     "null": {
+      "n_total": 94,
+      "n_placebo": 27,
+      "expected_best_rank": 3.39,
+      "p_best_placebo_rank_1": 0.2872,
+      "p_best_placebo_in_top5": 0.8241,
+      "p_best_placebo_in_top10": 0.9726
+     }
+    },
+    "placebo_shift": {
+     "n": 27,
+     "best_rank": 2,
+     "mean_normalised_rank": 0.4265,
+     "median_n_trades": 70,
+     "ks_vs_uniform": {
+      "d": 0.2197,
+      "p": 0.1279,
+      "n": 27
+     },
+     "null": {
+      "n_total": 94,
+      "n_placebo": 27,
+      "expected_best_rank": 3.39,
+      "p_best_placebo_rank_1": 0.2872,
+      "p_best_placebo_in_top5": 0.8241,
+      "p_best_placebo_in_top10": 0.9726
+     }
+    },
+    "placebo_shuffle": {
+     "n": 40,
+     "best_rank": 1,
+     "mean_normalised_rank": 0.563,
+     "median_n_trades": 70.5,
+     "ks_vs_uniform": {
+      "d": 0.1697,
+      "p": 0.1805,
+      "n": 40
+     },
+     "null": {
+      "n_total": 94,
+      "n_placebo": 40,
+      "expected_best_rank": 2.32,
+      "p_best_placebo_rank_1": 0.4255,
+      "p_best_placebo_in_top5": 0.9424,
+      "p_best_placebo_in_top10": 0.9974
+     }
+    }
+   },
+   "uniformity": {
+    "d": 0.081,
+    "p": 0.9922,
+    "n": 27
+   },
+   "mean_normalised_rank": 0.4801,
+   "verdict": "uniform - count matching does not push a relocated entry down",
+   "vs_real_n": {
+    "u": 11591.0,
+    "z": 0.956,
+    "p": 0.33924,
+    "n_a": 94,
+    "n_b": 231
+   },
+   "median_n_real": 67
+  }
+ }
+}

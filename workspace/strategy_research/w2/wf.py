@@ -98,8 +98,21 @@ def run(symbol: str, tf: int, budget: int = 8000, folds: int = 5,
     hold.sort(key=lambda r: -r["is_score"])
     sel = hold[:top_k]
     oos_ns = [r for r in sel if r["oos"]["n"] >= 5]
+    # Base rate: the fraction of ALL eligible rows that are OOS-positive. The
+    # selected top 10 has to beat THIS, not 50% - costs push the median rule
+    # set's expectancy below zero, so a coin-flip benchmark would flatter the
+    # selection.
+    base_pool = [r for r in hold if r["oos"]["n"] >= 5]
+    base_real = [r for r in base_pool if r["arm"] == "real"]
     holdout = {
         "cut": str(cut), "eligible": len(hold),
+        "base_rate_oos_positive_all_eligible":
+            round(sum(1 for r in base_pool if r["oos"]["exp"] > 0) / len(base_pool), 4)
+            if base_pool else None,
+        "base_rate_oos_positive_real_only":
+            round(sum(1 for r in base_real if r["oos"]["exp"] > 0) / len(base_real), 4)
+            if base_real else None,
+        "base_pool": len(base_pool),
         "n_placebo_eligible": sum(1 for r in hold if r["arm"] != "real"),
         "selected_top10": [{k: r[k] for k in ("id", "arm", "group", "is", "oos", "is_score")}
                            for r in sel],
@@ -139,7 +152,17 @@ def run(symbol: str, tf: int, budget: int = 8000, folds: int = 5,
             oos.append({"id": sid, "arm": arm, "group": grp,
                         "is_score": round(sc, 5), "oos": _stats(te)})
         with_tr = [r for r in oos if r["oos"]["n"] > 0]
+        # Fold base rate over every candidate, not just the ten selected.
+        pool = []
+        for sid, arm, grp, sc, tr in cand:
+            te = slice_trades(book[sid]["trades"], lo_te, hi_te)
+            if len(te) >= 3:
+                pool.append(compute_metrics(te).expectancy_r)
         wf_rows.append({
+            "fold_base_rate_oos_positive": round(
+                sum(1 for e in pool if e > 0) / len(pool), 4) if pool else None,
+            "fold_base_pool": len(pool),
+            "fold_base_median_oos_exp": round(st.median(pool), 4) if pool else None,
             "fold": k, "train_end": str(hi_tr), "test": [str(lo_te), str(hi_te)],
             "candidates": len(cand),
             "n_placebo_candidates": sum(1 for c in cand if c[1] != "real"),
