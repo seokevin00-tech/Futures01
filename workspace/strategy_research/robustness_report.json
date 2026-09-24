@@ -10800,5 +10800,522 @@
   "D13 INHERITED - my cost figures are understated": "A three-target exit pays one round turn, not three, and partial legs pay zero slippage. My measured median cost of 0.0166 R/trade (MES 60m) and 0.0029 R/trade (MNQ 240m) is therefore a floor, not an estimate. The 2x slippage stress is the right order of correction and the top 10 survive it, but nothing here should be read as a precise cost figure.",
   "D9 INHERITED - 240m regime slices on short windows are missing-label artefacts": "Regime is UNKNOWN for most 240m trades below a 274-day window. The regime_profile_top40_real block on any 240m cell at 30/90/180 days should be read as a label-availability report, not a regime finding.",
   "D21 ACCOUNTED FOR": "The session-scale guard's threshold is 390 minutes and 240 < 390, so the time-of-day conditions still misbehave at 240m. No 240m result reported here rests on one; OPENING_RANGE, the template that pins max_minutes_since_open, contributes to no 240m top 10."
+ },
+ "mgc_mcl_rescope": {
+  "why": "The programme-wide numbers pooled the index complex (one instrument, and MES/MNQ share 0.5% of their rule sets) and the grain files (D40: spliced contract months). This section re-runs every finding on the two genuinely independent contracts.",
+  "verdict_per_finding": {
+   "1_placebo": {
+    "pooled_run": "a control inside the top 10 in 90 of 112 cells, control rows at 0.85x the chance rate - read as 'chance'",
+    "mgc_mcl": "WEAKENS. Share-matched to 10% and using only the honest control kinds, controls reach the top 10 LESS than chance: 12.3 vs 18.6, z=-2.63 (rth_only=False); 13.6 vs 14.0, z=-0.21 (rth_only=True). The pooled claim was inflated by thin cells. placebo_shift's leak is independently replicated (0.466 vs 0.542/0.550).",
+    "status": "weakens"
+   },
+   "2_nested": {
+    "pooled_run": "63 shared names vs 69.5 forced; no excess; 0 of 60 9-month rows qualify in the 1-month window",
+    "mgc_mcl": "HOLDS on both arms. 13 vs 17.2 and 21 vs 23.5; population Spearman below the null in both; 0 of 40 rows qualify in the 1-month window in each arm.",
+    "status": "holds"
+   },
+   "3_disjoint": {
+    "pooled_run": "149 vs 124.0 (+20%), sign z=+2.67, excess located in daily and 60m",
+    "mgc_mcl": "BREAKS. 15 vs 16.9 (-11%), sign z=-0.58, Stouffer -0.72 in the well-populated arm; survival 8 vs a null of 10.7; Jaccard 0.048 where selection is real. The RTH arm's +34% is thin-cell arithmetic. MGC daily alone: 7 vs 5.8, one of three pairs positive, survival 2 vs 5.2.",
+    "status": "breaks"
+   },
+   "4_realised": {
+    "pooled_run": "+0.0048R over 32,219 trades, excess over null +0.0148R",
+    "mgc_mcl": "STRENGTHENS as a negative. -0.0155R over 13,171 trades, excess -0.0050R (rth_only=False); +0.0019R with excess 0.0000R (rth_only=True). At a 6-month lookback the top 10 underperforms trading everything in both arms.",
+    "status": "strengthens (negative)"
+   },
+   "5_deflation": {
+    "pooled_run": "2,975,629 evaluations, free_t 5.46, 0 of 1,454 rows clear, max t 3.92",
+    "mgc_mcl": "HOLDS. 516,651 evaluations, free_t 5.13, 0 of 692 rows clear, max t 3.27.",
+    "status": "holds"
+   }
+  },
+  "placebo": {
+   "rth_only=False": {
+    "cells": 27,
+    "share_matched_to_10pct_random_and_shuffle_only": {
+     "expected_cells_with_control_in_top10": 12.28,
+     "null_expectation": 18.58,
+     "z": -2.63,
+     "top3_observed": 4.96,
+     "top3_null": 7.4
+    },
+    "raw_unmatched_read": {
+     "cells": 28,
+     "control_in_top10": 26,
+     "null": 27.81,
+     "median_control_share": 0.373,
+     "note": "uncorrected; the control share is 25-37% here because a control is not gated by a rare signal and clears the trade floor far more easily, which is exactly the inflation worker 1 identified"
+    }
+   },
+   "rth_only=True": {
+    "cells": 18,
+    "share_matched_to_10pct_random_and_shuffle_only": {
+     "expected_cells_with_control_in_top10": 13.64,
+     "null_expectation": 13.99,
+     "z": -0.21,
+     "top3_observed": 6.18,
+     "top3_null": 5.38
+    },
+    "raw_unmatched_read": {
+     "cells": 26,
+     "control_in_top10": 21,
+     "null": 21.38,
+     "median_control_share": 0.245,
+     "note": "uncorrected; the control share is 25-37% here because a control is not gated by a rare signal and clears the trade floor far more easily, which is exactly the inflation worker 1 identified"
+    }
+   }
+  },
+  "control_kind_leak": {
+   "random": {
+    "cells": 33,
+    "mean_normalised_rank": 0.5416,
+    "median": 0.5815,
+    "cells_below_0_5": "9 of 33",
+    "sign_z": -2.61,
+    "reading": "0.5 = uniform; below 0.5 means the control ranks HIGH, i.e. it is not a clean control"
+   },
+   "shuffle": {
+    "cells": 50,
+    "mean_normalised_rank": 0.5496,
+    "median": 0.5663,
+    "cells_below_0_5": "16 of 50",
+    "sign_z": -2.55,
+    "reading": "0.5 = uniform; below 0.5 means the control ranks HIGH, i.e. it is not a clean control"
+   },
+   "shift5": {
+    "cells": 34,
+    "mean_normalised_rank": 0.4656,
+    "median": 0.4464,
+    "cells_below_0_5": "22 of 34",
+    "sign_z": 1.71,
+    "reading": "0.5 = uniform; below 0.5 means the control ranks HIGH, i.e. it is not a clean control"
+   }
+  },
+  "nested": {
+   "rth_only=False": {
+    "274d->180d": {
+     "cells": 4,
+     "overlap": 13,
+     "forced_by_nesting": 17.21,
+     "excess": -4.21,
+     "spearman_population": 0.7434,
+     "spearman_null": 0.8322,
+     "top10_qualifying_in_B": "19 of 40"
+    },
+    "274d->90d": {
+     "cells": 4,
+     "overlap": 3,
+     "forced_by_nesting": 4.29,
+     "excess": -1.29,
+     "spearman_population": 0.6351,
+     "spearman_null": 0.6294,
+     "top10_qualifying_in_B": "5 of 40"
+    },
+    "274d->30d": {
+     "cells": 4,
+     "overlap": 0,
+     "forced_by_nesting": 0.72,
+     "excess": -0.72,
+     "spearman_population": 0.5299,
+     "spearman_null": 0.4486,
+     "top10_qualifying_in_B": "0 of 40"
+    },
+    "180d->274d": {
+     "cells": 4,
+     "overlap": 13,
+     "forced_by_nesting": 17.21,
+     "excess": -4.21,
+     "spearman_population": 0.7434,
+     "spearman_null": 0.8322,
+     "top10_qualifying_in_B": "40 of 40"
+    },
+    "180d->90d": {
+     "cells": 4,
+     "overlap": 10,
+     "forced_by_nesting": 10.26,
+     "excess": -0.26,
+     "spearman_population": 0.7127,
+     "spearman_null": 0.7305,
+     "top10_qualifying_in_B": "13 of 40"
+    },
+    "180d->30d": {
+     "cells": 4,
+     "overlap": 1,
+     "forced_by_nesting": 1.02,
+     "excess": -0.02,
+     "spearman_population": 0.5623,
+     "spearman_null": 0.5105,
+     "top10_qualifying_in_B": "2 of 40"
+    },
+    "90d->274d": {
+     "cells": 4,
+     "overlap": 3,
+     "forced_by_nesting": 4.29,
+     "excess": -1.29,
+     "spearman_population": 0.6351,
+     "spearman_null": 0.6294,
+     "top10_qualifying_in_B": "40 of 40"
+    },
+    "90d->180d": {
+     "cells": 4,
+     "overlap": 10,
+     "forced_by_nesting": 10.26,
+     "excess": -0.26,
+     "spearman_population": 0.7127,
+     "spearman_null": 0.7305,
+     "top10_qualifying_in_B": "40 of 40"
+    },
+    "90d->30d": {
+     "cells": 4,
+     "overlap": 6,
+     "forced_by_nesting": 5.93,
+     "excess": 0.07,
+     "spearman_population": 0.772,
+     "spearman_null": 0.6811,
+     "top10_qualifying_in_B": "6 of 40"
+    },
+    "30d->274d": {
+     "cells": 4,
+     "overlap": 0,
+     "forced_by_nesting": 0.72,
+     "excess": -0.72,
+     "spearman_population": 0.5299,
+     "spearman_null": 0.4486,
+     "top10_qualifying_in_B": "36 of 40"
+    },
+    "30d->180d": {
+     "cells": 4,
+     "overlap": 1,
+     "forced_by_nesting": 1.02,
+     "excess": -0.02,
+     "spearman_population": 0.5623,
+     "spearman_null": 0.5105,
+     "top10_qualifying_in_B": "36 of 40"
+    },
+    "30d->90d": {
+     "cells": 4,
+     "overlap": 6,
+     "forced_by_nesting": 5.93,
+     "excess": 0.07,
+     "spearman_population": 0.772,
+     "spearman_null": 0.6811,
+     "top10_qualifying_in_B": "36 of 40"
+    }
+   },
+   "rth_only=True": {
+    "274d->180d": {
+     "cells": 4,
+     "overlap": 21,
+     "forced_by_nesting": 23.54,
+     "excess": -2.54,
+     "spearman_population": 0.7018,
+     "spearman_null": 0.7856,
+     "top10_qualifying_in_B": "22 of 40"
+    },
+    "274d->90d": {
+     "cells": 4,
+     "overlap": 6,
+     "forced_by_nesting": 6.62,
+     "excess": -0.62,
+     "spearman_population": 0.3072,
+     "spearman_null": 0.4535,
+     "top10_qualifying_in_B": "7 of 40"
+    },
+    "274d->30d": {
+     "cells": 2,
+     "overlap": 0,
+     "forced_by_nesting": 0.05,
+     "excess": -0.05,
+     "spearman_population": 0.0,
+     "spearman_null": 0.2225,
+     "top10_qualifying_in_B": "0 of 20"
+    },
+    "180d->274d": {
+     "cells": 4,
+     "overlap": 21,
+     "forced_by_nesting": 23.54,
+     "excess": -2.54,
+     "spearman_population": 0.7018,
+     "spearman_null": 0.7856,
+     "top10_qualifying_in_B": "40 of 40"
+    },
+    "180d->90d": {
+     "cells": 4,
+     "overlap": 10,
+     "forced_by_nesting": 10.05,
+     "excess": -0.05,
+     "spearman_population": 0.7136,
+     "spearman_null": 0.5666,
+     "top10_qualifying_in_B": "12 of 40"
+    },
+    "180d->30d": {
+     "cells": 2,
+     "overlap": 0,
+     "forced_by_nesting": 0.24,
+     "excess": -0.24,
+     "spearman_population": 0.7,
+     "spearman_null": 0.3125,
+     "top10_qualifying_in_B": "0 of 20"
+    },
+    "90d->274d": {
+     "cells": 4,
+     "overlap": 6,
+     "forced_by_nesting": 6.62,
+     "excess": -0.62,
+     "spearman_population": 0.3072,
+     "spearman_null": 0.4535,
+     "top10_qualifying_in_B": "26 of 40"
+    },
+    "90d->180d": {
+     "cells": 4,
+     "overlap": 10,
+     "forced_by_nesting": 10.05,
+     "excess": -0.05,
+     "spearman_population": 0.7136,
+     "spearman_null": 0.5666,
+     "top10_qualifying_in_B": "26 of 40"
+    },
+    "90d->30d": {
+     "cells": 2,
+     "overlap": 3,
+     "forced_by_nesting": 3.51,
+     "excess": -0.51,
+     "spearman_population": 0.75,
+     "spearman_null": 0.518,
+     "top10_qualifying_in_B": "3 of 20"
+    },
+    "30d->274d": {
+     "cells": 2,
+     "overlap": 0,
+     "forced_by_nesting": 0.05,
+     "excess": -0.05,
+     "spearman_population": 0.0,
+     "spearman_null": 0.2225,
+     "top10_qualifying_in_B": "8 of 20"
+    },
+    "30d->180d": {
+     "cells": 2,
+     "overlap": 0,
+     "forced_by_nesting": 0.24,
+     "excess": -0.24,
+     "spearman_population": 0.7,
+     "spearman_null": 0.3125,
+     "top10_qualifying_in_B": "8 of 20"
+    },
+    "30d->90d": {
+     "cells": 2,
+     "overlap": 3,
+     "forced_by_nesting": 3.51,
+     "excess": -0.51,
+     "spearman_population": 0.75,
+     "spearman_null": 0.518,
+     "top10_qualifying_in_B": "8 of 20"
+    }
+   }
+  },
+  "disjoint": {
+   "rth_only=False": {
+    "pair_cells": 12,
+    "overlap": 15,
+    "chance": 16.9,
+    "excess": -1.9,
+    "pct_excess": -11.2,
+    "cells_above": 5,
+    "cells_below": 7,
+    "sign_z": -0.58,
+    "stouffer": -0.72,
+    "where_selection_is_real": {
+     "pair_cells": 9,
+     "overlap": 8,
+     "chance": 9.9
+    },
+    "triple_positive": 8,
+    "triple_positive_null": 10.7,
+    "triple_z": -1.03,
+    "jaccard_all_cells": 0.0809,
+    "jaccard_where_selection_is_real": 0.0481
+   },
+   "rth_only=True": {
+    "pair_cells": 12,
+    "overlap": 27,
+    "chance": 20.1,
+    "excess": 6.9,
+    "pct_excess": 34.3,
+    "cells_above": 6,
+    "cells_below": 0,
+    "sign_z": 2.45,
+    "stouffer": 2.48,
+    "where_selection_is_real": {
+     "pair_cells": 4,
+     "overlap": 10,
+     "chance": 6.7
+    },
+    "triple_positive": 1,
+    "triple_positive_null": 2.0,
+    "triple_z": -0.76,
+    "jaccard_all_cells": 0.2811,
+    "jaccard_where_selection_is_real": 0.1379
+   },
+   "MGC_daily_standalone": {
+    "qualifiers": [
+     95,
+     148,
+     111
+    ],
+    "pairs": {
+     "s1->s2": {
+      "overlap": 2,
+      "chance": 1.53,
+      "z": 0.5
+     },
+     "s1->s3": {
+      "overlap": 0,
+      "chance": 2.33,
+      "z": -1.84
+     },
+     "s2->s3": {
+      "overlap": 5,
+      "chance": 1.93,
+      "z": 3.24
+     }
+    },
+    "triple_positive": 2,
+    "triple_positive_null": 5.18,
+    "jaccard": 0.1481,
+    "why": "the pooled run's overlap excess lived in the daily cells, so the one independent contract with a daily file is tested on its own"
+   }
+  },
+  "realised": {
+   "rth_only=False": {
+    "30d": {
+     "cells": 4,
+     "oos_trades": 7955,
+     "realised_exp_r": -0.0375,
+     "trade_everything_exp_r": -0.0043,
+     "selection_edge_r": -0.0331,
+     "no_edge_null_r": -0.0275,
+     "excess_over_null_r": -0.0099,
+     "cells_beating_null": "2 of 4",
+     "stouffer": 0.34,
+     "top1_changed": "26 of 30"
+    },
+    "90d": {
+     "cells": 4,
+     "oos_trades": 3500,
+     "realised_exp_r": 0.0161,
+     "trade_everything_exp_r": 0.0291,
+     "selection_edge_r": -0.0131,
+     "no_edge_null_r": 0.0058,
+     "excess_over_null_r": 0.0103,
+     "cells_beating_null": "3 of 4",
+     "stouffer": 0.85,
+     "top1_changed": "20 of 26"
+    },
+    "180d": {
+     "cells": 4,
+     "oos_trades": 1716,
+     "realised_exp_r": 0.0223,
+     "trade_everything_exp_r": 0.0566,
+     "selection_edge_r": -0.0343,
+     "no_edge_null_r": 0.0358,
+     "excess_over_null_r": -0.0136,
+     "cells_beating_null": "1 of 4",
+     "stouffer": -0.61,
+     "top1_changed": "12 of 14"
+    },
+    "POOLED": {
+     "oos_trades": 13171,
+     "realised_exp_r": -0.0155,
+     "no_edge_null_r": -0.0104,
+     "excess_over_null_r": -0.005
+    }
+   },
+   "rth_only=True": {
+    "30d": {
+     "cells": 2,
+     "oos_trades": 1342,
+     "realised_exp_r": 0.023,
+     "trade_everything_exp_r": -0.0257,
+     "selection_edge_r": 0.0487,
+     "no_edge_null_r": -0.006,
+     "excess_over_null_r": 0.029,
+     "cells_beating_null": "1 of 2",
+     "stouffer": 0.94,
+     "top1_changed": "8 of 16"
+    },
+    "90d": {
+     "cells": 4,
+     "oos_trades": 2166,
+     "realised_exp_r": 0.0016,
+     "trade_everything_exp_r": 0.0151,
+     "selection_edge_r": -0.0135,
+     "no_edge_null_r": -0.0025,
+     "excess_over_null_r": 0.0041,
+     "cells_beating_null": "2 of 4",
+     "stouffer": -0.01,
+     "top1_changed": "12 of 23"
+    },
+    "180d": {
+     "cells": 4,
+     "oos_trades": 1066,
+     "realised_exp_r": -0.0242,
+     "trade_everything_exp_r": 0.0641,
+     "selection_edge_r": -0.0883,
+     "no_edge_null_r": 0.0208,
+     "excess_over_null_r": -0.0449,
+     "cells_beating_null": "0 of 4",
+     "stouffer": -1.41,
+     "top1_changed": "9 of 14"
+    },
+    "POOLED": {
+     "oos_trades": 4574,
+     "realised_exp_r": 0.0019,
+     "no_edge_null_r": 0.0019,
+     "excess_over_null_r": -0.0
+    }
+   },
+   "MGC_daily_standalone": {
+    "90d": {
+     "oos_trades": 556,
+     "realised_exp_r": -0.0207,
+     "trade_everything_exp_r": -0.013,
+     "no_edge_null_r": -0.0363
+    },
+    "180d": {
+     "oos_trades": 2896,
+     "realised_exp_r": -0.0119,
+     "trade_everything_exp_r": 0.0214,
+     "no_edge_null_r": -0.0156
+    },
+    "274d": {
+     "oos_trades": 3018,
+     "realised_exp_r": -0.0055,
+     "trade_everything_exp_r": 0.0231,
+     "no_edge_null_r": -0.0088
+    }
+   }
+  },
+  "deflation": {
+   "population_note": "MGC and MCL only - the two genuinely independent contracts in this data set. The index complex is excluded (MES/MNQ/NQ/ES are one instrument, and worker 2 measured that MES and MNQ share only 44 of ~9,250 rule sets at 60m, so cross-symbol agreement there was never testing the same strategy) and the micro grains are excluded (D40: MZC 60m is 26.3% flat bars, 11.3% zero volume, 367 gaps above 2% of which 47% fully reverse - the continuous series splices contract months, and dropping the bad bars changes 6 of the 10 top-ranked strategies).",
+   "population": "MGC and MCL only, 60m and 240m",
+   "screened_by_source": {
+    "bigscan/cells (MGC+MCL only)": 111438,
+    "focus/cells (MGC+MCL only)": 234741,
+    "worker 1 rank_mgc_mcl cells": 116030,
+    "worker 4 MGC/MCL ledgers + control cohorts": 54442
+   },
+   "total_strategy_evaluations": 516651,
+   "population_free_t": 5.129,
+   "top10_rows_examined": 692,
+   "rows_clearing_population_free_t": 0,
+   "rows_clearing_their_own_cell_free_t": 0,
+   "max_t_seen": 3.27,
+   "max_t_worker4": 3.27,
+   "max_t_worker1": 2.968,
+   "note": "Evaluations are counted per cell: a rule set measured in twelve cells counts twelve times, which is the right unit because each cell is a separate opportunity for it to be selected."
+  },
+  "rth_arm": "Primary read is rth_only=False, matching worker 1 and the only arm in which the 240m cells hold enough qualifiers to rank. Measured cost of the flag, this population: MGC 60m 15,657 -> 53,702 trades, MCL 60m 18,237 -> 45,469, both 240m cells ~3.9x. Per D24 the larger sample carries lower expectancy. Both arms are reported and agree on every verdict.",
+  "d43": "StrategyFilters.identity now carries the scope fields. Checked on this population: the combinator emits only rth_only=True rule sets and the id set is fully distinct, so nothing merged before the fix either. Every ledger run asserts len(set(ids)) == len(strategies)."
  }
 }

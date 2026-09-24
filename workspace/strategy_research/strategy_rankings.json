@@ -32314,5 +32314,38 @@
     "p_rank_at_least_this_low_one_sided_real_better": 1.0
    }
   }
+ },
+ "mgc_mcl_rescope": {
+  "population": "MGC and MCL only, 60m and 240m, plus MGC daily",
+  "verdict_per_finding": {
+   "1_placebo": {
+    "pooled_run": "a control inside the top 10 in 90 of 112 cells, control rows at 0.85x the chance rate - read as 'chance'",
+    "mgc_mcl": "WEAKENS. Share-matched to 10% and using only the honest control kinds, controls reach the top 10 LESS than chance: 12.3 vs 18.6, z=-2.63 (rth_only=False); 13.6 vs 14.0, z=-0.21 (rth_only=True). The pooled claim was inflated by thin cells. placebo_shift's leak is independently replicated (0.466 vs 0.542/0.550).",
+    "status": "weakens"
+   },
+   "2_nested": {
+    "pooled_run": "63 shared names vs 69.5 forced; no excess; 0 of 60 9-month rows qualify in the 1-month window",
+    "mgc_mcl": "HOLDS on both arms. 13 vs 17.2 and 21 vs 23.5; population Spearman below the null in both; 0 of 40 rows qualify in the 1-month window in each arm.",
+    "status": "holds"
+   },
+   "3_disjoint": {
+    "pooled_run": "149 vs 124.0 (+20%), sign z=+2.67, excess located in daily and 60m",
+    "mgc_mcl": "BREAKS. 15 vs 16.9 (-11%), sign z=-0.58, Stouffer -0.72 in the well-populated arm; survival 8 vs a null of 10.7; Jaccard 0.048 where selection is real. The RTH arm's +34% is thin-cell arithmetic. MGC daily alone: 7 vs 5.8, one of three pairs positive, survival 2 vs 5.2.",
+    "status": "breaks"
+   },
+   "4_realised": {
+    "pooled_run": "+0.0048R over 32,219 trades, excess over null +0.0148R",
+    "mgc_mcl": "STRENGTHENS as a negative. -0.0155R over 13,171 trades, excess -0.0050R (rth_only=False); +0.0019R with excess 0.0000R (rth_only=True). At a 6-month lookback the top 10 underperforms trading everything in both arms.",
+    "status": "strengthens (negative)"
+   },
+   "5_deflation": {
+    "pooled_run": "2,975,629 evaluations, free_t 5.46, 0 of 1,454 rows clear, max t 3.92",
+    "mgc_mcl": "HOLDS. 516,651 evaluations, free_t 5.13, 0 of 692 rows clear, max t 3.27.",
+    "status": "holds"
+   }
+  },
+  "live_eligible": [],
+  "live_eligible_count": 0,
+  "reason": "Unchanged and if anything firmer: 0 of 692 top-10 rows clear free_t=5.13, the largest t is 3.27, and the realised out-of-sample expectancy of trading last period's top 10 is -0.0155R per trade."
  }
 }

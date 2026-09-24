@@ -225,3 +225,92 @@ in the disjoint thirds the best placebo lands 1st, 3rd and 9th. **Not live-eligi
 MES and MNQ populations share **44 of ~9,250 rule sets at 60m (0.5%)** and **108 of ~14,000 at 240m
 (0.8%)**. "The same strategy on the other contract" is not merely unreliable — it is **not
 available**.
+
+---
+
+# Re-scoped to MGC + MCL — the clean, independent contracts
+
+The pooled analysis ran over a population containing the index complex (one instrument wearing
+four names) and the grains (whose CSVs splice contract months, D40). Re-run on the only two
+genuinely independent, clean contracts, 60m/240m plus MGC daily. Both `rth_only` arms built and
+**never mixed in one `run_portfolio` call**; both agree on every verdict.
+
+## 1. The placebo finding WEAKENS — and I overstated it
+
+**Correction.** I reported that "a random entry outranks the real signal in a third of cells". That
+was inflated by the control's share of each table: the median control share is **0.37**, not the
+10% the headline implicitly assumed.
+
+Share-matched to a 10% cohort inside each cell (500 draws), using only the two honest kinds
+(`random` + `shuffle`): controls reach the top 10 **less often than chance** —
+
+```
+12.3 cells observed vs a null of 18.6 over 27 cells    z = -2.63   (rth_only=False)
+13.6 vs 14.0                                            z = -0.21   (rth_only=True)
+```
+
+Uncorrected the cells read 26 of 28, which is the inflation worker 1 identified. **So the ranking
+does separate signal from noise — a little.**
+
+The `placebo_shift` leak (D42) replicates independently: mean normalised rank **0.466** (below 0.5
+in 22 of 34 cells) against **0.542** for random and **0.550** for shuffle. The two honest kinds
+rank *worse* than uniform; only the leaky one ranks better.
+
+## 2. Nested-window overlap HOLDS
+
+274d→180d: **13 observed vs 17.2 forced** by nesting (rth=False), 21 vs 23.5 (rth=True).
+180d→90d: 10 vs 10.3 and 10 vs 10.1. Population Spearman below the null in both arms.
+**0 of 40** rows of the 9-month top 10 clear the floor in the 1-month window, in each arm.
+
+## 3. The disjoint-thirds persistence BREAKS
+
+The pooled run's one encouraging number — **+20% name overlap, 149 vs 124.0, sign z = +2.67** —
+**was a property of the contaminated population.**
+
+On clean data: overlap **15 vs 16.9 by chance = −1.9 (−11%)**, above chance in 5 of 12 pair-cells,
+sign z = −0.58. Triple-positive **8 against a null of 10.7**. Jaccard **0.081** overall and
+**0.048** where a top 10 is a genuine choice — *worse* turnover than the pooled 0.152.
+
+The rth=True arm shows +34%, but its 240m cells hold 1–9 qualifiers so the "top 10" is the entire
+population; restricted to the 4 pair-cells with ≥20 qualifiers on both sides it is +3.3, Stouffer
++1.60, triple-positive 1 against a null of 2.0. MGC daily alone: 7 vs 5.8, one of three pairs
+positive, survival **2 against a null of 5.2**.
+
+## 4. Trading last period's top 10 — STRENGTHENS as a negative
+
+```
+rth_only=False, 13,171 OOS trades:   -0.0155R   vs null -0.0104R   excess -0.0050R
+rth_only=True,   4,574 OOS trades:   +0.0019R   vs null +0.0019R   excess  0.0000R
+```
+
+**The pooled +0.0048R (excess +0.0148R) does not survive.** On clean contracts the excess is
+**negative or exactly zero**.
+
+**And the cleanest statement in the whole exercise:** at a 6-month lookback the selected top 10
+**underperforms trading the entire qualifying universe**, in both arms — +0.022R against +0.057R,
+and −0.024R against +0.064R. *Selecting is worse than not selecting.* MGC daily is negative at
+every lookback. The top-ranked strategy changes in **58 of 70** folds.
+
+Consistent with the corrected placebo read, reals do beat controls followed forward: +0.0492R vs
++0.0309R (rth=False), −0.0568R vs −0.0690R (rth=True) — a small, consistent edge to the reals.
+
+## 5. Deflation HOLDS
+
+516,651 evaluations on this population → **free_t = 5.13**. **0 of 692 top-10 rows clear it**, and
+zero clear their own cell's free_t. Max t = **3.27** (this run) and 2.97 (worker 1's) — both below
+the 3.92 the contaminated population produced.
+
+## Net
+
+The contaminated population was **flattering the one encouraging number and understating the
+ranking's ability to beat a control**. Corrected on clean data: the ranking separates signal from
+noise a little (controls below chance at z = −2.63; reals beat controls forward), but there is **no
+out-of-sample name persistence**, **nothing clears deflation**, and **the realised expectancy of
+acting on the list is negative and worse than trading the whole qualifying universe.**
+
+Live eligibility: unchanged, and firmer.
+
+**Footnote on D43:** checked rather than assumed. The combinator emits only `rth_only=True` rule
+sets and their id set is fully distinct, so nothing had actually merged before the fix — the
+collision was reachable but not reached by this population. The fix stands; the prior results were
+not corrupted by it.
