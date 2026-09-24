@@ -140,3 +140,74 @@ MNQ is the substitute.
 | `g_volume_profile` | VOLUME_PROFILE | no detectable edge; the group is one condition (`value_area_breakout`, fires on 51% of bars) wearing six names |
 | `x_session` | time of day | no hours filter helps; `avoid_lunch` folk claim refuted; one replicated negative — do not open intraday 15:00–16:00 ET |
 | `g_mean_reversion` | MEAN_REVERSION | nothing there. The +0.070 was a floor artefact — floor-free median is **−0.141R, worst of 12 groups**. Detectably *worse* than the population (z=−3.09). Regime gating does not rescue it (paired: RANGE better in exactly 50% of 382 identical rule sets). Negative **gross**, so costs are not the cause. |
+
+---
+
+# Round 2 defects (found by worker 3's cross-cutting studies)
+
+## D11 — the anchor/execution split has never once been tested (found by `x_timeframes`)
+
+`execution_tf` is `None` in **8,521 of 8,521** scanned strategies. `DEFAULT_EXECUTION_MAP`
+points at timeframes that `FRAMES` never carries, so the split was unreachable by
+construction. Every claim made about it in this project — including in the committed scan
+report — rests on a feature that never activated.
+
+Built properly (8 cells, 742 paired pairs): pooled expectancy sign z = **−0.00**. The
+mechanism is real but self-cancelling — payoff z = +9.59, win rate z = −6.79. It pays only
+where the theory says it should: **+3.20 with ANCHORED targets, −2.85 with R_MULTIPLE**,
+and +4.07 at a 240m anchor versus −5.80 at 1440m.
+
+## D12 — `exit_at_session_close` reduces every 4h and daily trade to one bar (found by `x_costs`, `x_exits`)
+
+Median hold at 240m and 1440m is **0.0 minutes**. With the shipped flag every 4-hour and
+daily trade opens and force-closes inside the same bar. Turning it off is the single
+largest exit effect measured (paired sign z = +3.52) — and the headline "anchored beats
+R_MULTIPLE" result (z = −5.87) **is this flag**: cross the two and target-kind falls to
+z = −1.80 / +1.24, neither detectable. Every 4h and daily result in this project is
+contaminated by it.
+
+## D13 — scale-out legs are charged neither commission nor slippage (found by `x_costs`)
+
+A three-target exit pays **one** round turn, not three, and the partials pay zero slippage.
+Multi-target exits are under-costed roughly 2×, and 62–92% of 4h/daily exits pay no exit
+slippage at all. This flatters exactly the multi-target exits the catalogue favours.
+
+## D14 — per-symbol RNG seeding makes cross-symbol comparison meaningless (found by `x_robustness`)
+
+`generate_combinations` seeds its RNG per symbol, so MES and MGC 60m populations share
+**0 of 204** rule sets. Every cross-symbol comparison in this project has been comparing
+*different strategies*, not the same strategy on different instruments. `strategies_for_symbols`
+exists for this and was scoped to diagnostic-only.
+
+## D15 — no paired exit control exists (found by `x_exits`)
+
+The exit index is sampled jointly with the rule set, so only **93 of 8,317** shipped rule
+sets exist with two different exits. Exit comparisons on the shipped population are
+confounded with the entry; a paired test requires re-emitting entries across every exit.
+
+## D16 — `RegimeSnapshot()` defaults volatility to NORMAL (found by `x_regime`)
+
+So `volatility_normal` silently **passes** when the classifier has no history, rather than
+reporting itself inert. Combined with: regime is UNKNOWN on 100% of 240m bars at 58 days,
+77.9% at 90, 25.6% at 274; and daily falls through to a weekly classifier needing 5.7 years,
+UNKNOWN on 32.6% of bars even at 274 days.
+
+## M3 — regime and volatility base filters are group aliases too (found by `x_regime`)
+
+Five of six regime/volatility conditions are template BASE filters present in 100% of their
+group — `volatility_normal` in 1,361 of 1,377, with an **empty control arm in all 15 cells**.
+None can be evaluated on the shipped population; they need re-emission with and without.
+
+---
+
+## Verdict log, round 2
+
+| study | verdict |
+|---|---|
+| `x_robustness` | **Nothing replicates.** 72 strategies positive across three disjoint periods vs a permutation null of **70.1** — exactly chance. Excluding one cell: 44 vs 60.2, *below* chance. Walk-forward OOS negative in 5 of 6 cells; at MES 60m the top-ranked strategy differs in **6 of 6 folds** (stability 0.150). At 240m only one rule set clears a 20-trade floor in all three periods, so that timeframe structurally cannot be out-of-sample tested on this data. |
+| `x_exits` | Turn `exit_at_session_close` **off** (z=+3.52). Best exit `ATRx1→2/4R[ANCHOR_ATR:1/2.5]`, best in 7 of 10 entry groups, stable at floors 5–30. Anchored targets raise payoff (z=−13.83) but **not** expectancy. Three targets worse than two (z=−2.87). No stable best stop width — the ordering reverses by timeframe. |
+| `x_costs` | Costs decide **MES 5m and nothing else**. Zeroing them moves MES 5m from −0.161R to −0.013R and flips 30.7% of strategies to profit; NQ and MGC 5m stay ≈−0.2R. Every other cell is negative **gross**. All-in cost is 15.0% of one R at 5m, 4.6% at 60m, 1.2% at daily. |
+| `x_conditions` | **One survivor** of 34 tests under Benjamini-Hochberg: `ema_stack` (+0.028R vs −0.006R, 96 vs 854, Stouffer z=+3.10 over 7 cells, 6 agreeing). No negative survives correction. `mtf_aligned` at z=−2.53 is the strongest negative and contradicts the multi-timeframe premise. `oi_expanding` fires on 0.0% of bars; both news filters pass 99.9%. |
+| `x_timeframes` | The split was never active (D11). Rebuilt: pooled z=−0.00, but +3.20 with anchored targets and +4.07 at a 240m anchor. Best anchor timeframe is **symbol-specific and disagrees in both directions** — MGC prefers 240m, NQ prefers 60m. |
+| `x_confluence` | **More confluence is a bad trade.** 2→4 signals cuts median trade count 65→42 (z=+8.48) and does not move expectancy (z=+1.89, sign favouring *two*). The pooled table saying 4 beats 2 is a cell-composition artefact. One filter beats three or four on every statistic. **Answer: 2 signals, 1 filter.** Candlesticks unevaluable — 4 of 5 appear in under 20 floor-clearing strategies. |
+| `x_regime` | Not a usable knob. `volatility_normal` earns its place overall (z=+9.64 over 2,571 pairs) but is **symbol-specific** — MGC 60m detectably negative (z=−6.30). `regime_trending` does nothing: 3 cells positive, 3 negative. Trend-following does not need a trending regime. |
