@@ -1,0 +1,446 @@
+{
+ "scope": "Anti-overfitting audit covering the six studies run by research worker 1: g_trend, g_multi_timeframe, g_momentum, g_vwap, g_liquidity, g_opening_range. Measured on MES, NQ, MNQ, MGC and MCL at 15m, 30m, 60m, 240m and daily, 8,703 rule sets with at least one trade and 1,818 clearing a 20-trade floor, plus 16 purpose-built paired cells.",
+ "bottom_line": "Nothing here is live-eligible. Two independent bars are failed: the best t-statistic in the whole population is 3.923 against free_t = 4.148 at this search size, and in-sample expectancy has essentially no rank correlation with out-of-sample expectancy on the equity indices.",
+ "checks": {
+  "look_ahead_bias": {
+   "how_checked": "Read the engine's stated invariants and confirmed them in code: signals come from SymbolFrame.snapshot(i) which contains no data after bar i; FillModel.entry_on_next_open defaults True; when a bar contains both stop and target the stop is assumed to fill first; gaps fill at the open, adversely. Also confirmed opening_range_breakout refuses to fire on an incomplete range.",
+   "found": "No look-ahead found in the fill path. The structural guards are real, not comments."
+  },
+  "repainting_indicators": {
+   "how_checked": "Evaluated the multi-timeframe and liquidity conditions bar by bar on full series and compared verdicts across frame stacks. A repainting condition would give different answers for the same bar depending on later data; the frame-depth negative control shows the opposite - strategies that do not consult higher timeframes produce byte-identical results when a higher timeframe is added (0 of 276 pairs change on MES).",
+   "found": "No repainting detected. The negative control is clean."
+  },
+  "future_data_leakage": {
+   "how_checked": "Strategy ids are a hash of the rule set only - symbol, timeframe, group, conditions, exit identity, filters, directions, confirm_tfs, execution tf - with nothing derived from bars, which is what makes the disjoint- slice lookup valid. Verified that the same ids appear in disjoint slices.",
+   "found": "No leakage into the identity path."
+  },
+  "survivorship_bias": {
+   "how_checked": "The contracts are continuous futures series, so there is no delisting survivorship. The relevant survivorship is at the SYMBOL level: this programme studies MES/NQ/MGC/MNQ/MCL because earlier scans found them interesting, and the completed scans also contain MZC, MZS, MZW, SPY and QQQ where TREND's median expectancy is -0.415, +0.050, -0.170, -0.139 and -0.078.",
+   "found": "Real and material. TREND looks like a front-runner on a symbol set chosen after seeing TREND's results. On the five symbols outside that set it is negative on four."
+  },
+  "data_mining_bias_deflation": {
+   "how_checked": "T.free_t at the median cell's screened count, against the best observed t.",
+   "found": {
+    "median_screened_per_cell": 5443,
+    "free_t": 4.148,
+    "best_t_observed": 3.923,
+    "strategies_clearing_free_t": 0,
+    "verdict": "0 of 1,818. No strategy is distinguishable from the best of a random search."
+   }
+  },
+  "insufficient_sample_size": {
+   "how_checked": "Floor-free census at floors 1/5/10/20/40, plus a matched A/B rerun at each floor, plus correlation of expectancy with trade count.",
+   "found": "Decisive. Median trade count floor-free is 4-8. TREND's advantage over a matched control is z=+4.93 at n>=20, z=-1.93 at n>=40 and z=-4.78 at n>=60; within TREND, corr(expectancy, trade count) = -0.289. OPENING_RANGE is -0.098R floor-free, +0.003R at floor 20 and +0.099R at floor 40. The floor manufactures most of the apparent edge in this library."
+  },
+  "exit_geometry_selection_D6": {
+   "how_checked": "Share of rule sets clearing the floor, by exit geometry, and sign change across the floor.",
+   "found": {
+    "ATRx0.75->2/4/8R[ANCHOR_ATR:0.75/1.5/3]": {
+     "floor_free": 2042,
+     "floored": 516,
+     "pct_clearing_floor": 0.253,
+     "median_n": 7.0,
+     "median_exp_floored": 0.0411,
+     "median_exp_floorfree": -0.0334
+    },
+    "ATRx1->2/4R[ANCHOR_ATR:1/2.5]": {
+     "floor_free": 1832,
+     "floored": 412,
+     "pct_clearing_floor": 0.225,
+     "median_n": 6.0,
+     "median_exp_floored": 0.0351,
+     "median_exp_floorfree": -0.0076
+    },
+    "ATRx2.5->1/2R": {
+     "floor_free": 1807,
+     "floored": 420,
+     "pct_clearing_floor": 0.232,
+     "median_n": 8,
+     "median_exp_floored": 0.0021,
+     "median_exp_floorfree": -0.008
+    },
+    "ATRx1->1.5/3/5R": {
+     "floor_free": 1688,
+     "floored": 451,
+     "pct_clearing_floor": 0.267,
+     "median_n": 7.0,
+     "median_exp_floored": 0.0027,
+     "median_exp_floorfree": -0.0117
+    },
+    "ATRx1.5->1/2/3R": {
+     "floor_free": 1685,
+     "floored": 424,
+     "pct_clearing_floor": 0.252,
+     "median_n": 7,
+     "median_exp_floored": -0.0167,
+     "median_exp_floorfree": -0.0255
+    },
+    "STRUCTUREx1->1/2/3R[ANCHOR_STRUCTURE:0.5/0.75/1]": {
+     "floor_free": 1588,
+     "floored": 191,
+     "pct_clearing_floor": 0.12,
+     "median_n": 5.0,
+     "median_exp_floored": -0.0187,
+     "median_exp_floorfree": -0.0809
+    },
+    "ATRx1.2->1.2R": {
+     "floor_free": 681,
+     "floored": 128,
+     "pct_clearing_floor": 0.188,
+     "median_n": 4,
+     "median_exp_floored": 0.0133,
+     "median_exp_floorfree": 0.0145
+    },
+    "VWAP_BANDx1->1/2R": {
+     "floor_free": 367,
+     "floored": 78,
+     "pct_clearing_floor": 0.213,
+     "median_n": 4,
+     "median_exp_floored": -0.0047,
+     "median_exp_floorfree": -0.053
+    },
+    "STRUCTUREx1->1/2/3R": {
+     "floor_free": 344,
+     "floored": 78,
+     "pct_clearing_floor": 0.227,
+     "median_n": 6.0,
+     "median_exp_floored": -0.0143,
+     "median_exp_floorfree": -0.0296
+    }
+   }
+  },
+  "unrealistic_fills": {
+   "how_checked": "Exit-reason census by timeframe and median hold time.",
+   "found": "DEFECTS.md D4 is still live and is now WORSE, because the session-guard fix brought daily groups to life. SESSION_CLOSE is the largest exit reason at 60m (49.3% of 93,800 trades), 240m (58.4%) and daily (72.1%), and the median avg-hold is 0.0 minutes at both 240m and daily - trades are opened and force- closed inside one bar. Every 4h and daily number in this worker's studies carries that confound."
+  },
+  "understated_costs_and_slippage": {
+   "how_checked": "Gross vs net expectancy per strategy, then re-charging costs at 1.5x, 2x and 3x.",
+   "found": {
+    "median_gross_exp": 0.0119,
+    "median_net_exp": 0.0054,
+    "median_cost_drag_R": 0.0068,
+    "pct_profitable_gross": 0.554,
+    "pct_profitable_net": 0.522,
+    "strategies_positive_gross_negative_net": 85,
+    "sensitivity": {
+     "1x_modelled_costs": {
+      "median_exp": 0.006,
+      "pct_profitable": 0.526
+     },
+     "1.5x_modelled_costs": {
+      "median_exp": 0.0027,
+      "pct_profitable": 0.509
+     },
+     "2x_modelled_costs": {
+      "median_exp": -0.0005,
+      "pct_profitable": 0.497
+     },
+     "3x_modelled_costs": {
+      "median_exp": -0.0064,
+      "pct_profitable": 0.472
+     }
+    },
+    "verdict": "The population's median edge is +0.006R net against a modelled cost drag of +0.007R per trade - roughly half the gross edge is already costs. At 2x the modelled cost the whole floored population's median goes negative (-0.0005R, 49.7% profitable). Nothing here has a cost cushion."
+   }
+  },
+  "parameter_sensitivity": {
+   "how_checked": "Compared the same rule sets across nine exit geometries and across frame depths 1-4, and compared arms at four trade floors.",
+   "found": "High. The same entry logic swings from -0.081R to +0.041R floored depending only on the exit, and every group's verdict flips sign between the floored and floor-free populations for at least one cell. There is no parameter plateau anywhere in these six studies."
+  },
+  "nested_window_pseudo_replication_D7": {
+   "how_checked": "Checked id overlap between the 90-day and 274-day floored sets.",
+   "found": "Confirmed and quantified. For OPENING_RANGE at 60m, 2 of 2 NQ ids, 1 of 1 MES and 1 of 1 MGC that clear the floor at 90 days are also in the 274-day set, on a strict subset of the same bars. 'Stable across 274/180/90' is one observation reported three times."
+  },
+  "group_membership_aliasing_M1": {
+   "how_checked": "Derived every filter that is a base filter of exactly one template and offered nowhere else.",
+   "found": {
+    "aliases": {
+     "regime_trending": "TREND",
+     "mtf_not_conflicted": "PULLBACK",
+     "avoid_lunch": "REVERSAL",
+     "opening_drive_window": "OPENING_RANGE",
+     "after_opening_range": "LIQUIDITY",
+     "regime_ranging": "MEAN_REVERSION",
+     "volatility_compressed": "BREAKOUT"
+    },
+    "verdict": "Seven, not three. DEFECTS.md M1 lists after_opening_range, avoid_lunch and opening_drive_window; mtf_not_conflicted (PULLBACK), regime_ranging (MEAN_REVERSION), regime_trending (TREND) and volatility_compressed (BREAKOUT) belong on the same list. Any A/B on those names is a group comparison."
+   }
+  },
+  "pooled_statistics_inflation_M2": {
+   "how_checked": "Ran every condition-level test both pooled across cells and matched per cell.",
+   "found": "Reproduced one level up. Pooling per-strategy rows ACROSS cells inflates the same way pooling trades does: within TREND, di_direction is z=-4.32 pooled and z=-1.17 per cell; relative_volume_high in MOMENTUM is z=-2.92 pooled and z=-0.52 per cell; above_vwap is z=-2.16 pooled and z=-0.54 per cell. Not one condition-level effect in these six studies survives per-cell matching."
+  }
+ },
+ "out_of_sample_and_walk_forward": {
+  "design": "Disjoint slices, not nested windows. The 1h history was cut into three non-overlapping thirds of about 107 days each and the 30m history into two halves. Strategy ids are bar-independent, so a strategy selected in one slice is looked up by id in the next. Selection is by the durability score.",
+  "results": {
+   "MES_60m_disjoint_thirds": {
+    "s1->s2": {
+     "n_common_ids": 32,
+     "k": 15,
+     "selector": "durability",
+     "median_exp_IS_of_selected": -0.0373,
+     "median_exp_OOS_of_selected": 0.0522,
+     "median_exp_OOS_of_population": 0.0365,
+     "decay_R": -0.0895,
+     "selected_still_positive_OOS": "11/15",
+     "pop_positive_OOS": 0.688,
+     "spearman_IS_vs_OOS_exp": 0.0271,
+     "spearman_IS_durability_vs_OOS_exp": 0.2606,
+     "rank_sum_top_vs_rest_OOS": {
+      "u": 157.0,
+      "z": 1.114,
+      "p": 0.26528,
+      "n_a": 15,
+      "n_b": 17
+     },
+     "median_n_OOS_of_selected": 42
+    },
+    "s2->s3": {
+     "n_common_ids": 42,
+     "k": 15,
+     "selector": "durability",
+     "median_exp_IS_of_selected": 0.073,
+     "median_exp_OOS_of_selected": -0.0016,
+     "median_exp_OOS_of_population": 0.0135,
+     "decay_R": 0.0746,
+     "selected_still_positive_OOS": "7/15",
+     "pop_positive_OOS": 0.595,
+     "spearman_IS_vs_OOS_exp": -0.0399,
+     "spearman_IS_durability_vs_OOS_exp": -0.189,
+     "rank_sum_top_vs_rest_OOS": {
+      "u": 183.0,
+      "z": -0.512,
+      "p": 0.60874,
+      "n_a": 15,
+      "n_b": 27
+     },
+     "median_n_OOS_of_selected": 22
+    },
+    "s1->s3": {
+     "n_common_ids": 38,
+     "k": 15,
+     "selector": "durability",
+     "median_exp_IS_of_selected": -0.0278,
+     "median_exp_OOS_of_selected": 0.0062,
+     "median_exp_OOS_of_population": 0.0143,
+     "decay_R": -0.034,
+     "selected_still_positive_OOS": "9/15",
+     "pop_positive_OOS": 0.605,
+     "spearman_IS_vs_OOS_exp": 0.1031,
+     "spearman_IS_durability_vs_OOS_exp": -0.0156,
+     "rank_sum_top_vs_rest_OOS": {
+      "u": 144.5,
+      "z": -0.836,
+      "p": 0.40305,
+      "n_a": 15,
+      "n_b": 23
+     },
+     "median_n_OOS_of_selected": 38
+    }
+   },
+   "NQ_60m_disjoint_thirds": {
+    "s1->s2": {
+     "n_common_ids": 54,
+     "k": 15,
+     "selector": "durability",
+     "median_exp_IS_of_selected": 0.0093,
+     "median_exp_OOS_of_selected": 0.1361,
+     "median_exp_OOS_of_population": 0.1338,
+     "decay_R": -0.1268,
+     "selected_still_positive_OOS": "15/15",
+     "pop_positive_OOS": 0.944,
+     "spearman_IS_vs_OOS_exp": 0.01,
+     "spearman_IS_durability_vs_OOS_exp": -0.0316,
+     "rank_sum_top_vs_rest_OOS": {
+      "u": 323.0,
+      "z": 0.589,
+      "p": 0.55585,
+      "n_a": 15,
+      "n_b": 39
+     },
+     "median_n_OOS_of_selected": 39
+    },
+    "s2->s3": {
+     "n_common_ids": 63,
+     "k": 15,
+     "selector": "durability",
+     "median_exp_IS_of_selected": 0.1378,
+     "median_exp_OOS_of_selected": 0.0745,
+     "median_exp_OOS_of_population": 0.0526,
+     "decay_R": 0.0633,
+     "selected_still_positive_OOS": "11/15",
+     "pop_positive_OOS": 0.683,
+     "spearman_IS_vs_OOS_exp": 0.0585,
+     "spearman_IS_durability_vs_OOS_exp": -0.042,
+     "rank_sum_top_vs_rest_OOS": {
+      "u": 367.0,
+      "z": 0.113,
+      "p": 0.91006,
+      "n_a": 15,
+      "n_b": 48
+     },
+     "median_n_OOS_of_selected": 33
+    },
+    "s1->s3": {
+     "n_common_ids": 54,
+     "k": 15,
+     "selector": "durability",
+     "median_exp_IS_of_selected": 0.0093,
+     "median_exp_OOS_of_selected": 0.1441,
+     "median_exp_OOS_of_population": 0.0539,
+     "decay_R": -0.1348,
+     "selected_still_positive_OOS": "10/15",
+     "pop_positive_OOS": 0.685,
+     "spearman_IS_vs_OOS_exp": -0.1127,
+     "spearman_IS_durability_vs_OOS_exp": -0.096,
+     "rank_sum_top_vs_rest_OOS": {
+      "u": 316.0,
+      "z": 0.454,
+      "p": 0.64995,
+      "n_a": 15,
+      "n_b": 39
+     },
+     "median_n_OOS_of_selected": 29
+    }
+   },
+   "MGC_60m_disjoint_thirds": {
+    "s1->s2": {
+     "n_common_ids": 18,
+     "k": 15,
+     "selector": "durability",
+     "median_exp_IS_of_selected": -0.0358,
+     "median_exp_OOS_of_selected": -0.0421,
+     "median_exp_OOS_of_population": -0.0424,
+     "decay_R": 0.0063,
+     "selected_still_positive_OOS": "6/15",
+     "pop_positive_OOS": 0.389,
+     "spearman_IS_vs_OOS_exp": 0.4572,
+     "spearman_IS_durability_vs_OOS_exp": 0.2776,
+     "rank_sum_top_vs_rest_OOS": {
+      "u": 0.0,
+      "z": 0.0,
+      "p": 1.0,
+      "n_a": 15,
+      "n_b": 3
+     },
+     "median_n_OOS_of_selected": 30
+    },
+    "s2->s3": {
+     "n_common_ids": 25,
+     "k": 15,
+     "selector": "durability",
+     "median_exp_IS_of_selected": -0.0427,
+     "median_exp_OOS_of_selected": -0.0031,
+     "median_exp_OOS_of_population": -0.0173,
+     "decay_R": -0.0396,
+     "selected_still_positive_OOS": "7/15",
+     "pop_positive_OOS": 0.4,
+     "spearman_IS_vs_OOS_exp": 0.2469,
+     "spearman_IS_durability_vs_OOS_exp": 0.3692,
+     "rank_sum_top_vs_rest_OOS": {
+      "u": 104.0,
+      "z": 1.609,
+      "p": 0.1077,
+      "n_a": 15,
+      "n_b": 10
+     },
+     "median_n_OOS_of_selected": 32
+    },
+    "s1->s3": {
+     "n_common_ids": 18,
+     "k": 15,
+     "selector": "durability",
+     "median_exp_IS_of_selected": -0.0358,
+     "median_exp_OOS_of_selected": -0.0173,
+     "median_exp_OOS_of_population": -0.0248,
+     "decay_R": -0.0185,
+     "selected_still_positive_OOS": "5/15",
+     "pop_positive_OOS": 0.278,
+     "spearman_IS_vs_OOS_exp": 0.1682,
+     "spearman_IS_durability_vs_OOS_exp": 0.4407,
+     "rank_sum_top_vs_rest_OOS": {
+      "u": 0.0,
+      "z": 0.0,
+      "p": 1.0,
+      "n_a": 15,
+      "n_b": 3
+     },
+     "median_n_OOS_of_selected": 34
+    }
+   },
+   "MES_30m_disjoint_halves": {
+    "s1->s2": {
+     "n_common_ids": 12,
+     "k": 10,
+     "selector": "durability",
+     "median_exp_IS_of_selected": 0.3046,
+     "median_exp_OOS_of_selected": -0.048,
+     "median_exp_OOS_of_population": -0.0345,
+     "decay_R": 0.3526,
+     "selected_still_positive_OOS": "1/10",
+     "pop_positive_OOS": 0.25,
+     "spearman_IS_vs_OOS_exp": -0.4825,
+     "spearman_IS_durability_vs_OOS_exp": -0.6294,
+     "rank_sum_top_vs_rest_OOS": {
+      "u": 0.0,
+      "z": 0.0,
+      "p": 1.0,
+      "n_a": 10,
+      "n_b": 2
+     },
+     "median_n_OOS_of_selected": 17.5
+    }
+   },
+   "MGC_30m_disjoint_halves": {
+    "s1->s2": {
+     "n_common_ids": 13,
+     "k": 10,
+     "selector": "durability",
+     "median_exp_IS_of_selected": 0.1634,
+     "median_exp_OOS_of_selected": -0.192,
+     "median_exp_OOS_of_population": -0.2536,
+     "decay_R": 0.3554,
+     "selected_still_positive_OOS": "0/10",
+     "pop_positive_OOS": 0.0,
+     "spearman_IS_vs_OOS_exp": 0.5805,
+     "spearman_IS_durability_vs_OOS_exp": 0.63,
+     "rank_sum_top_vs_rest_OOS": {
+      "u": 0.0,
+      "z": 0.0,
+      "p": 1.0,
+      "n_a": 10,
+      "n_b": 3
+     },
+     "median_n_OOS_of_selected": 23.5
+    }
+   },
+   "MNQ_30m_disjoint_halves": {
+    "s1->s2": {
+     "skipped": "only 5 ids common to both slices"
+    }
+   }
+  },
+  "verdict": "Selection does not carry on the equity indices. Spearman correlation between in-sample and out-of-sample expectancy over the common ids: MES +0.027, -0.040, +0.103; NQ +0.010, +0.059, -0.113. MGC is the only contract with any carry: +0.457, +0.247, +0.168. On MES s2->s3 the top-15 selection actually underperformed the out-of-sample population (-0.002R vs +0.014R). Four of the six groups studied could not be walk-forwarded at all - TREND, VWAP's fade half, MOMENTUM's mean-reverting half and OPENING_RANGE produce 0-3 floored strategies per slice and 0-3 ids common to consecutive slices."
+ },
+ "new_defects_found_by_this_worker": {
+  "D11_duplicated_anchored_exits": "exits_for() appends ANCHORED_EXITS to every template's catalogue, but five templates build theirs with expand_exit_models(), whose include_anchored default already contains those three. VWAP, OPENING_RANGE, LIQUIDITY, VOLUME_PROFILE and SUPPLY_DEMAND each get a 12-entry catalogue with 9 distinct exits. A quarter of those templates' search budget regenerates exits they already have (the duplicates share a strategy_id and collapse), and it also means a cross-group comparison is not exit-matched by default: TREND has 6 exits, VWAP 9.",
+  "D12_session_close_flag_is_confounded_with_target_kind": "exit_at_session_close is False on exactly the three anchored-target exits and True on all six R-multiple ones - 4,213 + 1,777 against 7,205 rule sets, with no overlap. D4 therefore CANNOT be measured on the shipped catalogue: the matched split gives +0.027R vs -0.002R (z=-3.56 over 23 cells, 1,119 vs 1,579 strategies, median hold 818 vs 75 minutes), but that is 'anchored targets beat R-multiple targets' and 'no forced close beats forced close' fused into one arm. To separate them the catalogue needs an R-multiple exit with exit_at_session_close=False.",
+  "D13_mtf_aligned_equals_mtf_strongly_aligned_on_two_member_frames": "With two voting timeframes the only agreeing state is 2-of-2, which is exactly mtf_strongly_aligned, and a 1-of-2 split never reaches mtf_aligned's 0.4 threshold. Identical verdicts on 4259/4259 MES 60m bars with [60,240], on 1148/1148 bars at the SHIPPED 240m frame for all five contracts, and on 1859/1859 MES daily bars at the SHIPPED daily frame. The FRAMES fix moved the degeneracy rather than removing it.",
+  "D14_daily_liquidity_signals_fire_on_zero_bars": "The diagnosis the fix commit handed to a worker. After the session guard, after_opening_range passes 1859/1859 daily MES bars as intended, but every liquidity SIGNAL fires on zero of them: overnight_sweep 0, prior_day_sweep 0, session_extreme_sweep 0, prior_day_breakout 0, opening_range_breakout 0, initial_balance_break 0, opening_range_fade 0. LIQUIDITY and OPENING_RANGE both take their only required signal from that pool, so both are still empty at daily. 4h LIQUIDITY, by contrast, now trades (30 MES / 35 MGC / 17 NQ rule sets).",
+  "D15_opening_range_conditions_are_sub_hourly": "opening_range_breakout fires on 4 of 4,256 NQ 60m bars, 4 of 4,259 MES, 4 of 4,260 MNQ and 0 of 4,256 MGC; opening_range_fade fires on 0 60m bars on all four. Both fire normally at 15m (17-22% and 4-5%) and 30m. MCL is the exception at 60m (17.9%) because its RTH open falls on a 60m boundary. Any 60m 'opening range' result is measuring prior-day breakouts inside an opening-drive filter."
+ },
+ "verified_fixed": {
+  "D8_deleted_R_multiple_exit": "ATRx1.2->1.2R now trades: 681 rule sets with at least one trade and 128 clearing the 20-trade floor across the measured cells. It was 0 everywhere before the fix.",
+  "D8_strategy_id_collision": "STRUCTUREx1->1/2/3R and STRUCTUREx1->1/2/3R[ANCHOR_STRUCTURE:0.5/0.75/1] now appear as separate populations - 344 and 1,588 rule sets, 78 and 191 floored. Previously one overwrote the other.",
+  "D2_power_hour_on_MGC": "power_hour now fires on MGC: 187 of 4,256 60m bars (4.4%), matching MES's 185 of 4,259. It was 0 of 509 strategies before.",
+  "D1_session_guard": "The four time-of-day conditions are now inert at session scale - after_opening_range, power_hour and opening_drive_window each pass 1859/1859 daily MES bars. Daily REVERSAL came alive as a result (18 MES / 39 MGC / 21 MNQ rule sets). Daily LIQUIDITY and OPENING_RANGE did not, for the separate reason in D14."
+ },
+ "still_open": {
+  "D3_session_label": "Not fixed. The by-session table in performance_db.json is mislabelled by one bar; do not build a time-of-day rule on it.",
+  "D4_forced_session_close": "Not fixed, and not separable from target kind - see D12.",
+  "D5_prior_session_profile_at_4h": "Not re-tested by this worker.",
+  "D9_240m_regime_labels": "Not re-tested; 240m results on windows <=180d were avoided for this reason.",
+  "D10_15m_window_span": "Confirmed. csv/raw/*_15m.csv spans 58 days, so 274/180/90 all resolve to the same bars; only one 15m window was measured per symbol. NQ_15m.csv does not exist; MNQ was used."
+ }
+}

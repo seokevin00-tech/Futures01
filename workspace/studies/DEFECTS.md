@@ -211,3 +211,65 @@ None can be evaluated on the shipped population; they need re-emission with and 
 | `x_timeframes` | The split was never active (D11). Rebuilt: pooled z=−0.00, but +3.20 with anchored targets and +4.07 at a 240m anchor. Best anchor timeframe is **symbol-specific and disagrees in both directions** — MGC prefers 240m, NQ prefers 60m. |
 | `x_confluence` | **More confluence is a bad trade.** 2→4 signals cuts median trade count 65→42 (z=+8.48) and does not move expectancy (z=+1.89, sign favouring *two*). The pooled table saying 4 beats 2 is a cell-composition artefact. One filter beats three or four on every statistic. **Answer: 2 signals, 1 filter.** Candlesticks unevaluable — 4 of 5 appear in under 20 floor-clearing strategies. |
 | `x_regime` | Not a usable knob. `volatility_normal` earns its place overall (z=+9.64 over 2,571 pairs) but is **symbol-specific** — MGC 60m detectably negative (z=−6.30). `regime_trending` does nothing: 3 cells positive, 3 negative. Trend-following does not need a trending regime. |
+
+---
+
+# Round 3 defects (worker 1's group studies). Renumbered D17+ — worker 1 and
+# worker 3 both started at D11 independently.
+
+## D17 — my `mtf_aligned` fix was incomplete: the degeneracy moved (found by `g_multi_timeframe`)
+
+The guard requires two voting timeframes and `FRAMES` now puts something above the primary.
+That fixed the *reported* case. It did not fix the general one: **on any TWO-member frame,
+`mtf_aligned` ≡ `mtf_strongly_aligned` on 100% of bars** — 4259/4259 MES 60m at [60,240],
+1148/1148 at the shipped 240m frame on all five contracts, 1859/1859 MES daily. With two
+voters, "majority" and "unanimous" are the same statement. The shipped 240m frame is
+`[240, 1440]`, so every 4h strategy is still affected. A frame needs **three** members before
+the two conditions can differ.
+
+## D18 — five templates carry the three anchored exits twice (found by `g_trend`)
+
+The exit catalogue has 12 entries and 9 distinct models, so ~25% of those templates' search
+budget is spent re-testing the same exit — and cross-group comparisons are not exit-matched
+as a result.
+
+## D19 — `exit_at_session_close=False` is an exact alias for anchored targets (found by `g_trend`)
+
+Zero overlap: every anchored exit sets it False, every R-multiple exit leaves it True. So
+D12 cannot be measured on the shipped catalogue at all — the flag and the target kind are
+the same variable. Worker 3 separated them by re-emitting entries across both; on the
+shipped population it is unidentifiable.
+
+## D20 — daily LIQUIDITY and OPENING_RANGE are legitimately inapplicable (found by `g_opening_range`)
+
+This is the diagnosis the fix commit deferred. **Every liquidity signal fires on 0 of 1,859
+daily bars**, and the opening-range conditions are sub-hourly concepts. The groups are not
+gated by a bug at daily scale; the ideas need intraday structure that a daily bar does not
+contain. 4h LIQUIDITY *does* now work after the session-guard fix. Verdict: legitimately
+inapplicable at daily, previously broken at 4h, now fixed at 4h.
+
+## M1 UNDERCOUNTED — there are seven group aliases, not three
+
+Add to the three already recorded: `mtf_not_conflicted` ≡ PULLBACK, `regime_trending` ≡
+TREND, `regime_ranging` ≡ MEAN_REVERSION, `volatility_compressed` ≡ BREAKOUT. Any A/B on
+these names compares groups, not conditions.
+
+## M2 RECURS ONE LEVEL UP — pooling per-strategy rows across cells inflates too
+
+Fixing trade-level pooling was not enough. Pooling per-strategy rows across cells inflates
+the same way: `di_direction` −4.32 pooled → −1.17 per cell; `relative_volume_high` −2.92 →
+−0.52; `above_vwap` −2.16 → −0.54. Only per-cell statistics, combined by Stouffer or sign
+test, are admissible.
+
+---
+
+## Verdict log, round 3
+
+| study | verdict |
+|---|---|
+| `g_trend` | **The headline was a floor artefact.** TREND beats a matched control (z=+4.93, 14 cells) but only in the **20–40 trade band** and only on MES (z=+6.86; MGC +0.36, NQ +0.42, MNQ −1.20). It **inverts** at n≥40 (z=−1.93) and n≥60 (z=−4.78); corr(expectancy, n) inside TREND is **−0.272**. It reverses on daily, where its arms are largest. "+0.252 / 96.4%" was the scans' surviving set, not the group. No within-TREND condition survives per-cell matching. |
+| `g_multi_timeframe` | **The premise is refuted.** Having any mtf signal is detectably *worse* than none: z=−4.09 over 14 cells (366 vs 1,151). Unanimous vs majority: no detectable difference (z=+1.84, 38 vs 37). A paired experiment adding a weekly vote helps MES/NQ/MNQ — but those are one index complex; MGC, the only independent contract, disagrees (−0.022R). |
+| `g_momentum` | The paradox dissolves: MOMENTUM **is** its trend-following half (2,107 rule sets to 127). Matched win rate is not higher (z=+1.22, 10/23 cells); it holds 38 of the top-100 win-rate rows only because it is 35% of the population. Group vs rest: z=−0.02. |
+| `g_vwap` | Neither half works and neither beats the other (z=−0.54). The premise is wrong: VWAP's payoff ratio (1.218) **and** win rate (0.448) are both *below* the population's (1.268 / 0.4545). |
+| `g_liquidity` | **The sweep side has never once reached a testable sample**: 156 rule sets with ≥1 trade, **0 with ≥20**, in every cell on every symbol. Every floored LIQUIDITY number ever published is 100% the breakout side. |
+| `g_opening_range` | **Neither replicated nor about opening ranges.** The three "windows" are 11/6/2 strategies and both 90d ids sit inside the 274d set — one observation. `opening_range_breakout` fires on **4 of 4,256** NQ 60m bars; of 47 floored OR strategies, **1** is an actual OR breakout (28 are prior_day_breakout). |
