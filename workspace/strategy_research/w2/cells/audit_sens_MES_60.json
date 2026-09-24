@@ -1,0 +1,190 @@
+{
+ "symbol": "MES",
+ "tf": 60,
+ "families": 100,
+ "sibling_floor": 5,
+ "min_siblings": 2,
+ "median_spread_best_minus_worst": 0.1523,
+ "median_frac_positive_across_siblings": 0.0,
+ "top10_by_best_exit": [
+  {
+   "group": "MULTI_TIMEFRAME",
+   "conds": [
+    "fib_golden_pocket",
+    "macd_hist_direction",
+    "mtf_aligned",
+    "structure_trend",
+    "volatility_normal",
+    "volume_not_thin"
+   ],
+   "siblings": 2,
+   "best": 1.3932,
+   "median": 0.8012,
+   "worst": 0.2093,
+   "frac_positive": 1.0
+  },
+  {
+   "group": "MULTI_TIMEFRAME",
+   "conds": [
+    "fib_golden_pocket",
+    "macd_hist_direction",
+    "mtf_aligned",
+    "no_imminent_release",
+    "structure_trend",
+    "volatility_normal",
+    "volume_not_thin"
+   ],
+   "siblings": 2,
+   "best": 1.3932,
+   "median": 0.8012,
+   "worst": 0.2093,
+   "frac_positive": 1.0
+  },
+  {
+   "group": "MULTI_TIMEFRAME",
+   "conds": [
+    "fib_golden_pocket",
+    "macd_hist_direction",
+    "mtf_aligned",
+    "outside_news_blackout",
+    "structure_trend",
+    "volatility_normal",
+    "volume_not_thin"
+   ],
+   "siblings": 2,
+   "best": 1.3932,
+   "median": 0.8012,
+   "worst": 0.2093,
+   "frac_positive": 1.0
+  },
+  {
+   "group": "VWAP",
+   "conds": [
+    "cvd_directional",
+    "di_direction",
+    "macd_hist_direction",
+    "volatility_normal",
+    "volume_not_thin",
+    "vwap_band_extension",
+    "vwap_proximity"
+   ],
+   "siblings": 2,
+   "best": 0.7901,
+   "median": 0.4,
+   "worst": 0.01,
+   "frac_positive": 1.0
+  },
+  {
+   "group": "VWAP",
+   "conds": [
+    "delta_confirms_bar",
+    "poc_reversion",
+    "stoch_extreme",
+    "volatility_normal",
+    "volume_not_thin",
+    "vwap_reclaim"
+   ],
+   "siblings": 2,
+   "best": 0.5376,
+   "median": 0.1565,
+   "worst": -0.2245,
+   "frac_positive": 0.5
+  },
+  {
+   "group": "VWAP",
+   "conds": [
+    "delta_confirms_bar",
+    "no_imminent_release",
+    "poc_reversion",
+    "stoch_extreme",
+    "volatility_normal",
+    "volume_not_thin",
+    "vwap_reclaim"
+   ],
+   "siblings": 2,
+   "best": 0.5376,
+   "median": 0.1565,
+   "worst": -0.2245,
+   "frac_positive": 0.5
+  },
+  {
+   "group": "VWAP",
+   "conds": [
+    "delta_confirms_bar",
+    "outside_news_blackout",
+    "poc_reversion",
+    "stoch_extreme",
+    "volatility_normal",
+    "volume_not_thin",
+    "vwap_reclaim"
+   ],
+   "siblings": 2,
+   "best": 0.5376,
+   "median": 0.1565,
+   "worst": -0.2245,
+   "frac_positive": 0.5
+  },
+  {
+   "group": "VWAP",
+   "conds": [
+    "delta_confirms_bar",
+    "poc_reversion",
+    "stoch_extreme",
+    "volatility_normal",
+    "volume_not_thin",
+    "vwap_proximity",
+    "vwap_reclaim"
+   ],
+   "siblings": 2,
+   "best": 0.5376,
+   "median": 0.1565,
+   "worst": -0.2245,
+   "frac_positive": 0.5
+  },
+  {
+   "group": "VWAP",
+   "conds": [
+    "cvd_directional",
+    "di_direction",
+    "macd_hist_direction",
+    "volatility_normal",
+    "volume_not_thin",
+    "vwap_band_extension"
+   ],
+   "siblings": 2,
+   "best": 0.4948,
+   "median": 0.2398,
+   "worst": -0.0153,
+   "frac_positive": 0.5
+  },
+  {
+   "group": "VWAP",
+   "conds": [
+    "cvd_directional",
+    "di_direction",
+    "macd_hist_direction",
+    "no_imminent_release",
+    "volatility_normal",
+    "volume_not_thin",
+    "vwap_band_extension"
+   ],
+   "siblings": 2,
+   "best": 0.4948,
+   "median": 0.2398,
+   "worst": -0.0153,
+   "frac_positive": 0.5
+  }
+ ],
+ "top10_median_of_their_siblings": [
+  0.8012,
+  0.8012,
+  0.8012,
+  0.4,
+  0.1565,
+  0.1565,
+  0.1565,
+  0.1565,
+  0.2398,
+  0.2398
+ ]
+}
