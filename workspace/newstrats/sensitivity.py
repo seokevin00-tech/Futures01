@@ -95,8 +95,14 @@ def contest(per, a, b, slices, ex="atr1.0", min_n=8):
 
 
 GRID = [
+    ("baseline   f=3 n=3 atr=0.5", dict(fractal=3, n_imp=3, min_atr=0.5, sym_hi=0.55, sym_lo=0.45, n_ratio=3)),
+    ("fractal 2  f=2 n=3 atr=0.5", dict(fractal=2, n_imp=3, min_atr=0.5, sym_hi=0.55, sym_lo=0.45, n_ratio=3)),
+    ("fractal 5  f=5 n=3 atr=0.5", dict(fractal=5, n_imp=3, min_atr=0.5, sym_hi=0.55, sym_lo=0.45, n_ratio=3)),
     ("legs 2  f=3 n=2 atr=0.5", dict(fractal=3, n_imp=2, min_atr=0.5, sym_hi=0.55, sym_lo=0.45, n_ratio=2)),
     ("legs 4  f=3 n=4 atr=0.5", dict(fractal=3, n_imp=4, min_atr=0.5, sym_hi=0.55, sym_lo=0.45, n_ratio=4)),
+    ("no size gate atr=0.0", dict(fractal=3, n_imp=3, min_atr=0.0, sym_hi=0.55, sym_lo=0.45, n_ratio=3)),
+    ("size gate atr=1.5", dict(fractal=3, n_imp=3, min_atr=1.5, sym_hi=0.55, sym_lo=0.45, n_ratio=3)),
+    ("symmetry 0.65/0.35", dict(fractal=3, n_imp=3, min_atr=0.5, sym_hi=0.65, sym_lo=0.35, n_ratio=3)),
     ("symmetry window 6 legs", dict(fractal=3, n_imp=3, min_atr=0.5, sym_hi=0.55, sym_lo=0.45, n_ratio=3, sym_legs=6)),
 ]
 

@@ -209,3 +209,53 @@ All swing reads advance a pointer only while `confirmed_index <= i`; every event
 indices. `_audit_causality` re-derives every array from `bars[:i+1]` and compares against the
 full-series value: **0 mismatches, causal on 10/10** (5 symbols × 2 timeframes). Entries fill at
 the next bar's open.
+
+---
+
+## `s_geometry` — swing shape rather than swing direction
+
+**Scope:** 9 geometry conditions + 2 controls, nested arms (`structure_trend` ± geometry, same
+bars, same partner, same exit), MGC/MES/MNQ/MCL × {240m, 60m} × 3 disjoint slices, plus a 60/40
+recut and a 5-block walk-forward. Trade-level per cell, combined by Stouffer and sign test.
+
+### Clean negative: geometry adds nothing to the plain directional label
+
+- **Expansion vs contraction, matched:** IS z = +1.47 (9 cells, 398 vs 195 trades) →
+  **OOS z = −0.81, reversed**. On a 60/40 recut the in-sample z is −0.08.
+- **Geometry vs the trades it left behind:** `legs_expanding` IS +1.16 → OOS −0.83;
+  `swing_symmetry_impulse` IS +0.63 → OOS −0.66; `pullbacks_shallowing` IS −0.16 → OOS +2.36,
+  but that rests on two 240m cells of n=11 and n=14 which were absent in sample — not a
+  confirmation. **None replicate.**
+- Retracement depth and leg length **disagree with each other and each reverses**.
+
+### Two of my own priors came back backwards
+
+I wrote that a contracting structure "may be a better fade than an expanding one is a follow".
+Measured: `legs_contracting_fade` is **worse** than `legs_expanding` on **all 16 cells**
+(z = −2.06, consistent in sign, though below free_t = 3.23).
+
+I also wrote that "a trend spending most of its time pulling back is weak whatever its labels
+say". Backwards: impulse-dominant **loses** to retrace-dominant, both in sample (−0.79) and out
+(−0.67).
+
+### It is genuinely new information that simply does not pay
+
+`pullbacks_shallowing` is **not** a re-encoding of the fib conditions: Jaccard 0.05–0.09, with
+≤23% of shallowing bars carrying a fib condition and ≤13% the reverse. Firing rates are healthy
+throughout (9.7–39.9%), so nothing here is degenerate. The information is real and independent;
+it just has no edge in it.
+
+### Everything is negative after costs, including both controls
+
+Control: **−0.069R over 3,027 trades, PF 0.88, t = −3.15**. Geometry arms −0.05 to −0.11R.
+Doubling all slippage moves expectancy by 0.012R median, so this is flat, not cost-marginal.
+Walk-forward: 12 of 24 folds beat control, with median selection decay **−0.23R** — picks
+averaging +0.127R in sample returned −0.052R forward.
+
+### Audit
+
+960 truncation probes for repainting and future leakage, **0 mismatches**. Look-ahead guarded via
+`confirmed_index`. Parameter sensitivity: signs flip across fractal widths 2/3/5 and 2/3/4 legs,
+and no setting reaches |z| = 2.4 in sample. The worker also found and fixed a bug in its own
+sweep — a module global captured as a default argument made three parameter variants silently
+re-run the baseline and report perfect stability.

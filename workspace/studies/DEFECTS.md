@@ -373,3 +373,47 @@ one surviving edge**, until someone runs worker 3's exact test with worker 2's t
 emitted almost never: **5,000 MGC 60m bars yield 30 BOS_UP and 1 CHOCH_DOWN**. The event
 stream is unusable; `s_leadlag` had to work from the confirmed-swing arrays instead. Anything
 in the library reading `.events` is reading near-nothing.
+
+---
+
+## D28 — MY OWN `T.ab()` INFLATES z WHEN ARMS HOLD CORRELATED VARIANTS (found by `s_geometry`)
+
+**This affects every study in the programme, because I told 24 agents to route every
+comparative claim through it.**
+
+`T.ab` runs a rank-sum over *strategies*. Clone collapse removes arms whose realised trades are
+**identical**, but partner variants sharing 50–90% of their trades survive collapse and are
+still heavily correlated. The rank-sum then treats them as independent observations.
+
+Measured against the trade-level test on the same trades: **|z| inflated ~3.3×, range
+1.7–15.3**, producing |z| up to **8.7 on null data**, and the sign flipped out of sample in 7
+of 11 comparisons.
+
+This is the **third distinct instance of the same underlying defect** in this project, and the
+three point in different directions, which is why it kept being missed:
+
+| instance | inflated unit | direction |
+|---|---|---|
+| M2 | pooling **trades** across strategies | trade-level z ≈ 3× the paired per-strategy z |
+| M2 (recurrence) | pooling **per-strategy rows across cells** | pooled −4.32 → per-cell −1.17 |
+| **D28** | pooling **correlated strategy variants** within a cell | strategy-level ≈ 3.3× the trade-level z |
+
+The general rule, which should have been in the brief from the start: **whichever unit you
+aggregate over, if those units share trades they are not independent and the test inflates.**
+Correct practice is per-cell statistics on genuinely independent units, combined by Stouffer or
+a sign test — and stating which unit was treated as independent and why.
+
+**What this does and does not invalidate.** It does not touch the negative findings: an inflated
+statistic that still fails to reject makes the negative *stronger*. It does threaten any
+positive claim in the programme whose arms contained correlated variants. The positives that
+matter — the `exit_at_session_close` effect, the anchored exit ranking, the ≤0.5 ATR structural
+stop prohibition — were all measured **paired within entry** or by sign test across cells rather
+than by a raw rank-sum across variants, so they are likely safe. That should be verified rather
+than assumed before anyone builds on them.
+
+## D29 — the fractal confirmation lag eats most of a swing leg (found by `s_geometry`)
+
+The 3-bar fractal confirmation consumes **50–60% of a median 5–6 bar swing leg**, on every
+symbol and both timeframes. This is a structural reason multi-leg geometry cannot be traded on
+this data at these timeframes: by the time a leg is confirmed, most of it has happened. Not a
+bug — a constraint that should be stated before anyone proposes another swing-geometry idea.
