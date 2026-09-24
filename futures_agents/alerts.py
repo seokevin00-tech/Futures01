@@ -145,10 +145,19 @@ class Palette:
         Priority.DEBUG:    Style("\x1b[38;5;245m", "\x1b[48;5;236m", "DEBUG",    "·"),
         Priority.INFO:     Style("\x1b[38;5;252m", "\x1b[48;5;238m", "INFO",     "i"),
         Priority.RESEARCH: Style("\x1b[38;5;231m", "\x1b[48;5;24m",  "RESEARCH", "*"),
-        Priority.SIGNAL:   Style("\x1b[38;5;231m", "\x1b[48;5;27m",  "SIGNAL",   ">"),
-        Priority.LONG:     Style("\x1b[38;5;16m",  "\x1b[48;5;46m",  "BUY / LONG",  "^"),
-        Priority.SHORT:    Style("\x1b[38;5;231m", "\x1b[48;5;196m", "SELL / SHORT", "v"),
-        Priority.NO_TRADE: Style("\x1b[38;5;16m",  "\x1b[48;5;214m", "NO TRADE", "="),
+        # SIGNAL steps back to a muted slate so it cannot be mistaken for a
+        # BUY callout at a glance - they are both blue, but only one is a
+        # direction.
+        Priority.SIGNAL:   Style("\x1b[38;5;231m", "\x1b[48;5;61m",  "SIGNAL",   ">"),
+        # Direction colours are BLUE for buy and ORANGE for sell, by request.
+        # Foregrounds are chosen for contrast against each: white on the deep
+        # blue, black on the orange.
+        Priority.LONG:     Style("\x1b[38;5;231m", "\x1b[48;5;27m",  "BUY / LONG",  "^"),
+        Priority.SHORT:    Style("\x1b[38;5;16m",  "\x1b[48;5;208m", "SELL / SHORT", "v"),
+        # NO_TRADE moves off orange for the same reason SIGNAL moved off blue:
+        # it previously sat at 214, a near neighbour of the new SELL colour,
+        # and "no trade" must never read as "sell" in peripheral vision.
+        Priority.NO_TRADE: Style("\x1b[38;5;16m",  "\x1b[48;5;250m", "NO TRADE", "="),
         Priority.WARNING:  Style("\x1b[38;5;16m",  "\x1b[48;5;220m", "WARNING",  "!"),
         Priority.RISK:     Style("\x1b[38;5;231m", "\x1b[48;5;129m", "RISK",     "#"),
         Priority.HALT:     Style("\x1b[38;5;231m", "\x1b[48;5;160m", "HALT",     "X"),
@@ -156,13 +165,13 @@ class Palette:
 
     #: Alternate background used on the "off" half of each flash cycle.
     INVERTED = {
-        Priority.LONG:     ("\x1b[38;5;46m",  "\x1b[48;5;22m"),
-        Priority.SHORT:    ("\x1b[38;5;196m", "\x1b[48;5;52m"),
-        Priority.NO_TRADE: ("\x1b[38;5;214m", "\x1b[48;5;58m"),
+        Priority.LONG:     ("\x1b[38;5;27m",  "\x1b[48;5;17m"),
+        Priority.SHORT:    ("\x1b[38;5;208m", "\x1b[48;5;94m"),
+        Priority.NO_TRADE: ("\x1b[38;5;250m", "\x1b[48;5;240m"),
         Priority.WARNING:  ("\x1b[38;5;220m", "\x1b[48;5;58m"),
         Priority.RISK:     ("\x1b[38;5;129m", "\x1b[48;5;53m"),
         Priority.HALT:     ("\x1b[38;5;196m", "\x1b[48;5;52m"),
-        Priority.SIGNAL:   ("\x1b[38;5;27m",  "\x1b[48;5;17m"),
+        Priority.SIGNAL:   ("\x1b[38;5;61m",  "\x1b[48;5;60m"),
     }
 
     @classmethod
