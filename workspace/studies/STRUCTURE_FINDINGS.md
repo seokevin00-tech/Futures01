@@ -259,3 +259,114 @@ averaging +0.127R in sample returned −0.052R forward.
 and no setting reaches |z| = 2.4 in sample. The worker also found and fixed a bug in its own
 sweep — a module global captured as a default argument made three parameter variants silently
 re-run the baseline and report perfect stability.
+
+---
+
+## `s_nested_pullback` — the nesting hypothesis
+
+**Scope:** 135 explicit strategies per frame (17 base rule sets × 8 arms), identical exit and
+identical bars, 14 frames (5 symbols × 240/60, 60/15, 1440/240). IS = first 60%, OOS = last 40%,
+plus three disjoint thirds. Clone collapse **off** to preserve pairing. Statistic: per-cell
+**paired** sign test on Δexpectancy across the 16 bases, Stouffer across cells — paired rather
+than the unpaired rank-sum, because the arms are matched row for row. (This is the correct
+response to D28, arrived at independently.)
+
+### The hypothesis is refuted — and it is the worst arm in its own study
+
+`nested_pullback` (higher TF in uptrend, lower TF in downtrend) against its correct control
+`structure_trend@HTF`, of which it is a strict subset (Jaccard 0.23–0.32, 100% direction
+agreement):
+
+```
+IS Stouffer z = +1.87    OOS z = -0.54
+arms: 6,071 IS / 4,869 OOS trades vs 21,417 / 15,455 control
+per-symbol sign REVERSES between IS and OOS in all five contracts
+  MES +3.5 → -1.0    MNQ +3.0 → -3.5    NQ +4.0 → -2.5    MGC -3.5 → +4.0
+```
+
+The cleanest statement needs no test at all. Of 1,206 rows clearing 20 trades in **both**
+periods:
+
+| arm | profitable in both periods |
+|---|---|
+| `nested_pullback` | **6.2%** |
+| no structure condition at all | 11.2% |
+| `structure_trend@HTF` | 15.7% |
+
+Requiring the nested pullback is worse than requiring nothing.
+
+### `nested_resumption` survives as an unproven hypothesis, not an edge
+
+The variant that waits for the pullback to *end* — the lower timeframe breaking back in the
+higher timeframe's direction:
+
+```
++0.118R on 157 OOS trades, win 48.4%, t = +1.22
+Stouffer z = +4.97 vs htf_trend (+5.81 independence-corrected)
+positive OOS at swing widths k = 2/3/5, and at doubled costs (+0.078R)
+```
+
+The **ablation is what makes it interesting**: remove the nesting (htf_trend + LTF break alone,
+611 trades) → −0.013R; remove the break (871 trades) → −0.078R. Both components are needed, which
+is what a real mechanism looks like rather than a lucky filter.
+
+**But: 0 of 224 OOS rows reach 20 trades, and t = +1.22 is far below free_t(1785) = 3.87.**
+This is a hypothesis worth a dedicated study, not something to build on.
+
+### The supporting questions all came back negative
+
+- **Depth:** no retracement band survives. Medium (0.333–0.618) is positive against htf_trend in
+  both IS (+2.72) and OOS (+2.37) but its *absolute* expectancy is negative in both
+  (−0.007R / −0.041R). Shallow is OOS −3.65; deep flips +2.72 → −4.66 between slices.
+- **Timeframe pair:** all in-sample strength sits in 240/60 (IS +3.13, one slice +6.26) and dies
+  out of sample (−0.45). **60/15 has the identical 4:1 nesting ratio and shows nothing anywhere**
+  (|z| ≤ 1.25). So the ratio is not the driver — 240/60 is a frame-specific artefact.
+- **Distinctness:** genuinely new versus `pullback_to_support` (Jaccard 0.06–0.15, only 26–64%
+  direction agreement on the overlap) and `fib_golden_pocket` (0.05–0.09). But the honest
+  description is that it is the **exact sign-flip of `structure_trend@LTF`** on their 23–33%
+  shared bars — direction agreement **0.00 in all 14 cells**.
+
+### The incumbent is not even stably bad
+
+`nested_aligned` is **≡ `mtf_aligned` on 100% of bars**, with 85 byte-identical trade sets at
+1440/240 — a fifth independent confirmation of the duplication pattern. It is worse than no
+structure condition (z = −4.14 IS, −3.73 corrected), **and its sign flips with swing width**:
+−4.54 at k=2, +3.74 at k=5. The library's incumbent multi-timeframe condition is not reliably
+anything.
+
+---
+
+# Summary of the five structure studies
+
+**Nothing is live-eligible. Not one of the five hypotheses survived.**
+
+| study | verdict |
+|---|---|
+| `s_nested_pullback` | **Refuted.** Worst arm in its own study — 6.2% profitable in both periods vs 11.2% for no structure condition at all. Sign reverses IS→OOS in all five contracts. |
+| `s_swing_depth` | **Refuted.** No optimum above depth 1, and `structure_trend` *was* the depth-1 condition. Depth performs worse than randomly discarding the same number of trades (28.7th percentile). |
+| `s_leadlag` | **Real but untradeable.** The 6–17 bar lead exists and is stable; it carries a 78–81% false-positive rate. |
+| `s_geometry` | **Clean negative.** Genuinely new information (Jaccard 0.05–0.09 vs fib) with no edge in it. Everything negative after costs including both controls. |
+| `s_freshness` | **Refuted**, and the third replication of payoff/win-rate self-cancellation. Yields one stop-placement prohibition that merely restores parity. |
+
+**What came out of it that is worth keeping:**
+
+1. **One hypothesis worth a dedicated study:** `nested_resumption`, because its ablation shows
+   both components are load-bearing. Not an edge — 0 of 224 OOS rows clear 20 trades.
+2. **One stop-placement rule:** never let a structural stop sit tighter than ~0.5 ATR. Restores
+   parity with a plain ATR stop rather than beating it.
+3. **A second independent confirmation that multi-timeframe agreement hurts**, built from
+   scratch without reusing the library's implementation.
+4. **Two structural facts about this data:** the textbook structural trade (stop past
+   invalidation, target at the prior swing extreme) is **below 1:1 in 26 of 30 cells**; and the
+   3-bar fractal confirmation consumes **50–60% of a median swing leg**, which is why multi-leg
+   geometry cannot work at these timeframes.
+5. **Five duplicate-condition findings.** `sd_count_ge1` ≡ `structure_trend`, `nested_aligned` ≡
+   `mtf_aligned`, plus the three found earlier. Any new condition must be checked for bar-level
+   identity against the existing library before it is measured.
+
+**Three priors I wrote into the briefs came back backwards**: that a fresh 4h structure near its
+invalidation would be strongest (worst arm), that a contracting structure makes a better fade
+(worse on all 16 cells), and that impulse-dominant symmetry beats retrace-dominant (it loses).
+Recorded because the pattern matters more than the individual errors: plausible structural
+intuitions in this project have a poor hit rate, and none of them should be shipped without the
+out-of-sample test that killed these.

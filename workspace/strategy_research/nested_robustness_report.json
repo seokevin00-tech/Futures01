@@ -1,0 +1,716 @@
+{
+ "generated": "2026-09-24T15:44:50",
+ "study": "s_nested_pullback",
+ "headline": "THE CORE NESTING CLAIM IS REFUTED OUT OF SAMPLE. nested_pullback (HTF uptrend + LTF downtrend) is a genuine, distinct condition - 13-21% of bars, Jaccard 0.06-0.15 with pullback_to_support and 0.05-0.09 with fib_golden_pocket - and it beats its own control structure_trend@HTF in sample (Stouffer z=+1.87 over 14 cells) while failing out of sample (z=-0.54). Its OOS sign flips with the swing fractal width (+2.67 / -0.54 / +2.81 at k=2/3/5) and reverses per symbol between IS and OOS in all five contracts. All of its in-sample strength is in the 240/60 pair (z=+3.13), absent from 60/15 which has the identical 4:1 nesting ratio. No depth band works. The ONE survivor is nested_resumption - the pullback ENDING, algebraically nested_pullback AND break_of_structure@LTF - which is +0.118R on 157 OOS trades (win 48.4%, t=+1.22), positive out of sample in 4 of 5 symbols including both independent contracts, at all three swing widths and at doubled costs; removing either half of the conjunction destroys it despite 4-12x the sample. It is a hypothesis, not an edge: 0 of 224 OOS rows reach 20 trades and t=+1.22 is far below the free_t of 3.87. The incumbent nested_aligned is confirmed WORSE than no structure condition (z=-4.14 IS) and is bar-for-bar identical to mtf_aligned on any two-member frame.",
+ "caveats": [
+  "Every arm INCLUDING the no-structure control is negative-expectancy in absolute terms (pooled -0.04 to -0.13 R). All comparisons are relative to a losing baseline; none of this is a discovered profitable system.",
+  "nested_resumption: 157 OOS trades in total for the pure arm, median 6 per (base, cell) row, 0 of 224 rows at n>=20. Its Stouffer z of +4.97 is a sign test on paired differences and is NOT evidence of a tradeable edge.",
+  "The 14 cells are not independent: MNQ/NQ/MES are one index complex and the three tf pairs on one symbol share bars. The independence-corrected figures use 240/60 only and three units.",
+  "NQ has no 15m file, so 60/15 covers 4 symbols.",
+  "One exit model throughout (ATRx1 stop, anchored 1.0/2.5 ATR targets, rth_only=False); every trade count and therefore every floor-dependent statement is conditional on that geometry.",
+  "Nothing here is live-eligible and nothing here has been through walk-forward selection - only a 60/40 split plus three disjoint slices."
+ ],
+ "out_of_sample": {
+  "nested_pullback_vs_no_structure": {
+   "IS Stouffer z": 0.802,
+   "OOS Stouffer z": 0.134,
+   "S1": 2.087,
+   "S2": 2.478,
+   "S3": -1.815,
+   "note": "median Dexp NEGATIVE in both IS (-0.093R) and OOS (-0.049R)"
+  },
+  "nested_pullback_vs_htf_trend": {
+   "IS Stouffer z": 1.871,
+   "OOS Stouffer z": -0.535,
+   "S1": 1.535,
+   "S2": 5.025,
+   "S3": -0.621,
+   "note": "htf_trend is the correct control because nested_pullback is a strict subset of it. The core claim does not survive OOS."
+  },
+  "nested_resumption_vs_htf_trend": {
+   "IS Stouffer z": 0.008,
+   "OOS Stouffer z": 4.974,
+   "S1": -0.74,
+   "S2": 4.278,
+   "S3": 2.829,
+   "note": "positive OOS and in 2 of 3 disjoint slices, but see the sample-size caveat"
+  },
+  "nested_aligned_vs_no_structure": {
+   "IS Stouffer z": -4.143,
+   "OOS Stouffer z": -1.737,
+   "note": "the incumbent is measurably WORSE than no structure condition at all, reproducing the programme's earlier finding on independent construction"
+  }
+ },
+ "robustness": {
+  "swing_parameter_sensitivity": {
+   "method": "Rebuilt every TimeframeFrame with fractal left=right=k for k in {2,3,5}. Everything else identical. Stouffer over the same 14 cells.",
+   "nested_pullback_vs_htf_trend": {
+    "IS": {
+     "k=2": 1.069,
+     "k=3": 1.871,
+     "k=5": 0.267
+    },
+    "OOS": {
+     "k=2": 2.673,
+     "k=3": -0.535,
+     "k=5": 2.806
+    }
+   },
+   "nested_resumption_vs_htf_trend": {
+    "IS": {
+     "k=2": -2.784,
+     "k=3": 0.008,
+     "k=5": -3.165
+    },
+    "OOS": {
+     "k=2": 1.838,
+     "k=3": 4.974,
+     "k=5": 1.95
+    }
+   },
+   "nested_aligned_vs_htf_trend": {
+    "IS": {
+     "k=2": -4.543,
+     "k=3": -1.604,
+     "k=5": 3.742
+    },
+    "OOS": {
+     "k=2": -1.47,
+     "k=3": -1.604,
+     "k=5": 0.535
+    }
+   },
+   "verdict": "FAILS for nested_pullback: the OOS sign flips with the fractal width (+2.67, -0.54, +2.81). The headline is a function of a parameter nobody tuned deliberately, which is the definition of parameter sensitivity. PASSES, weakly, for nested_resumption: positive OOS at all three widths (+1.84, +4.97, +1.95) though IS is negative at k=2 and k=5. nested_aligned swings from z=-4.54 to z=+3.74 IS across k - the incumbent is not even stable enough to be reliably bad."
+  },
+  "cost_sensitivity": {
+   "method": "Same strategies re-run at zero cost and at doubled commission plus doubled slippage coefficients (base 1.0 tick, stop extra 2.0, thin 2.0, news 4.0).",
+   "pooled_expectancy_pure_arm": {
+    "nested_pullback": {
+     "IS": {
+      "zero": 0.023,
+      "base": -0.03,
+      "double": -0.072
+     },
+     "OOS": {
+      "zero": -0.041,
+      "base": -0.078,
+      "double": -0.13
+     }
+    },
+    "nested_resumption": {
+     "IS": {
+      "zero": 0.068,
+      "base": -0.011,
+      "double": -0.039
+     },
+     "OOS": {
+      "zero": 0.153,
+      "base": 0.118,
+      "double": 0.078
+     }
+    },
+    "htf_trend": {
+     "IS": {
+      "zero": -0.033,
+      "base": -0.087,
+      "double": -0.135
+     },
+     "OOS": {
+      "zero": -0.025,
+      "base": -0.069,
+      "double": -0.107
+     }
+    }
+   },
+   "verdict": "Costs are worth roughly 0.04-0.05R per trade at the baseline model and another 0.04R at double. nested_pullback is negative OOS at every cost level including zero, so its failure is not a cost artefact. nested_resumption stays positive OOS at doubled costs (+0.078R), which is the one robustness test it passes cleanly."
+  },
+  "ablation_is_it_the_nesting_or_the_break": {
+   "identity": "nested_resumption is ALGEBRAICALLY IDENTICAL to nested_pullback AND break_of_structure@LTF - same trades, same n=157, same e=+0.1182R, same z in all five periods. It is a conjunction of existing material plus the nesting, not a new primitive, and it should be described that way.",
+   "drop_the_nesting": {
+    "arm": "htf_trend + break_of_structure@LTF (no LTF counter-trend required)",
+    "OOS": {
+     "trades": 611,
+     "exp": -0.0131,
+     "t": -0.28,
+     "stouffer_vs_htf_trend": 1.399
+    },
+    "IS": {
+     "trades": 824,
+     "exp": -0.0984,
+     "t": -2.29,
+     "stouffer_vs_htf_trend": -2.208
+    }
+   },
+   "drop_the_break": {
+    "arm": "nested_pullback alone",
+    "OOS": {
+     "trades": 871,
+     "exp": -0.0777,
+     "t": -1.93,
+     "stouffer_vs_htf_trend": -0.535
+    }
+   },
+   "break_alone": {
+    "arm": "break_of_structure@LTF alone",
+    "OOS": {
+     "trades": 1886,
+     "exp": -0.0204,
+     "t": -0.74,
+     "stouffer_vs_htf_trend": 0.483
+    }
+   },
+   "both": {
+    "arm": "nested_resumption",
+    "OOS": {
+     "trades": 157,
+     "exp": 0.1182,
+     "t": 1.22,
+     "win": 0.484,
+     "stouffer_vs_htf_trend": 4.974
+    }
+   },
+   "verdict": "Removing EITHER half destroys the OOS result, and the halves have 4-12x the sample. So the nesting requirement is doing work that a lower-timeframe break of structure on its own does not. That is the single most encouraging number in the study - and it still rests on 157 trades."
+  },
+  "independence_correction": {
+   "method": "MGC and MCL are independent contracts; MES/MNQ/NQ are one index complex and were Stouffer-combined into a single unit first. 240/60 only, so no two cells share bars.",
+   "nested_pullback": {
+    "IS_vs_none": 1.557,
+    "IS_vs_htf": 1.479,
+    "OOS_vs_none": 0.542,
+    "OOS_vs_htf": 1.131,
+    "per_symbol_IS_vs_htf": {
+     "MGC": -3.5,
+     "MCL": 0.0,
+     "MES": 3.5,
+     "MNQ": 3.0,
+     "NQ": 4.0
+    },
+    "per_symbol_OOS_vs_htf": {
+     "MGC": 4.0,
+     "MCL": 2.0,
+     "MES": -1.0,
+     "MNQ": -3.5,
+     "NQ": -2.5
+    },
+    "note": "the sign REVERSES between IS and OOS in every one of the five symbols; the index complex carried it in sample and the metals/energy carried it out of sample. That is not an effect, that is period-by-symbol noise."
+   },
+   "nested_resumption": {
+    "IS_vs_htf": 1.899,
+    "OOS_vs_htf": 5.806,
+    "per_symbol_OOS_vs_htf": {
+     "MGC": 3.742,
+     "MCL": 3.357,
+     "MES": -1.291,
+     "MNQ": 3.207,
+     "NQ": 3.207
+    },
+    "note": "4 of 5 symbols positive OOS including BOTH independent contracts"
+   },
+   "nested_aligned": {
+    "IS_vs_htf": -3.732,
+    "OOS_vs_htf": -1.943
+   }
+  },
+  "deflation": {
+   "free_t_n_screened_1785": 3.87,
+   "free_t_arm_reports_140": 3.14,
+   "best_pure_arm_OOS_t": 1.22,
+   "verdict": "free_t(1785) = 3.87 t-units are bought by search alone. The best out-of-sample trade-level t-statistic in the whole study is +1.22 (nested_resumption, 157 trades). NOTHING here clears deflation. The largest |t| in the raw rows is +5.03 on THREE trades, which is the sample-size trap the brief warns about."
+  },
+  "bias_checks_run": {
+   "look_ahead_and_repainting": "CHECKED, PASSED. TimeframeFrame._build_swing_pointers advances only on confirmed_index <= i, so structure_trend, last/prior_swing_* and swing_leg() cannot repaint. SymbolFrame._build_alignment maps a base bar to the last HTF bar whose end_ts <= this bar's end_ts, so the higher timeframe read is always a CLOSED bar.",
+   "future_data_leakage": "CHECKED, PASSED. Frames are built over full history but run_portfolio(start, end) only permits entries inside the window, and snapshot(i) is backward-only, so OOS warmup uses real prior data without leaking forward.",
+   "unrealistic_fills": "CHECKED. Engine fills entries at the NEXT bar's open, gaps fill at the open, and when a bar contains both stop and target the stop wins.",
+   "understated_costs": "CHECKED, quantified above. Doubling costs moves expectancy by about 0.04R; no conclusion changes sign because of costs.",
+   "data_mining_bias": "CHECKED, FAILED for the headline. free_t = 3.87 and the best OOS t is 1.22.",
+   "parameter_sensitivity": "CHECKED, FAILED for nested_pullback (OOS z flips sign across fractal widths 2/3/5) and for nested_aligned. Weakly passed by nested_resumption.",
+   "insufficient_sample": "CHECKED, FAILED for nested_resumption: 0 of 224 OOS (base, cell) rows reach 20 trades; 157 OOS trades in total for the pure arm.",
+   "overfitting_is_to_oos": "CHECKED. nested_pullback: IS z=+1.87 -> OOS z=-0.54. nested_resumption is the inverse: flat IS, positive OOS - which is not the overfitting signature but is equally a reason to distrust a single split.",
+   "survivorship": "NOT APPLICABLE in the usual sense - single continuous front-month series per symbol, no universe selection. Every generated strategy is reported including the zero-trade and losing ones; no trade floor was used to select the headline arms.",
+   "clone_collapse": "DELIBERATELY OFF. Collapsing identical trade sets would have destroyed the (base+arm) vs (base) pairing. The ablation exploits this: nested_resumption and nested_pullback+break_of_structure produced byte-identical rows, which is how their identity was discovered."
+  }
+ },
+ "depth": {
+  "definition": "Depth = fraction of the HIGHER timeframe's last confirmed impulse leg that price has retraced, computed from swing_leg() and the swing prices: (leg_high - close)/(leg_high - leg_low) for an up leg. Buckets shallow [0,0.333), medium [0.333,0.618), deep [0.618,1.05). The leg direction is required to match the HTF trend, which is why the three buckets do not sum to nested_pullback's firing rate.",
+  "firing_rates": "shallow 1.5-3.5%, medium 1.5-4.2%, deep 1.3-6.2% of bars per cell",
+  "pure_arm": {
+   "IS": {
+    "nested_pullback": {
+     "trades": 1013,
+     "exp": -0.0304,
+     "t": -0.79,
+     "win": 0.4067
+    },
+    "np_shallow": {
+     "trades": 166,
+     "exp": 0.02,
+     "t": 0.17,
+     "win": 0.4217
+    },
+    "np_medium": {
+     "trades": 199,
+     "exp": -0.0074,
+     "t": -0.09,
+     "win": 0.4121
+    },
+    "np_deep": {
+     "trades": 222,
+     "exp": 0.0376,
+     "t": 0.49,
+     "win": 0.4369
+    },
+    "np_any_depth": {
+     "trades": 494,
+     "exp": 0.0367,
+     "t": 0.63,
+     "win": 0.4251
+    },
+    "htf_trend": {
+     "trades": 2818,
+     "exp": -0.0875,
+     "t": -3.89,
+     "win": 0.3833
+    }
+   },
+   "OOS": {
+    "nested_pullback": {
+     "trades": 871,
+     "exp": -0.0777,
+     "t": -1.93,
+     "win": 0.3697
+    },
+    "np_shallow": {
+     "trades": 185,
+     "exp": -0.1515,
+     "t": -1.66,
+     "win": 0.373
+    },
+    "np_medium": {
+     "trades": 197,
+     "exp": -0.0413,
+     "t": -0.49,
+     "win": 0.3858
+    },
+    "np_deep": {
+     "trades": 192,
+     "exp": -0.1543,
+     "t": -1.72,
+     "win": 0.3542
+    },
+    "np_any_depth": {
+     "trades": 492,
+     "exp": -0.0912,
+     "t": -1.7,
+     "win": 0.376
+    },
+    "htf_trend": {
+     "trades": 2118,
+     "exp": -0.0692,
+     "t": -2.69,
+     "win": 0.3853
+    }
+   },
+   "S1": {
+    "nested_pullback": {
+     "trades": 553,
+     "exp": -0.0561,
+     "t": -1.12,
+     "win": 0.4033
+    },
+    "np_shallow": {
+     "trades": 104,
+     "exp": -0.0729,
+     "t": -0.61,
+     "win": 0.4135
+    },
+    "np_medium": {
+     "trades": 123,
+     "exp": -0.1604,
+     "t": -1.57,
+     "win": 0.3659
+    },
+    "np_deep": {
+     "trades": 117,
+     "exp": 0.199,
+     "t": 1.88,
+     "win": 0.5214
+    },
+    "np_any_depth": {
+     "trades": 285,
+     "exp": 0.009,
+     "t": 0.13,
+     "win": 0.4386
+    },
+    "htf_trend": {
+     "trades": 1574,
+     "exp": -0.0753,
+     "t": -2.56,
+     "win": 0.3901
+    }
+   },
+   "S2": {
+    "nested_pullback": {
+     "trades": 607,
+     "exp": 0.0132,
+     "t": 0.26,
+     "win": 0.4168
+    },
+    "np_shallow": {
+     "trades": 104,
+     "exp": 0.1524,
+     "t": 0.93,
+     "win": 0.4327
+    },
+    "np_medium": {
+     "trades": 99,
+     "exp": 0.216,
+     "t": 1.8,
+     "win": 0.4848
+    },
+    "np_deep": {
+     "trades": 128,
+     "exp": -0.1296,
+     "t": -1.32,
+     "win": 0.3516
+    },
+    "np_any_depth": {
+     "trades": 284,
+     "exp": 0.0784,
+     "t": 0.97,
+     "win": 0.4155
+    },
+    "htf_trend": {
+     "trades": 1582,
+     "exp": -0.0754,
+     "t": -2.46,
+     "win": 0.3856
+    }
+   },
+   "S3": {
+    "nested_pullback": {
+     "trades": 724,
+     "exp": -0.1102,
+     "t": -2.5,
+     "win": 0.355
+    },
+    "np_shallow": {
+     "trades": 144,
+     "exp": -0.2324,
+     "t": -2.31,
+     "win": 0.3542
+    },
+    "np_medium": {
+     "trades": 174,
+     "exp": -0.0673,
+     "t": -0.76,
+     "win": 0.3793
+    },
+    "np_deep": {
+     "trades": 169,
+     "exp": -0.1552,
+     "t": -1.59,
+     "win": 0.355
+    },
+    "np_any_depth": {
+     "trades": 418,
+     "exp": -0.1269,
+     "t": -2.2,
+     "win": 0.366
+    },
+    "htf_trend": {
+     "trades": 1794,
+     "exp": -0.0887,
+     "t": -3.18,
+     "win": 0.3774
+    }
+   }
+  },
+  "stouffer_vs_htf_trend": {
+   "IS": {
+    "nested_pullback": 1.871,
+    "np_shallow": 0.284,
+    "np_medium": 2.723,
+    "np_deep": 0.364,
+    "np_any_depth": 2.35
+   },
+   "OOS": {
+    "nested_pullback": -0.535,
+    "np_shallow": -3.645,
+    "np_medium": 2.372,
+    "np_deep": -0.82,
+    "np_any_depth": -1.789
+   },
+   "S1": {
+    "nested_pullback": 1.535,
+    "np_shallow": 1.099,
+    "np_medium": -2.14,
+    "np_deep": 2.722,
+    "np_any_depth": 3.024
+   },
+   "S2": {
+    "nested_pullback": 5.025,
+    "np_shallow": 3.69,
+    "np_medium": 5.51,
+    "np_deep": -4.659,
+    "np_any_depth": 3.714
+   },
+   "S3": {
+    "nested_pullback": -0.621,
+    "np_shallow": -4.831,
+    "np_medium": 1.362,
+    "np_deep": -0.162,
+    "np_any_depth": -2.082
+   }
+  },
+  "stouffer_vs_none": {
+   "IS": {
+    "nested_pullback": 0.802,
+    "np_shallow": 0.777,
+    "np_medium": 1.609,
+    "np_deep": -0.617,
+    "np_any_depth": 1.166
+   },
+   "OOS": {
+    "nested_pullback": 0.134,
+    "np_shallow": -4.054,
+    "np_medium": 0.857,
+    "np_deep": -2.384,
+    "np_any_depth": -1.802
+   },
+   "S1": {
+    "nested_pullback": 2.087,
+    "np_shallow": 2.106,
+    "np_medium": -1.697,
+    "np_deep": 2.598,
+    "np_any_depth": 2.975
+   },
+   "S2": {
+    "nested_pullback": 2.478,
+    "np_shallow": 3.334,
+    "np_medium": 5.556,
+    "np_deep": -4.808,
+    "np_any_depth": 2.236
+   },
+   "S3": {
+    "nested_pullback": -1.815,
+    "np_shallow": -5.918,
+    "np_medium": 0.156,
+    "np_deep": -1.603,
+    "np_any_depth": -3.846
+   }
+  },
+  "verdict": "No depth band survives. MEDIUM (0.333-0.618) is the only bucket positive vs htf_trend in BOTH IS (z=+2.72) and OOS (z=+2.37) - but its absolute pooled expectancy is negative in both (-0.007R on 199 trades IS, -0.041R on 197 OOS), so it is 'less bad than htf_trend', not an edge; and it flips to z=-2.14 on disjoint slice S1. SHALLOW is significantly NEGATIVE out of sample (z=-3.65 vs htf_trend, z=-4.05 vs no structure). DEEP reverses sign between adjacent disjoint slices (S1 z=+2.72, S2 z=-4.66), which is the signature of noise, not of a band that works."
+ },
+ "timeframe_pair": {
+  "pure_arm_by_pair": {
+   "IS": {
+    "240/60": {
+     "nested_pullback": {
+      "trades": 559,
+      "exp": -0.0013,
+      "t": -0.03,
+      "win": 0.4168
+     },
+     "htf_trend": {
+      "trades": 1623,
+      "exp": -0.0688,
+      "t": -2.34,
+      "win": 0.3869
+     },
+     "np_medium": {
+      "trades": 104,
+      "exp": 0.1564,
+      "t": 1.34,
+      "win": 0.4615
+     },
+     "np_deep": {
+      "trades": 108,
+      "exp": 0.0583,
+      "t": 0.54,
+      "win": 0.4537
+     }
+    },
+    "60/15": {
+     "nested_pullback": {
+      "trades": 299,
+      "exp": -0.0523,
+      "t": -0.78,
+      "win": 0.4114
+     },
+     "htf_trend": {
+      "trades": 836,
+      "exp": -0.1077,
+      "t": -2.71,
+      "win": 0.3852
+     },
+     "np_medium": {
+      "trades": 65,
+      "exp": -0.1763,
+      "t": -1.24,
+      "win": 0.3692
+     },
+     "np_deep": {
+      "trades": 68,
+      "exp": -0.076,
+      "t": -0.53,
+      "win": 0.3382
+     }
+    },
+    "1440/240": {
+     "nested_pullback": {
+      "trades": 155,
+      "exp": -0.0931,
+      "t": -0.81,
+      "win": 0.3613
+     },
+     "htf_trend": {
+      "trades": 359,
+      "exp": -0.1247,
+      "t": -1.78,
+      "win": 0.3621
+     },
+     "np_medium": {
+      "trades": 30,
+      "exp": -0.2094,
+      "t": -1.09,
+      "win": 0.3333
+     },
+     "np_deep": {
+      "trades": 46,
+      "exp": 0.157,
+      "t": 0.98,
+      "win": 0.5435
+     }
+    }
+   },
+   "OOS": {
+    "240/60": {
+     "nested_pullback": {
+      "trades": 472,
+      "exp": -0.0743,
+      "t": -1.39,
+      "win": 0.3665
+     },
+     "htf_trend": {
+      "trades": 1162,
+      "exp": -0.0693,
+      "t": -2.01,
+      "win": 0.3864
+     },
+     "np_medium": {
+      "trades": 112,
+      "exp": -0.0575,
+      "t": -0.55,
+      "win": 0.375
+     },
+     "np_deep": {
+      "trades": 110,
+      "exp": -0.1933,
+      "t": -1.67,
+      "win": 0.3091
+     }
+    },
+    "60/15": {
+     "nested_pullback": {
+      "trades": 258,
+      "exp": -0.0908,
+      "t": -1.17,
+      "win": 0.3643
+     },
+     "htf_trend": {
+      "trades": 571,
+      "exp": -0.1014,
+      "t": -2.01,
+      "win": 0.3695
+     },
+     "np_medium": {
+      "trades": 52,
+      "exp": -0.0163,
+      "t": -0.09,
+      "win": 0.3846
+     },
+     "np_deep": {
+      "trades": 32,
+      "exp": -0.0228,
+      "t": -0.08,
+      "win": 0.4375
+     }
+    },
+    "1440/240": {
+     "nested_pullback": {
+      "trades": 141,
+      "exp": -0.065,
+      "t": -0.66,
+      "win": 0.3901
+     },
+     "htf_trend": {
+      "trades": 385,
+      "exp": -0.021,
+      "t": -0.35,
+      "win": 0.4052
+     },
+     "np_medium": {
+      "trades": 33,
+      "exp": -0.0256,
+      "t": -0.13,
+      "win": 0.4242
+     },
+     "np_deep": {
+      "trades": 50,
+      "exp": -0.1527,
+      "t": -1.0,
+      "win": 0.4
+     }
+    }
+   }
+  },
+  "nested_pullback_vs_htf_trend_by_pair": {
+   "IS": {
+    "240/60": 3.13,
+    "60/15": -0.5,
+    "1440/240": 0.447
+   },
+   "OOS": {
+    "240/60": -0.447,
+    "60/15": -1.25,
+    "1440/240": 0.671
+   },
+   "S1": {
+    "240/60": 2.236,
+    "60/15": 0.0,
+    "1440/240": 0.332
+   },
+   "S2": {
+    "240/60": 6.261,
+    "60/15": 0.75,
+    "1440/240": 1.477
+   },
+   "S3": {
+    "240/60": -1.565,
+    "60/15": 0.25,
+    "1440/240": 0.302
+   }
+  },
+  "verdict": "The tf pair matters, but not in the way the nesting-ratio hypothesis predicts. ALL of nested_pullback's in-sample strength is in 240/60 (IS z=+3.13, S2 z=+6.26, 5 cells) and that is exactly where it dies out of sample (OOS z=-0.45, S3 z=-1.57). 60/15 has the SAME 4:1 nesting ratio and shows nothing anywhere (IS -0.50, OOS -1.25, S1 0.00, S2 +0.75, S3 +0.25). 1440/240 (6:1) is flat throughout (|z| < 1.5 in all five periods). Same ratio, opposite in-sample answer: the ratio is not the driver, the 240/60 result is a frame-specific artefact."
+ },
+ "distinctness": {
+  "nested_pullback vs pullback_to_support": "Jaccard 0.06-0.15 across 14 cells; on the overlap only 26-64% agree on direction. Distinct.",
+  "nested_pullback vs fib_golden_pocket": "Jaccard 0.05-0.09; 26-65% direction agreement on the overlap. Distinct.",
+  "nested_pullback vs nested_aligned": "Jaccard 0.00 - disjoint by construction.",
+  "nested_pullback vs structure_trend@LTF": "Jaccard 0.23-0.33 but direction agreement 0.00 on EVERY overlapping bar in all 14 cells. nested_pullback is the sign-flip of structure_trend@LTF on the subset of bars where the higher timeframe disagrees. This is the honest description of it.",
+  "nested_pullback vs structure_trend@HTF (= htf_only)": "Jaccard 0.23-0.32, direction agreement 1.00. nested_pullback is a strict SUBSET of structure_trend bound to the higher timeframe, so htf_only is the control it must beat, not 'nothing'.",
+  "htf_only vs structure_trend@HTF": "Jaccard 1.00 - identical, as intended.",
+  "nested_aligned vs mtf_aligned on a TWO-member frame (1440/240)": "Jaccard 1.00 and direction agreement 1.00 in all 5 symbols. Confirms the brief: with two voters mtf_aligned carries no information beyond pairwise agreement. On 240/60 and 60/15 (three-member frames) Jaccard falls to 0.26-0.40."
+ },
+ "degeneracy": {
+  "nested_pullback": "13.4-20.5% of bars - usable, neither degenerate nor a tautology",
+  "nested_resumption": "1.6-3.9% - above the 1% floor but thin; expect small trade counts",
+  "nested_aligned": "15.0-22.9%",
+  "htf_only": "46.7-67.7%"
+ },
+ "verdict": {
+  "live_eligible": [],
+  "statement": "NOTHING in this study is live-eligible. The core nesting claim (nested_pullback) is refuted out of sample. nested_resumption is a surviving HYPOTHESIS with a coherent mechanism, an ablation that isolates the nesting, cost robustness and swing-parameter robustness - and a sample far too small to act on. It needs a dedicated run at a lower trade floor across more symbols and more exits before anyone should look at it again.",
+  "recommendation_for_the_library": "Do NOT lift the mtf_not_conflicted veto on the strength of nested_pullback. DO stop treating nested_aligned/mtf_aligned as evidence: on any two-member frame it is bar-for-bar identical to pairwise agreement, it is worse than no structure condition at all (z=-4.14 IS, -3.73 independence-corrected), and its sign flips with the swing fractal width."
+ }
+}
