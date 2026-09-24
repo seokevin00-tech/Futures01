@@ -273,3 +273,96 @@ test, are admissible.
 | `g_vwap` | Neither half works and neither beats the other (z=−0.54). The premise is wrong: VWAP's payoff ratio (1.218) **and** win rate (0.448) are both *below* the population's (1.268 / 0.4545). |
 | `g_liquidity` | **The sweep side has never once reached a testable sample**: 156 rule sets with ≥1 trade, **0 with ≥20**, in every cell on every symbol. Every floored LIQUIDITY number ever published is 100% the breakout side. |
 | `g_opening_range` | **Neither replicated nor about opening ranges.** The three "windows" are 11/6/2 strategies and both 90d ids sit inside the 274d set — one observation. `opening_range_breakout` fires on **4 of 4,256** NQ 60m bars; of 47 floored OR strategies, **1** is an actual OR breakout (28 are prior_day_breakout). |
+
+---
+
+# Round 4 (worker 2). D21+ — includes a defect in my own fix.
+
+## D21 — MY SESSION GUARD NEVER REACHED 4h (found by `d_dead_groups`)
+
+`_spans_sessions(tf)` tests `tf >= _SESSION_MINUTES` = 390, and **240 < 390**, so the guard
+I added does nothing at 4h. `opening_drive_window` still fires on **0.0000 of 1,287** 4h
+bars. Removing it alone: MES 0/300 → **36/300** trading (340 trades), NQ 0/328 → **44/328**
+(640 trades).
+
+The mechanism is not "the bar spans sessions" but "the bar is too long to sit inside the
+window being asked about": `rth_only` keeps only the 12:00 ET bar at 4h, whose
+`minutes_since_open` is 150, and `opening_drive_window` wants 0–90. A 240-minute bar cannot
+be inside a 90-minute window. The guard needs to compare the bar length against the
+*window* it is testing, not against a fixed session constant.
+
+MGC has a second independent gate: `max_minutes_since_open=150` against its 08:20 RTH open
+puts the single RTH 4h bar at mso=220, so MGC's scope pass is 0.0000 on its own.
+
+## D22 — 240m REVERSAL is an exactly empty intersection (found by `d_dead_groups`)
+
+`rth_only` keeps exactly the 209 12:00-ET bars (16.24% of 1,287). `classify_session` labels
+**all 209** LUNCH. `avoid_lunch` therefore passes on exactly 1 − 209/1287 = 0.8376 — the
+exact complement. The two filters are precise complements and their intersection is empty by
+construction. The signal layer is healthy (bollinger_mean_pull 0.32–0.36, cvd_directional
+0.84–0.86, agreeing pairs on 22–23% of bars). Dropping `avoid_lunch` → 16/324; turning
+`rth_only` off → 41/312.
+
+## D23 — the rth_only trap, third instance, one layer lower (found by `d_dead_groups`)
+
+`prior_day_sweep` and `prior_day_breakout` are proper daily concepts and fail on daily bars
+only because `_build_session_state` derives previous-day levels from bars flagged by
+`is_rth(b.ts)` — and `is_rth` is False on **100% of daily bars**. Same bug family as
+`rth_only` in StrategyFilters and the time-of-day conditions, now found in the session-state
+builder. **Warning attached**: because the LIQUIDITY template's required group is merely
+"liquidity", fixing this plumbing would revive daily OPENING_RANGE as a relabelled duplicate
+of daily LIQUIDITY.
+
+## D24 — `rth_only=True` is the library-wide 4h population killer (found by `d_dead_groups`)
+
+It costs **every** group a 2–12× factor at 240m, because it reduces the 4h population to one
+bar per day.
+
+## D25 — `range_position_extreme` is a guaranteed zero inside REVERSAL (found by `g_reversal`)
+
+It returns LONG at the **top** of the range — a continuation read — so it can never agree in
+direction with REVERSAL's required mean-reversion signal. 262–440 rule sets per cell contain
+it and **0 take a single trade in all twelve cells**, while the same condition trades freely
+in BREAKOUT (up to 2,387 trades). ~5–6% of the template's budget. Same family as D8.
+
+## D26 — BREAKOUT's volume requirement silently disappears (found by `g_breakout`)
+
+`required_groups=('structure','volume')` reduces to `('structure',)` because the volume group
+holds no SIGNAL conditions and `_signal_pools` drops empty pools. `relative_volume_high` is
+never offered to this template. The template asks for volume confirmation and never gets it.
+
+## T1 — toolkit caveat: `max_per_template` is not a strategy count
+
+`generate_combinations` divides it by `max(2, 2*len(filter_sets))` and splits the result
+across the frame's timeframes, so budget 8,000 yields ~1,100–2,100 rule sets per template per
+timeframe. Every "budget" figure in these studies should be read that way.
+
+---
+
+## CONTRADICTION BETWEEN STUDIES — `ema_stack`
+
+`x_conditions` (worker 3) reports `ema_stack` as **the single survivor** of 34 tests under
+Benjamini-Hochberg: +0.028R vs −0.006R, 96 vs 854 strategies, Stouffer z=+3.10 over 7 cells,
+6 agreeing.
+
+`g_pullback` (worker 2) reports `ema_stack` as **the sharpest overfit it found**: in-sample
+z=+4.27 → out-of-sample **0.00** on MES 60m, and IS +2.25 → OOS **−3.87** on MGC 240m.
+
+These are not the same test — worker 3 measured it across the general population without an
+out-of-sample split; worker 2 measured it inside PULLBACK with a 60/40 temporal split. But
+the only condition to survive correction in the whole programme is also the one that most
+clearly fails out-of-sample where anyone looked. **Treat `ema_stack` as unproven, not as the
+one surviving edge**, until someone runs worker 3's exact test with worker 2's temporal split.
+
+---
+
+## Verdict log, round 4
+
+| study | verdict |
+|---|---|
+| `d_dead_groups` | **Three of four dead cells are bugs, one is a market fact.** 240m OPENING_RANGE broken (D21), 240m REVERSAL broken (D22), daily LIQUIDITY mixed — 5 of 7 signals legitimately inapplicable, 2 of 7 broken (D23). Daily OPENING_RANGE legitimately inapplicable: `snap.opening_range` is None on 100% of daily bars. |
+| `g_supply_demand` | **Unusable as built; the freshness question is unanswerable.** Zero strategies reach 20 trades in all six cells; quadrupling budget moved 0 → 0. Not the detector's fault — 72–93% of bars carry a zone, but `fresh_zone_approach` fires on 0.5–3.8%, the scarcest condition in the library. Needs `min_signals=1` or demotion to a FILTER, plus more history. |
+| `g_pullback` | `adx_trending` **is not offered to PULLBACK at all** (0 of ~4,000–7,800 rule sets), so the library has no strength gate on the trend precondition. The "dip with a trend signal" effect is PULLBACK-vs-REVERSAL under another name (M1), and on a temporal split it **reverses significantly in 3 of 9 cells**. |
+| `g_reversal` | No extension effect survives (z=+3.02 at floor 1 decaying to +0.82 at floor 20; OOS −2.52). 43 of 152 tests nominally significant against 7.6 expected, but heavily correlated. Plus D25. |
+| `g_breakout` | **Requiring compression is an in-sample illusion.** Paired counterfactual: full-sample z up to **+12.20**; on a 60/40 split, IS-positive in 11 of 12 cells and **significantly negative OOS in six** (NQ 240m +6.89 → −7.56; MGC 60m +10.94 → −6.90). Survives only on MES 60m. It also costs ~2/3 of all opportunity. Volume confirmation is not general either. **Unfinished thread worth chasing**: `break_of_structure` vs other structure signals is +4.4 to +5.0 at 240m on all three symbols and *strengthens* with the floor — not yet OOS-tested. |
+| `g_fibonacci` | **Clean negative.** `fib_sr_confluence` does not test confluence — it fires on **48.6–81.0% of all bars**, and P(fires given a fib level) exceeds P(fires without) by only 0.4–9.0 points. Fib-level bars and `pullback_to_support` bars are indistinguishable; against a direction-matched baseline neither beats a random entry. **Four conditions can be dropped from the search space with no measured loss.** |
