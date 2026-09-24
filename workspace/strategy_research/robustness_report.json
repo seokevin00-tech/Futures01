@@ -442,5 +442,33 @@
   "D5_prior_session_profile_at_4h": "Not re-tested by this worker.",
   "D9_240m_regime_labels": "Not re-tested; 240m results on windows <=180d were avoided for this reason.",
   "D10_15m_window_span": "Confirmed. csv/raw/*_15m.csv spans 58 days, so 274/180/90 all resolve to the same bars; only one 15m window was measured per symbol. NQ_15m.csv does not exist; MNQ was used."
+ },
+ "structure_studies": {
+  "s_freshness": {
+   "added": "2026-09-24",
+   "scope": "structure age and distance to invalidation, 5 symbols x {60,240} x 3 disjoint slices, two independent simulators",
+   "bottom_line": "Not live-eligible. The only deflation-clearing result is a prohibition: do not enter when price sits within ~0.5 ATR of its structural invalidation while stopping at that level.",
+   "checks": {
+    "look_ahead_bias": "PASS - Swing.confirmed_index filtering; truncation probe reproduced 120/120 rows",
+    "repainting": "PASS - same probe",
+    "level_consistency_with_StopKind_STRUCTURE": "PASS - 3684/3684 bars identical across 3 cells",
+    "unrealistic_fills": "PASS - next-bar-open entry, stop-before-target, gaps at the open",
+    "understated_costs": "FLAGGED - a 0.5-ATR structural stop costs 0.0633 R/trade vs 0.0149 R ungated (4.2x). Gross runs confirm the effect is not purely cost-driven (gross Stouffer -3.852).",
+    "insufficient_sample": "FLAGGED - the 4h-fresh x near-invalidation conjunction fires on 1.8% of eligible bars (111 trades / 9 cells) and is reported as unusable regardless of sign",
+    "data_mining_bias": "FLAGGED - ~90 arms screened, free_t = 3.00; no positive arm reaches it",
+    "parameter_sensitivity": "PASS - both threshold families swept over 7 values; monotone (near) and flat (floor), not knife-edge",
+    "out_of_sample": "PASS - every headline claim reported on the newest third of bars separately",
+    "walk_forward": "PARTIAL - 3 disjoint slices per symbol-timeframe with the newest held out; no rolling re-optimisation was run because no parameter was fitted per period",
+    "pooling_inflation": "AVOIDED - per-cell statistics combined with Stouffer and a sign test",
+    "survivorship_bias": "N/A for continuous futures series; regime survivorship untested - one ~10.5-month window",
+    "nested_windows": "AVOIDED - contiguous non-overlapping thirds"
+   },
+   "negative_findings_to_publish": [
+    "Entering near structural invalidation raises payoff ratio and lowers win rate in near-exact proportion; expectancy does not move. Third replication of the anchor/execution self-cancellation.",
+    "Structure freshness has no measurable effect on any definition (trend-label age or swing-confirmation age), at any bucket, with geometry held constant.",
+    "Requiring 60m and 4h structure to agree is already negative (Stouffer -2.684); adding freshness and nearness makes it worse (-3.312, OOS -2.568). Independent reproduction of the mtf_aligned negative."
+   ],
+   "full_findings": "workspace/studies/out/s_freshness.json"
+  }
  }
 }

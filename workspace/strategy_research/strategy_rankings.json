@@ -23980,5 +23980,45 @@
   "The 20-trade floor selects on exit geometry (DEFECTS.md D6). Across the measured population only 12.0% to 26.7% of rule sets clear it depending on the exit, and the floor flips the sign of several geometries - ATRx0.75 anchored is -0.033R floor-free and +0.041R floored. Read the floor_free_rule_sets count beside every floored number.",
   "Trailing windows 274/180/90 are NESTED, so a strategy appearing in all three cells is one observation reported three times. Treat the disjoint-slice cells as the only replication in this file.",
   "MNQ tracks the same index as MES/NQ. It is a consistency check on an equity-index finding, never independent evidence. MGC and MCL are the only independent contracts measured here."
- ]
+ ],
+ "structure_studies": {
+  "s_freshness": {
+   "added": "2026-09-24",
+   "ranked_on": "per-cell expectancy in R with a sign test and Stouffer-combined Welch z across 30 disjoint cells; deflated against free_t(90)=3.00",
+   "live_eligible": [],
+   "live_eligible_reason": "Nothing. The only claim clearing free_t is negative (near-invalidation entry, |z|=7.69). The best positive rule, a 0.5-ATR floor on structural stop distance, reaches Stouffer +2.33 (OOS +2.02) against an ungated structural stop but only +1.72 (OOS +0.30) against a plain 1-ATR stop, and does not clear deflation.",
+   "best_arm": {
+    "name": "structure_direction + distance_to_invalidation > 0.5 ATR + StopKind.STRUCTURE",
+    "cells": 30,
+    "trades": 1600,
+    "median_trades_per_cell": 52,
+    "win": 0.411,
+    "payoff": 1.44,
+    "expectancy_r": 0.0136,
+    "baseline_expectancy_r": -0.1061,
+    "sign": "22/8",
+    "stouffer_z": 2.325,
+    "oos": {
+     "cells": 10,
+     "trades": 516,
+     "expectancy_r": 0.0008,
+     "baseline": -0.205,
+     "sign": "7/3",
+     "stouffer_z": 2.024
+    }
+   },
+   "worst_arm": {
+    "name": "structure_direction + price within 0.25 ATR of invalidation + StopKind.STRUCTURE",
+    "cells": 21,
+    "trades": 428,
+    "win": 0.1,
+    "payoff": 3.42,
+    "expectancy_r": -0.6029,
+    "stouffer_z_vs_atr_stop": -7.687,
+    "oos_stouffer_z": -7.652,
+    "oos_sign": "0/8"
+   },
+   "full_findings": "workspace/studies/out/s_freshness.json"
+  }
+ }
 }
