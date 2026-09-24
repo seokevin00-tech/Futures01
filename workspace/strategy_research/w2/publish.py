@@ -250,10 +250,42 @@ def main():
             sl_place = [{"slice": k + 1, "bars": s["bars"],
                          "rows": len(s["rows"]),
                          "placebo": s["placebo"]} for k, s in enumerate(slices)]
+            # Base rate and the independence benchmark. If a strategy's
+            # expectancy sign carried any information from one disjoint period
+            # to the next, the 3-of-3 rate would exceed p^3, where p is the
+            # per-slice positive rate over the same rows.
+            flips, tri, pos3 = [], 0, 0
+            for r in base["rows"]:
+                if r["arm"] != "real":
+                    continue
+                sl = [L.get(r["id"]) for L in lut]
+                if all(m and m["n"] >= 5 for m in sl):
+                    tri += 1
+                    flips += [1 if m["exp"] > 0 else 0 for m in sl]
+                    if all(m["exp"] > 0 for m in sl):
+                        pos3 += 1
+            p = (sum(flips) / len(flips)) if flips else 0.0
             replication[f"{sym}_{tf}m"] = {
                 "top10_of_274d": rows,
                 "n_positive_in_all_three": sum(1 for r in rows if r["positive_in_all_three"]),
                 "n_traded_in_all_three": sum(1 for r in rows if r["n_slices_traded"] == 3),
+                "placebo_rows_caveat": (
+                    "A placebo's entry schedule is drawn inside the window it "
+                    "was built in, so there is no 'same placebo' to carry into "
+                    "a disjoint slice. Where a placebo id resolves in a slice "
+                    "it is the same host+flavour RECIPE re-randomised there, "
+                    "not the same schedule. The replication column is exact "
+                    "only for real rule sets."),
+                "all_real_rows_base_rate": {
+                    "rows_trading_ge5_in_all_three": tri,
+                    "positive_in_all_three": pos3,
+                    "observed_3of3_rate": round(pos3 / tri, 4) if tri else None,
+                    "per_slice_positive_rate_p": round(p, 4),
+                    "independence_benchmark_p_cubed": round(p ** 3, 4),
+                    "verdict": ("no persistence: the 3-of-3 rate matches what "
+                                "independent coin flips at rate p would give")
+                    if tri and abs(pos3 / tri - p ** 3) < 0.05 else "check",
+                },
                 "per_slice_rankings": sl_place,
             }
 

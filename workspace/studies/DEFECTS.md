@@ -616,3 +616,23 @@ paired, with identical rule sets and the flag flipped: trades rise ×3.2–4.2 a
 measurement while starving the sample.** Both readings are true; report which one you used.
 Notably, in the properly-populated cells the best placebo ranks **1–3 against nulls of 4.7–19.2 in
 8 of 9**.
+
+## D42 — `placebo_shift` is not a clean control; `placebo_random` and `placebo_shuffle` are
+
+The self-test across all four MGC/MCL cells, run after the single-cell check passed:
+
+| kind | mean normalised rank (4 cells) | verdict |
+|---|---|---|
+| `placebo_shuffle` | 0.501, 0.539, 0.511, 0.574 | **clean** — uniform everywhere (KS p 0.25–0.98) |
+| `placebo_random` | 0.621, 0.546, 0.536, 0.511 | **clean at 60m**; MCL_240 ranks *worse* than uniform (p=0.029), small-sample |
+| `placebo_shift` | **0.370, 0.376, 0.442, 0.369** | **leaks** — consistently better than the 0.5 uniform predicts, in all four cells |
+
+A 5-bar-shifted copy of a real signal retains part of that signal, because adjacent bars are
+correlated. So `placebo_shift` is a **degraded real strategy, not a placebo**, and it is a
+*conservative* control: a shifted placebo beating a real strategy is a weaker result than a random
+or shuffled one doing so.
+
+**This does not weaken the headline finding — it sharpens it.** The strongest case in the ranking
+study (MZC 60m 180d, placebo taking ranks 1 and 2 of 66 rows) was `placebo_random` and
+`placebo_shuffle`, the two clean kinds. Any future ranking should report the three kinds
+separately and lean on shuffle, which is uniform in every cell tested.

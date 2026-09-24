@@ -583,5 +583,200 @@
    },
    "median_n_real": 67
   }
+ },
+ "MCL_240": {
+  "symbol": "MCL",
+  "tf": 240,
+  "window": 274,
+  "n_reals": 2129,
+  "n_cleared": 16,
+  "n_bases": 16,
+  "reps": 400,
+  "eligible": {
+   "pool": "eligible",
+   "n_placebos_run": 48,
+   "n_rows": 47,
+   "build": {
+    "pool": "eligible",
+    "shift_bars": 5,
+    "n_bases": 16,
+    "dropped_empty": 0,
+    "id_collisions": 0,
+    "eligible_rate_mean": 0.6271,
+    "direction_changed_mean": 0.4604,
+    "signal_rate_mean": 0.1185,
+    "n_placebos": 48
+   },
+   "floor_survival": 0.979,
+   "median_n": 45,
+   "median_realised_over_base": 1.137,
+   "by_kind": {
+    "placebo_random": {
+     "n": 16,
+     "best_rank": 17,
+     "mean_normalised_rank": 0.621,
+     "median_n_trades": 60.5,
+     "ks_vs_uniform": {
+      "d": 0.3511,
+      "p": 0.0288,
+      "n": 16
+     },
+     "null": {
+      "n_total": 47,
+      "n_placebo": 16,
+      "expected_best_rank": 2.82,
+      "p_best_placebo_rank_1": 0.3404,
+      "p_best_placebo_in_top5": 0.8892,
+      "p_best_placebo_in_top10": 0.9914
+     }
+    },
+    "placebo_shift": {
+     "n": 15,
+     "best_rank": 2,
+     "mean_normalised_rank": 0.3695,
+     "median_n_trades": 34,
+     "ks_vs_uniform": {
+      "d": 0.3794,
+      "p": 0.019,
+      "n": 15
+     },
+     "null": {
+      "n_total": 47,
+      "n_placebo": 15,
+      "expected_best_rank": 3.0,
+      "p_best_placebo_rank_1": 0.3191,
+      "p_best_placebo_in_top5": 0.8687,
+      "p_best_placebo_in_top10": 0.9875
+     }
+    },
+    "placebo_shuffle": {
+     "n": 16,
+     "best_rank": 1,
+     "mean_normalised_rank": 0.5013,
+     "median_n_trades": 41.5,
+     "ks_vs_uniform": {
+      "d": 0.113,
+      "p": 0.9805,
+      "n": 16
+     },
+     "null": {
+      "n_total": 47,
+      "n_placebo": 16,
+      "expected_best_rank": 2.82,
+      "p_best_placebo_rank_1": 0.3404,
+      "p_best_placebo_in_top5": 0.8892,
+      "p_best_placebo_in_top10": 0.9914
+     }
+    }
+   },
+   "uniformity": {
+    "d": 0.3511,
+    "p": 0.0288,
+    "n": 16
+   },
+   "mean_normalised_rank": 0.621,
+   "verdict": "NOT uniform - the matching is leaking, placebo ranks are not interpretable until it is fixed",
+   "vs_real_n": {
+    "u": 897.0,
+    "z": 1.187,
+    "p": 0.23505,
+    "n_a": 47,
+    "n_b": 33
+   },
+   "median_n_real": 42
+  },
+  "all": {
+   "pool": "all",
+   "n_placebos_run": 48,
+   "n_rows": 46,
+   "build": {
+    "pool": "all",
+    "shift_bars": 5,
+    "n_bases": 16,
+    "dropped_empty": 0,
+    "id_collisions": 0,
+    "eligible_rate_mean": 1.0,
+    "direction_changed_mean": 0.4599,
+    "signal_rate_mean": 0.1185,
+    "n_placebos": 48
+   },
+   "floor_survival": 0.958,
+   "median_n": 40.5,
+   "median_realised_over_base": 1.095,
+   "by_kind": {
+    "placebo_random": {
+     "n": 15,
+     "best_rank": 1,
+     "mean_normalised_rank": 0.537,
+     "median_n_trades": 55,
+     "ks_vs_uniform": {
+      "d": 0.1775,
+      "p": 0.6879,
+      "n": 15
+     },
+     "null": {
+      "n_total": 46,
+      "n_placebo": 15,
+      "expected_best_rank": 2.94,
+      "p_best_placebo_rank_1": 0.3261,
+      "p_best_placebo_in_top5": 0.876,
+      "p_best_placebo_in_top10": 0.9891
+     }
+    },
+    "placebo_shift": {
+     "n": 15,
+     "best_rank": 4,
+     "mean_normalised_rank": 0.437,
+     "median_n_trades": 34,
+     "ks_vs_uniform": {
+      "d": 0.1949,
+      "p": 0.5706,
+      "n": 15
+     },
+     "null": {
+      "n_total": 46,
+      "n_placebo": 15,
+      "expected_best_rank": 2.94,
+      "p_best_placebo_rank_1": 0.3261,
+      "p_best_placebo_in_top5": 0.876,
+      "p_best_placebo_in_top10": 0.9891
+     }
+    },
+    "placebo_shuffle": {
+     "n": 16,
+     "best_rank": 3,
+     "mean_normalised_rank": 0.5245,
+     "median_n_trades": 40.5,
+     "ks_vs_uniform": {
+      "d": 0.1277,
+      "p": 0.9417,
+      "n": 16
+     },
+     "null": {
+      "n_total": 46,
+      "n_placebo": 16,
+      "expected_best_rank": 2.76,
+      "p_best_placebo_rank_1": 0.3478,
+      "p_best_placebo_in_top5": 0.896,
+      "p_best_placebo_in_top10": 0.9926
+     }
+    }
+   },
+   "uniformity": {
+    "d": 0.1775,
+    "p": 0.6879,
+    "n": 15
+   },
+   "mean_normalised_rank": 0.537,
+   "verdict": "uniform - count matching does not push a relocated entry down",
+   "vs_real_n": {
+    "u": 831.5,
+    "z": 0.721,
+    "p": 0.4711,
+    "n_a": 46,
+    "n_b": 33
+   },
+   "median_n_real": 42
+  }
  }
 }

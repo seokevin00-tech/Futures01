@@ -96,7 +96,8 @@ def costs(symbol: str, tf: int, budget: int = 2000):
             "top10_still_positive_at_2x": sum(1 for r in rows[:10] if r["net_2x"] > 0)}
 
 
-def parameter_sensitivity(symbol: str, tf: int, budget: int = 2000):
+def parameter_sensitivity(symbol: str, tf: int, budget: int = 12000,
+                          sib_floor: int = 5, min_siblings: int = 2):
     """Neighbourhood stability. For each qualifying rule set, how do its
     SIBLINGS - the same signal set under every other exit geometry the
     combinator offers - perform? A rule set whose edge lives in one exit cell
@@ -110,14 +111,14 @@ def parameter_sensitivity(symbol: str, tf: int, budget: int = 2000):
     fam = defaultdict(list)
     for s in S:
         trades = res[s.strategy_id].trades
-        if len(trades) < 20:
+        if len(trades) < sib_floor:
             continue
         key = (s.group, tuple(sorted(c.name for c in s.conditions)), s.execution_tf)
         from futures_agents.backtest.metrics import compute_metrics
         fam[key].append((s.exit.identity, compute_metrics(trades).expectancy_r, len(trades)))
     out = []
     for k, v in fam.items():
-        if len(v) < 3:
+        if len(v) < min_siblings:
             continue
         exps = [x[1] for x in v]
         out.append(dict(group=k[0], conds=list(k[1]), siblings=len(v),
@@ -128,6 +129,9 @@ def parameter_sensitivity(symbol: str, tf: int, budget: int = 2000):
     if not out:
         return {"symbol": symbol, "tf": tf, "families": 0}
     return {"symbol": symbol, "tf": tf, "families": len(out),
+            "sibling_floor": sib_floor, "min_siblings": min_siblings,
+            "median_spread_best_minus_worst": round(st.median(
+                [r["best"] - r["worst"] for r in out]), 4),
             "median_frac_positive_across_siblings":
                 round(st.median([r["frac_positive"] for r in out]), 3),
             "top10_by_best_exit": out[:10],
