@@ -4,9 +4,10 @@ One dated, self-contained markdown report per strategy scan.
 
 Each report is written to be readable months later without this session's context, and to
 be re-runnable: the command that produced it is in the header, alongside the commit the
-code was at. Row-level results live in `workspace/` and are gitignored as run artefacts —
-the reports carry the conclusions, the summary tables and the cell inventory needed to
-judge them.
+code was at. Row-level results live in `workspace/`; the bulky per-trade artefacts are run
+output, but each study's own `FINDINGS.md` and its audit JSON are committed and are cited
+by path in the report header. The reports carry the conclusions, the summary tables and the
+cell inventory needed to judge them.
 
 ## Naming
 
@@ -47,3 +48,4 @@ describe its shape.
 | 2026-09-23 | MGC, MES, NQ — 39 cells, 554k strategies | [deep scan](2026-09-23_MGC-MES-NQ_deep-scan.md) |
 | 2026-09-24 | 22 studies, 24 agents, 912 matched comparisons | [study programme](2026-09-24_strategy-studies_21-study-programme.md) |
 | 2026-09-24 | ORB and ICT — 6 studies, 5 placebo controls | [ORB and ICT](2026-09-24_ORB-and-ICT.md) |
+| 2026-09-24 | MGC, MCL — ranking persistence, per-symbol framework, chronological rotation | [ranking persistence and chronology](2026-09-24_MGC-MCL_ranking-persistence-and-chronology.md) |
