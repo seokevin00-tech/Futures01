@@ -1,0 +1,552 @@
+/* Futures Desk - risk console styling.
+ *
+ * COLOUR RULE, and it is the important one in this file:
+ *
+ *   --dir-long  (#005fff blue)  and  --dir-short (#ff8700 orange)  appear ONLY
+ *   inside a filled .badge-dir. They are never a border, never a chart mark,
+ *   never an accent, never a hover state.
+ *
+ * The terminal renderer moved SIGNAL off blue and NO TRADE off orange
+ * deliberately, so that nothing in peripheral vision could be mistaken for a
+ * direction. Using those two hues to decorate a panel would undo that at the
+ * UI level. Everything non-directional is therefore neutral ink plus one
+ * status hue, and every status is icon + word + colour, never colour alone.
+ *
+ * Values are converted from the xterm-256 indices in futures_agents/alerts.py,
+ * so the terminal, the HTML dashboard and this console agree exactly.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* Direction - RESERVED. Filled badges only. */
+  --dir-long: #005fff;      /* xterm 27  */
+  --dir-long-ink: #ffffff;  /* xterm 231 - 5.15:1 */
+  --dir-short: #ff8700;     /* xterm 208 */
+  --dir-short-ink: #000000; /* xterm 16  - 8.72:1 */
+  --dir-none: #bcbcbc;      /* xterm 250 */
+  --dir-none-ink: #000000;  /* 11.06:1 */
+
+  /* Status - always paired with an icon and a word. */
+  --ok: #00af00;
+  --ok-ink: #000000;
+  --warn: #ffd700;
+  --warn-ink: #000000;
+  --halt: #d70000;
+  --halt-ink: #ffffff;
+
+  /* Surfaces and ink. */
+  --bg: #17181a;
+  --panel: #1f2123;
+  --panel-2: #262a2d;
+  --line: #34383c;
+  --line-soft: #2a2e31;
+  --ink: #e9ecef;
+  --ink-2: #b4bbc2;
+  --ink-3: #7f878f;
+
+  /* Sequential ramp for magnitude (buffer consumed, stop cost). One hue,
+   * light to dark - never a rainbow. */
+  --seq-1: #3b4a5a;
+  --seq-2: #47607a;
+  --seq-3: #55789b;
+  --seq-4: #6b93b8;
+
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --r: 8px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #f6f7f8;
+    --panel: #ffffff;
+    --panel-2: #f0f2f4;
+    --line: #d5dade;
+    --line-soft: #e6eaed;
+    --ink: #16191c;
+    --ink-2: #4a5259;
+    --ink-3: #737c84;
+    --seq-1: #cfe0ee;
+    --seq-2: #9dc0dc;
+    --seq-3: #6b9ec9;
+    --seq-4: #3f7cae;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body { padding-bottom: 4rem; }
+
+a { color: var(--seq-4); }
+
+/* ---------------------------------------------------------------- header */
+
+header.top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  padding: 0.6rem 1rem 0;
+}
+
+.brandrow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  font-size: 1.05rem;
+}
+
+.brand small {
+  font-weight: 400;
+  color: var(--ink-3);
+  margin-left: 0.4rem;
+  font-size: 0.78rem;
+}
+
+.kpirow {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin: 0.55rem 0 0.5rem;
+}
+
+.kpi { min-width: 7.5rem; }
+
+.kpi .k {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+
+.kpi .v {
+  font-family: var(--mono);
+  font-size: 1.02rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi .v.sm { font-size: 0.9rem; }
+
+nav.tabs {
+  display: flex;
+  gap: 0.15rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+nav.tabs button {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--ink-2);
+  font: inherit;
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+  border-radius: var(--r) var(--r) 0 0;
+}
+
+nav.tabs button:hover { background: var(--panel-2); color: var(--ink); }
+
+nav.tabs button[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+  font-weight: 600;
+}
+
+/* ----------------------------------------------------------------- layout */
+
+main { padding: 1rem; max-width: 1400px; margin: 0 auto; }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.panel > h2 {
+  margin: 0 0 0.15rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.panel > h2 + .sub { margin: 0 0 0.75rem; }
+
+.sub { color: var(--ink-3); font-size: 0.8rem; margin: 0 0 0.5rem; }
+
+/* Grid and flex children default to `min-width: auto`, which refuses to shrink
+ * below their content's minimum. On a phone that pushes the whole document
+ * wider than the viewport and produces a horizontal scroll of the entire page.
+ * Every grid child here is allowed to shrink; wide tables stay readable because
+ * they sit in their own `.scroller`, which scrolls on its own. */
+.cols > *, .grid-fields > *, .numrow > * { min-width: 0; }
+
+/* The slider still needs enough width to be draggable after that rule; without
+ * a floor it collapses to a few pixels inside a narrow column. */
+.rangepair > input[type="range"] { min-width: 4.5rem; }
+
+.help, .sub, .reasons li, table.data caption { overflow-wrap: break-word; }
+
+.cols { display: grid; gap: 0.85rem; }
+@media (min-width: 900px)  { .cols.two   { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1100px) { .cols.ticket { grid-template-columns: 22rem 1fr; } }
+
+.grid-fields {
+  display: grid;
+  gap: 0.6rem 0.9rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 620px) { .grid-fields.two { grid-template-columns: 1fr 1fr; } }
+
+/* ----------------------------------------------------------------- fields */
+
+label.f { display: block; }
+
+label.f > .lab {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.5rem;
+  font-size: 0.78rem;
+  color: var(--ink-2);
+  margin-bottom: 0.2rem;
+  min-height: 1.15rem;
+}
+
+label.f > .lab > span:first-child { flex: 1 1 auto; }
+
+label.f > .lab .cur {
+  font-family: var(--mono);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+input[type="text"], input[type="number"], select, textarea {
+  width: 100%;
+  background: var(--panel-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.38rem 0.5rem;
+  font: inherit;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+input:focus-visible, select:focus-visible, button:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--seq-4);
+  outline-offset: 1px;
+}
+
+input[aria-invalid="true"] { border-color: var(--halt); }
+
+input[type="range"] { width: 100%; accent-color: var(--seq-4); }
+
+.rangepair {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, 1fr) 6.25rem;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+/* A slider squeezed to 60px is not draggable. The viewport width does not tell
+ * us how much room the control actually has - the same field is roomy in a
+ * full-width studio panel and cramped in the ticket's 22rem column - so the
+ * decision is made against the field's own width, not the window's. */
+label.f { container-type: inline-size; }
+
+@container (max-width: 250px) {
+  .rangepair { grid-template-columns: 1fr; }
+}
+
+/* Fallback for browsers without container queries: stack on narrow viewports. */
+@supports not (container-type: inline-size) {
+  @media (max-width: 420px) {
+    .rangepair { grid-template-columns: 1fr; }
+  }
+}
+
+.help {
+  font-size: 0.75rem;
+  color: var(--ink-3);
+  margin-top: 0.22rem;
+  line-height: 1.4;
+}
+
+.inline { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+
+.chk { display: flex; gap: 0.45rem; align-items: center; font-size: 0.85rem; }
+
+/* ---------------------------------------------------------------- buttons */
+
+button.btn {
+  appearance: none;
+  background: var(--panel-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.42rem 0.8rem;
+  font: inherit;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+button.btn:hover:not(:disabled) { border-color: var(--ink-3); }
+button.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+button.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.btn.danger { border-color: var(--halt); color: var(--halt); }
+button.btn.sm { padding: 0.22rem 0.5rem; font-size: 0.8rem; }
+
+/* ----------------------------------------------------------------- badges */
+
+/* The only place the direction hues are permitted. */
+.badge-dir {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  font-size: 1.05rem;
+}
+
+.badge-dir.long    { background: var(--dir-long);  color: var(--dir-long-ink); }
+.badge-dir.short   { background: var(--dir-short); color: var(--dir-short-ink); }
+.badge-dir.notrade { background: var(--dir-none);  color: var(--dir-none-ink); }
+
+.badge-dir .glyph { font-family: var(--mono); font-size: 1.1em; }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  padding: 0.14rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.pill.ok   { background: var(--ok);   color: var(--ok-ink);   border-color: transparent; }
+.pill.warn { background: var(--warn); color: var(--warn-ink); border-color: transparent; }
+.pill.halt { background: var(--halt); color: var(--halt-ink); border-color: transparent; }
+
+/* --------------------------------------------------------------- verdicts */
+
+.verdict {
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: var(--r);
+  padding: 0.75rem 0.9rem;
+  background: var(--panel-2);
+}
+
+.verdict.approved { border-left-color: var(--ok); }
+.verdict.vetoed   { border-left-color: var(--halt); }
+.verdict.warn     { border-left-color: var(--warn); }
+.verdict.neutral  { border-left-color: var(--ink-3); }
+
+.verdict h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reasons { margin: 0.4rem 0 0; padding-left: 1.1rem; }
+.reasons li { margin: 0.18rem 0; font-size: 0.83rem; color: var(--ink-2); }
+.reasons.veto li { color: var(--ink); }
+
+.numrow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.6rem 0.9rem;
+  margin-top: 0.6rem;
+}
+
+.num .k {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-3);
+}
+
+.num .v {
+  font-family: var(--mono);
+  font-size: 0.98rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ table */
+
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+table.data th {
+  text-align: right;
+  font-weight: 600;
+  color: var(--ink-3);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+table.data th:first-child, table.data td:first-child { text-align: left; }
+table.data td { padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--line-soft); text-align: right; }
+table.data tbody tr:hover { background: var(--panel-2); }
+table.data tr.muted td { color: var(--ink-3); }
+table.data tr.chosen td { background: var(--panel-2); font-weight: 650; }
+table.data caption { caption-side: bottom; color: var(--ink-3); font-size: 0.74rem; text-align: left; padding-top: 0.4rem; font-family: system-ui, sans-serif; }
+
+.scroller { overflow-x: auto; }
+
+/* ------------------------------------------------------------------ meter */
+
+/* Magnitude as a bar: 4px rounded data-end anchored to the baseline, one hue,
+ * and a real label beside it - never colour carrying the value alone. */
+.meter {
+  height: 8px;
+  background: var(--panel-2);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+}
+
+.meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--seq-4);
+  transition: width 0.18s ease-out;
+}
+
+.meter.hot > span   { background: var(--warn); }
+.meter.crit > span  { background: var(--halt); }
+
+.barcell { display: flex; align-items: center; gap: 0.45rem; justify-content: flex-end; }
+.barcell .bar { height: 7px; border-radius: 4px; background: var(--seq-3); min-width: 1px; }
+
+/* ------------------------------------------------------------------- misc */
+
+.caveat {
+  border: 1px solid var(--warn);
+  border-left-width: 4px;
+  border-radius: var(--r);
+  background: var(--panel);
+  padding: 0.7rem 0.9rem;
+  font-size: 0.83rem;
+  color: var(--ink-2);
+  margin-bottom: 0.85rem;
+}
+
+.caveat strong { color: var(--ink); }
+
+.toast {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--ok);
+  border-radius: var(--r);
+  padding: 0.6rem 0.95rem;
+  font-size: 0.85rem;
+  max-width: min(46rem, 92vw);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+.toast.bad { border-left-color: var(--halt); }
+.toast[hidden] { display: none; }
+
+footer.paths {
+  border-top: 1px solid var(--line);
+  padding: 0.75rem 1rem;
+  color: var(--ink-3);
+  font-size: 0.75rem;
+  font-family: var(--mono);
+  max-width: 1400px;
+  margin: 1rem auto 0;
+}
+
+footer.paths b { color: var(--ink-2); font-weight: 600; }
+footer.paths div { margin: 0.15rem 0; word-break: break-all; }
+
+/* `hidden` must win over any explicit `display` a class sets. Without this,
+ * `el.hidden = true` silently does nothing to .pill, .badge-dir or anything
+ * else carrying a display value - the property reads true from JS while the
+ * element stays on screen. */
+[hidden] { display: none !important; }
+
+.hidden { display: none !important; }
+
+details.adv { margin-top: 0.5rem; }
+details.adv > summary { cursor: pointer; color: var(--ink-2); font-size: 0.82rem; }
+details.adv[open] > summary { margin-bottom: 0.5rem; }
+
+.groupttl {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-3);
+  font-weight: 700;
+  margin: 1rem 0 0.35rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.groupttl:first-child { margin-top: 0; }
+
+.sticky-actions {
+  position: sticky;
+  bottom: 0;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  padding: 0.6rem 0 0.2rem;
+  margin-top: 0.8rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Futures Desk</title>
+<link rel="stylesheet" href="app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%23005fff'/><path d='M4 11l3-4 2 2 3-4' stroke='%23fff' stroke-width='1.6' fill='none'/></svg>">
+</head>
+<body>
+
+<header class="top">
+  <div class="brandrow">
+    <span class="brand">Futures Desk<small>risk console &middot; $50K account</small></span>
+    <span id="modePill" class="pill">loading…</span>
+    <span id="llmPill" class="pill" title="Reasoning-model availability"></span>
+  </div>
+
+  <div class="kpirow" id="kpirow">
+    <div class="kpi"><div class="k">Equity</div><div class="v" id="kEquity">—</div></div>
+    <div class="kpi"><div class="k">Peak</div><div class="v sm" id="kPeak">—</div></div>
+    <div class="kpi"><div class="k">Failure at</div><div class="v sm" id="kFail">—</div></div>
+    <div class="kpi"><div class="k">Usable buffer</div><div class="v" id="kBuffer">—</div>
+      <div class="meter" id="kBufferMeter" role="img" aria-label="Usable buffer consumed"><span style="width:0%"></span></div>
+    </div>
+    <div class="kpi"><div class="k">Risk multiplier</div><div class="v sm" id="kMult">—</div></div>
+    <div class="kpi"><div class="k">Today P&amp;L</div><div class="v sm" id="kDay">—</div></div>
+    <div class="kpi"><div class="k">Next trade budget</div><div class="v" id="kBudget">—</div></div>
+  </div>
+
+  <nav class="tabs" role="tablist" aria-label="Screens">
+    <button role="tab" data-tab="ticket"   aria-selected="true">Trade ticket</button>
+    <button role="tab" data-tab="studio"   aria-selected="false">Risk studio</button>
+    <button role="tab" data-tab="account"  aria-selected="false">Account</button>
+    <button role="tab" data-tab="agents"   aria-selected="false">Agents</button>
+    <button role="tab" data-tab="evidence" aria-selected="false">Evidence</button>
+  </nav>
+</header>
+
+<main>
+
+  <div class="caveat" id="caveat"></div>
+
+  <!-- ================================================== TRADE TICKET === -->
+  <section id="tab-ticket" data-panel>
+    <div class="cols ticket">
+
+      <!-- ---- inputs ---- -->
+      <div>
+        <div class="panel">
+          <h2>Ticket</h2>
+          <p class="sub">You supply the picture. There is no data feed in this
+            application &mdash; nothing here is fetched, and no level is current
+            unless you typed it.</p>
+
+          <div class="grid-fields">
+            <label class="f"><span class="lab"><span>Symbol</span></span>
+              <select id="fSymbol"></select>
+              <div class="help" id="symbolFramework"></div>
+            </label>
+
+            <label class="f"><span class="lab"><span>Direction</span></span>
+              <select id="fDirection">
+                <option value="LONG">LONG (buy)</option>
+                <option value="SHORT">SHORT (sell)</option>
+                <option value="NEUTRAL">NEUTRAL / undecided</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="grid-fields two" style="margin-top:.6rem">
+            <label class="f"><span class="lab"><span>Entry</span></span>
+              <input type="number" id="fEntry" step="any" inputmode="decimal"></label>
+            <label class="f"><span class="lab"><span>Stop</span><span class="cur" id="stopMeta"></span></span>
+              <input type="number" id="fStop" step="any" inputmode="decimal"></label>
+            <label class="f"><span class="lab"><span>Target 1</span><span class="cur" id="t1Meta"></span></span>
+              <input type="number" id="fT1" step="any" inputmode="decimal"></label>
+            <label class="f"><span class="lab"><span>Target 2 <em>(optional)</em></span></span>
+              <input type="number" id="fT2" step="any" inputmode="decimal"></label>
+          </div>
+
+          <div class="groupttl">Context</div>
+          <div class="grid-fields two">
+            <label class="f"><span class="lab"><span>ATR (points)</span><span class="cur" id="atrHint"></span></span>
+              <input type="number" id="fAtr" step="any" inputmode="decimal">
+              <div class="help">Drives the 0.5&times;ATR stop floor and the cost
+                ladder. Leave blank to use the contract's typical ATR.</div></label>
+            <label class="f"><span class="lab"><span>Median ATR</span></span>
+              <input type="number" id="fAtrMedian" step="any" inputmode="decimal">
+              <div class="help">Enables the volatility band veto.</div></label>
+            <label class="f"><span class="lab"><span>Confidence</span><span class="cur" id="confCur">0.60</span></span>
+              <div class="rangepair">
+                <input type="range" id="fConfidence" min="0" max="1" step="0.01" value="0.6">
+                <input type="number" id="fConfidenceN" min="0" max="1" step="0.01" value="0.6">
+              </div></label>
+            <label class="f"><span class="lab"><span>Timeframe</span></span>
+              <select id="fTimeframe"></select>
+              <div class="help" id="tfWarn"></div></label>
+            <label class="f"><span class="lab"><span>Volatility regime</span></span>
+              <select id="fVolatility">
+                <option>NORMAL</option><option>LOW</option>
+                <option>HIGH</option><option>EXTREME</option>
+              </select></label>
+            <label class="f"><span class="lab"><span>News risk</span></span>
+              <select id="fNewsRisk">
+                <option value="NONE">NONE</option>
+                <option value="LOW">LOW</option>
+                <option value="MEDIUM">MEDIUM</option>
+                <option value="HIGH">HIGH</option>
+                <option value="BLACKOUT">BLACKOUT</option>
+              </select></label>
+          </div>
+
+          <details class="adv">
+            <summary>Measured history for this strategy (optional &mdash; and the
+              reason most tickets are vetoed)</summary>
+            <p class="help" style="margin:0 0 .5rem">The risk engine refuses any
+              trade with no measured history: an unmeasured edge is not an edge.
+              Nothing in this library is live-eligible, so leaving this blank
+              gives the honest answer &mdash; a veto &mdash; and the
+              <em>discretionary</em> sizing block below still shows what the
+              account could carry.</p>
+            <div class="grid-fields two">
+              <label class="f"><span class="lab"><span>Trades</span></span>
+                <input type="number" id="hTrades" step="1" min="0"></label>
+              <label class="f"><span class="lab"><span>Win rate (0&ndash;1)</span></span>
+                <input type="number" id="hWin" step="0.01" min="0" max="1"></label>
+              <label class="f"><span class="lab"><span>Expectancy (R)</span></span>
+                <input type="number" id="hExp" step="0.001"></label>
+              <label class="f"><span class="lab"><span>Out-of-sample trades</span></span>
+                <input type="number" id="hOosTrades" step="1" min="0"></label>
+              <label class="f"><span class="lab"><span>OOS expectancy (R)</span></span>
+                <input type="number" id="hOosExp" step="0.001"></label>
+              <label class="f"><span class="lab"><span>Robustness (0&ndash;1)</span></span>
+                <input type="number" id="hRobust" step="0.01" min="0" max="1"></label>
+            </div>
+            <label class="chk" style="margin-top:.5rem">
+              <input type="checkbox" id="hSufficient"> Sample is sufficient</label>
+          </details>
+
+          <div class="sticky-actions">
+            <button class="btn primary" id="btnRecalc">Recalculate</button>
+            <button class="btn" id="btnClear">Clear ticket</button>
+            <span class="pill" id="liveHint">recalculates as you type</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- results ---- -->
+      <div>
+        <div class="panel" id="calloutPanel">
+          <h2>Callout</h2>
+          <p class="sub">The colour is the direction and nothing else: blue is
+            long, orange is short, grey is no trade.</p>
+          <div id="calloutBadge"></div>
+          <div class="numrow" id="calloutNums"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Risk engine verdict</h2>
+          <p class="sub">The deterministic layer. It forms no view on the market
+            and cannot be argued with.</p>
+          <div id="engineVerdict" class="verdict neutral">—</div>
+        </div>
+
+        <div class="panel">
+          <h2>Discretionary sizing</h2>
+          <p class="sub" id="discSub"></p>
+          <div id="discBlock" class="verdict neutral">—</div>
+        </div>
+
+        <div class="panel">
+          <h2>What each stop costs</h2>
+          <p class="sub">Per contract, at your ATR. The row you are on is
+            highlighted. This is the table that answers &ldquo;why can&rsquo;t I
+            take this trade?&rdquo; before you ask it.</p>
+          <div class="scroller"><table class="data" id="ladderTable"></table></div>
+        </div>
+
+        <div class="panel">
+          <h2>If this loses, repeatedly</h2>
+          <p class="sub">Each row assumes a full stop loss at the size above &mdash;
+            the pessimistic case, and the only one worth planning for.</p>
+          <div class="scroller"><table class="data" id="walkTable"></table></div>
+        </div>
+
+        <div class="panel">
+          <h2>Guards</h2>
+          <div id="guardList"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================================================== RISK STUDIO === -->
+  <section id="tab-studio" data-panel hidden>
+    <div class="panel">
+      <h2>Risk studio</h2>
+      <p class="sub">Every constraint the engine enforces, live. Changes apply to
+        the preview immediately; <b>Save</b> writes them to
+        <code id="studioFile"></code> in your project folder, where you can also
+        edit them by hand.</p>
+      <div id="derived" class="numrow"></div>
+    </div>
+
+    <div class="cols two" id="studioGroups"></div>
+
+    <div class="panel">
+      <h2>De-risk ladder</h2>
+      <p class="sub">As the usable buffer is consumed, risk per trade is scaled by
+        these factors. Thresholds must rise and multipliers must not &mdash; a row
+        that breaks that would size the account <em>up</em> as it loses, so it is
+        rejected.</p>
+      <div class="scroller"><table class="data" id="ladderEditor"></table></div>
+      <div class="inline" style="margin-top:.6rem">
+        <button class="btn sm" id="btnLadderAdd">Add row</button>
+        <button class="btn sm" id="btnLadderReset">Reset to default</button>
+      </div>
+    </div>
+
+    <div class="panel sticky-actions" style="position:sticky;bottom:0">
+      <button class="btn primary" id="btnSaveConfig">Save to project folder</button>
+      <button class="btn" id="btnRevertConfig">Revert to saved</button>
+      <span class="pill" id="dirtyPill" hidden>unsaved changes</span>
+    </div>
+  </section>
+
+  <!-- ====================================================== ACCOUNT === -->
+  <section id="tab-account" data-panel hidden>
+    <div class="cols two">
+      <div class="panel">
+        <h2>Live account</h2>
+        <p class="sub">What the engine sizes against. Written to
+          <code id="acctFile"></code>.</p>
+        <div class="grid-fields two">
+          <label class="f"><span class="lab"><span>Equity</span></span>
+            <input type="number" id="aEquity" step="any"></label>
+          <label class="f"><span class="lab"><span>Peak equity</span></span>
+            <input type="number" id="aPeak" step="any">
+            <div class="help">Never below equity; the failure line trails this.</div></label>
+          <label class="f"><span class="lab"><span>Today realised P&amp;L</span></span>
+            <input type="number" id="aDayPnl" step="any"></label>
+          <label class="f"><span class="lab"><span>Trades taken today</span></span>
+            <input type="number" id="aDayTrades" step="1" min="0"></label>
+          <label class="f"><span class="lab"><span>Consecutive losses</span></span>
+            <input type="number" id="aDayLosses" step="1" min="0"></label>
+        </div>
+        <div class="sticky-actions">
+          <button class="btn primary" id="btnSaveAccount">Save account</button>
+          <button class="btn" id="btnResetDay">Start new session ledger</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>State</h2>
+        <div class="numrow" id="acctNums"></div>
+        <div class="groupttl">Equity curve</div>
+        <div id="equitySpark"></div>
+        <p class="sub" id="sparkNote"></p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Open positions</h2>
+      <p class="sub">Exposure and correlation limits read this. Two positions in
+        one correlation group is one larger position, not a diversified pair.</p>
+      <div class="scroller"><table class="data" id="posTable"></table></div>
+      <details class="adv">
+        <summary>Record an open position</summary>
+        <div class="grid-fields two">
+          <label class="f"><span class="lab"><span>Symbol</span></span><select id="pSymbol"></select></label>
+          <label class="f"><span class="lab"><span>Direction</span></span>
+            <select id="pDirection"><option>LONG</option><option>SHORT</option></select></label>
+          <label class="f"><span class="lab"><span>Contracts</span></span><input type="number" id="pContracts" value="1" min="1" step="1"></label>
+          <label class="f"><span class="lab"><span>Entry</span></span><input type="number" id="pEntry" step="any"></label>
+          <label class="f"><span class="lab"><span>Stop</span></span><input type="number" id="pStop" step="any"></label>
+        </div>
+        <div class="inline" style="margin-top:.6rem">
+          <button class="btn" id="btnAddPos">Add position</button>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ======================================================= AGENTS === -->
+  <section id="tab-agents" data-panel hidden>
+    <div class="panel">
+      <h2>The cycle</h2>
+      <p class="sub">A normal callout runs in this order. The three analysts read
+        the picture independently &mdash; they do not see each other's work,
+        because three agents agreeing after reading one another is one opinion
+        counted three times.</p>
+      <ol id="cycleList" class="reasons"></ol>
+    </div>
+    <div class="panel">
+      <h2>Roster</h2>
+      <div class="scroller"><table class="data" id="agentTable"></table></div>
+    </div>
+    <div class="panel">
+      <h2>Reasoning model</h2>
+      <div id="llmBlock" class="verdict neutral"></div>
+    </div>
+  </section>
+
+  <!-- ===================================================== EVIDENCE === -->
+  <section id="tab-evidence" data-panel hidden>
+    <div class="panel">
+      <h2>Per-symbol framework</h2>
+      <p class="sub">What survived measurement, and what did not. The negative
+        verdicts are shown because a blank reads as approval.</p>
+      <div class="scroller"><table class="data" id="fwTable"></table></div>
+    </div>
+    <div class="panel">
+      <h2>Rules that were measured and held</h2>
+      <div class="scroller"><table class="data" id="rulesTable"></table></div>
+    </div>
+    <div class="panel">
+      <h2>Cost of a median structural stop, by contract</h2>
+      <p class="sub">One contract, a stop of roughly one ATR, against your live
+        equity. This is the arithmetic behind preferring micros &mdash; and it is
+        computed from each contract's own tick and point values, not quoted.</p>
+      <div class="scroller"><table class="data" id="costTable"></table></div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="paths" id="footer"></footer>
+<div class="toast" id="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

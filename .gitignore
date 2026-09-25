@@ -35,3 +35,10 @@ workspace/studies/merged.json
 # Worker run logs, at any nesting depth. The existing workspace/*/log/ rule
 # misses workspace/<x>/<worker>/logs/; results are kept, transcripts are not.
 workspace/**/logs/
+
+# Desk console: personal account state and its journal database. The risk
+# CONFIG is deliberately NOT ignored - it is a shared, reviewable document.
+# The account file holds real equity and drawdown history and is not.
+desk-account.json
+**/desk-account.json
+desk/data/

@@ -29,7 +29,7 @@ Three constraints shape everything here:
 Colour semantics are not re-invented here. The tones are converted from the
 exact xterm-256 indices in :class:`~futures_agents.alerts.Palette`, and the
 cycle counts and beep counts come from :class:`~futures_agents.alerts.Priority`,
-so a LONG looks the same shade of green in both renderers and pulses the same
+so a LONG looks the same shade of blue in both renderers and pulses the same
 number of times.
 
 Every string that reaches the document goes through :func:`html.escape`, and
